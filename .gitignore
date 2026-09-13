@@ -1,3 +1,4 @@
 .build/
 WordPop.app/
 .DS_Store
+scripts/glove-wiki-gigaword-100.gz

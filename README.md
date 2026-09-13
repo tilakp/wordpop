@@ -60,12 +60,16 @@ Both shortcuts can be changed from the menu bar icon under **Preferences**.
 
 ```sh
 cd scripts
-pip3 install wn
+pip3 install wn gensim wordfreq
 python3 -c "import wn; wn.download('oewn:2021')"
+curl -sL -o glove-wiki-gigaword-100.gz \
+  https://github.com/RaRe-Technologies/gensim-data/releases/download/glove-wiki-gigaword-100/glove-wiki-gigaword-100.gz
 python3 build_synonyms.py
 python3 build_rhymes.py
 cp synonyms.json antonyms.json rhymes.json ../Sources/WordPop/Resources/
 ```
+
+Synonyms within each part of speech are ranked by GloVe cosine similarity to the headword, which puts everyday synonyms ahead of obscure ones. Rhyme candidates are filtered to WordNet lemmas and ranked by `wordfreq`. The GloVe vectors are only used at build time and are not bundled in the app.
 
 ## Project layout
 

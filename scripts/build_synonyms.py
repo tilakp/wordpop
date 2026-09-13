@@ -1,17 +1,24 @@
 """
 Regenerates Sources/WordPop/Resources/synonyms.json and antonyms.json from
 the Open English WordNet. For each word, groups synsets by part of speech
-(so "run" the verb and "run" the noun don't get mixed together) and, within
-each group, ranks candidate synonyms by how early their sense appears
-(WordNet lists senses roughly most-common-first) — same-synset words first,
-then (for adjectives, which don't have direct synonyms so much as a
-"similar to" satellite network) similar-to neighbors. Antonyms are a direct
-per-sense WordNet relation, so they're just collected and ranked the same
-way, no satellite expansion needed.
+(so "run" the verb and "run" the noun don't get mixed together) and collects
+candidate synonyms from every sense — same-synset words, then (for
+adjectives, which don't have direct synonyms so much as a "similar to"
+satellite network) similar-to neighbors.
+
+Within each group, candidates are ranked by GloVe cosine similarity to the
+headword. WordNet's own sense order is a poor proxy for "most useful
+synonym first": it put "beardown, beefed-up" ahead of "powerful" for
+"strong", and "blessed, blissful" ahead of "glad" for "happy". Candidates
+GloVe has no vector for (multi-word phrases, very rare words) fall back to
+sense order, after the ranked ones. Antonyms are a direct per-sense WordNet
+relation and lists are short, so they keep plain sense order.
 
 Setup (one-time):
-    pip3 install wn
+    pip3 install wn gensim
     python3 -c "import wn; wn.download('oewn:2021')"
+    curl -sL -o glove-wiki-gigaword-100.gz \
+      https://github.com/RaRe-Technologies/gensim-data/releases/download/glove-wiki-gigaword-100/glove-wiki-gigaword-100.gz
 
 Usage:
     cd scripts && python3 build_synonyms.py
@@ -20,8 +27,12 @@ Usage:
 import json
 import time
 import wn
+from gensim.models import KeyedVectors
 
 en = wn.Wordnet("oewn:2021")
+
+print("loading GloVe vectors...")
+vectors = KeyedVectors.load_word2vec_format("glove-wiki-gigaword-100.gz")
 
 POS_GROUPS = {
     "noun": ["n"],
@@ -56,12 +67,16 @@ def candidates_for_group(word_lower, senses, wn_pos_list):
                         continue
                     seen.add(key)
                     ranked.append((rank + 0.5, key))
-    # Sort by rank only — a plain Python sort is stable, so words within the
-    # same rank keep the order WordNet (and `ranked.append` above) produced
-    # them in. Sorting by (rank, word) instead would alphabetize within each
-    # rank, throwing that ordering away.
-    ranked.sort(key=lambda c: c[0])
+    # Stable sort: candidates with a vector go first, most similar first;
+    # ties and vector-less candidates keep WordNet sense order.
+    ranked.sort(key=lambda c: (-similarity(word_lower, c[1]), c[0]))
     return [w for _, w in ranked[:MAX_SYNONYMS]]
+
+
+def similarity(word_lower, candidate):
+    if word_lower in vectors and candidate in vectors:
+        return float(vectors.similarity(word_lower, candidate))
+    return -1.0
 
 
 def antonyms_for_group(word_lower, senses, wn_pos_list):

@@ -2,7 +2,11 @@
 Builds Sources/WordPop/Resources/rhymes.json from the CMU Pronouncing
 Dictionary: groups words by their "rhyme key" (the phoneme sequence from the
 last stressed vowel to the end of the word) and, within each group, ranks
-words by general-English frequency so common rhymes surface first.
+words by general-English frequency (wordfreq) so common rhymes surface first.
+
+Setup (one-time):
+    pip3 install wn wordfreq
+    python3 -c "import wn; wn.download('oewn:2021')"
 
 Usage:
     cd scripts && python3 build_rhymes.py
@@ -12,8 +16,10 @@ import json
 import subprocess
 from collections import defaultdict
 
+import wn
+from wordfreq import zipf_frequency
+
 CMUDICT_URL = "https://raw.githubusercontent.com/cmusphinx/cmudict/master/cmudict.dict"
-FREQ_URL = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt"
 
 MAX_RHYMES = 15
 
@@ -26,15 +32,15 @@ def fetch(url):
     ).stdout
 
 
-print("downloading frequency list...")
-freq_rank = {w.strip().lower(): i for i, w in enumerate(fetch(FREQ_URL).splitlines()) if w.strip()}
-
-# cmudict is speech-recognition oriented and full of proper nouns/surnames
-# (e.g. "haim", "mapi") that happen to rhyme but aren't real dictionary
-# words. Filter candidates through macOS's system word list (only its
-# all-lowercase entries, since it capitalizes proper nouns) to drop those.
-with open("/usr/share/dict/words", encoding="utf-8", errors="ignore") as f:
-    real_words = {w.strip() for w in f if w.strip() and w.strip().islower()}
+# cmudict is speech-recognition oriented and full of proper nouns, surnames
+# and fragments (e.g. "haim", "gast", "spong", "un") that happen to rhyme but
+# aren't real dictionary words. macOS's /usr/share/dict/words let most of
+# those through; WordNet's lowercase single-word lemmas are a much tighter
+# "is this a real word" filter.
+real_words = {
+    w.lemma() for w in wn.Wordnet("oewn:2021").words()
+    if w.lemma().islower() and w.lemma().isalpha()
+}
 print(f"{len(real_words)} real dictionary words for filtering")
 
 print("downloading cmudict...")
@@ -91,7 +97,7 @@ for word, keys in word_keys.items():
             candidates.append(other)
     if not candidates:
         continue
-    candidates.sort(key=lambda w: (freq_rank.get(w, 100_000), len(w), w))
+    candidates.sort(key=lambda w: (-zipf_frequency(w, "en"), len(w), w))
     result[word] = candidates[:MAX_RHYMES]
 
 print(f"words with rhymes: {len(result)}")
