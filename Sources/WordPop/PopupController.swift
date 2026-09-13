@@ -8,7 +8,6 @@ final class PopupController: NSObject, NSWindowDelegate {
     private let viewModel = PopupViewModel()
     private var panel: PopupPanel?
     private var hostingController: NSHostingController<PopupContentView>?
-    private var enhancementTask: Task<Void, Never>?
 
     func show(entry: WordEntry, near point: NSPoint) {
         viewModel.reset(with: entry)
@@ -26,27 +25,9 @@ final class PopupController: NSObject, NSWindowDelegate {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
         }
-
-        enhanceSynonyms(for: entry.word)
-    }
-
-    /// Offline synonyms are already shown instantly; this fills in more (or
-    /// fills a gap entirely, for words WordNet has thin coverage for) if an
-    /// online lookup comes back while the same word is still displayed.
-    private func enhanceSynonyms(for word: String) {
-        enhancementTask?.cancel()
-        enhancementTask = Task { [weak self] in
-            let online = await SynonymEnhancer.fetchOnline(for: word)
-            guard !Task.isCancelled, !online.isEmpty, let self else { return }
-            await MainActor.run {
-                guard let panel = self.panel, self.viewModel.addOnlineSynonyms(online, forWord: word) else { return }
-                self.relayout(panel: panel)
-            }
-        }
     }
 
     func hide() {
-        enhancementTask?.cancel()
         guard let panel, panel.isVisible else { return }
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.1
@@ -74,7 +55,6 @@ final class PopupController: NSObject, NSWindowDelegate {
             if let panel = self?.panel {
                 self?.relayout(panel: panel)
             }
-            self?.enhanceSynonyms(for: word)
         }
         viewModel.onGoBack = { [weak self] in
             self?.viewModel.goBack()
@@ -122,8 +102,7 @@ final class PopupController: NSObject, NSWindowDelegate {
     /// top-left corner fixed rather than re-centering. The panel is
     /// user-movable (`isMovableByWindowBackground`), so re-centering here
     /// would yank it back to the middle of the screen if the user had
-    /// dragged it elsewhere — including well after the fact, since content
-    /// can change asynchronously (the online synonym enhancement).
+    /// dragged it elsewhere.
     private func relayout(panel: PopupPanel) {
         let topLeft = NSPoint(x: panel.frame.minX, y: panel.frame.maxY)
         let size = contentSize()

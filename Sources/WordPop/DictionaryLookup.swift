@@ -23,13 +23,6 @@ struct WordEntry {
         word: "", partOfSpeech: nil, pronunciation: nil, items: [],
         synonyms: [], antonyms: [], rhymes: [], origin: nil, found: false
     )
-
-    func replacingSynonyms(_ newSynonyms: [String]) -> WordEntry {
-        WordEntry(
-            word: word, partOfSpeech: partOfSpeech, pronunciation: pronunciation, items: items,
-            synonyms: newSynonyms, antonyms: antonyms, rhymes: rhymes, origin: origin, found: found
-        )
-    }
 }
 
 /// Looks up a word using macOS's built-in Dictionary Services (the same data

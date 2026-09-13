@@ -14,6 +14,16 @@ GloVe has no vector for (multi-word phrases, very rare words) fall back to
 sense order, after the ranked ones. Antonyms are a direct per-sense WordNet
 relation and lists are short, so they keep plain sense order.
 
+WordNet alone leaves most lists thin (median 2 entries; "serendipity" has
+none, "meticulous" 3). Groups with fewer than MAX_SYNONYMS entries are
+topped up from the public-domain Moby Thesaurus II, which is 7x broader but
+unranked, untagged and mixes in antonyms. A Moby term is accepted only if it
+is a single word, has a WordNet sense with the group's part of speech, is
+not a WordNet antonym of the headword, and is among the headword's nearest
+GloVe neighbours (NEIGHBORHOOD). Groups WordNet already fills to
+MAX_SYNONYMS are left alone: for very common words GloVe rates every other
+common word as "similar", so Moby would only add noise there.
+
 Setup (one-time):
     pip3 install wn gensim
     python3 -c "import wn; wn.download('oewn:2021')"
@@ -25,14 +35,28 @@ Usage:
     cp synonyms.json antonyms.json ../Sources/WordPop/Resources/
 """
 import json
+import subprocess
 import time
 import wn
 from gensim.models import KeyedVectors
+
+MOBY_URL = "https://raw.githubusercontent.com/words/moby/master/words.txt"
 
 en = wn.Wordnet("oewn:2021")
 
 print("loading GloVe vectors...")
 vectors = KeyedVectors.load_word2vec_format("glove-wiki-gigaword-100.gz")
+
+print("downloading Moby Thesaurus...")
+moby = {}
+# curl instead of urllib: avoids this Python install's incomplete
+# certifi/SSL trust store on a fresh macOS setup.
+moby_text = subprocess.run(["curl", "-sL", MOBY_URL], check=True, capture_output=True, text=True).stdout
+for line in moby_text.splitlines():
+    root, _, rest = line.partition(",")
+    if root and rest:
+        moby[root.lower()] = rest.split(",")
+print(f"{len(moby)} Moby root words")
 
 POS_GROUPS = {
     "noun": ["n"],
@@ -43,6 +67,7 @@ POS_GROUPS = {
 
 MAX_PHRASE_WORDS = 3
 MAX_SYNONYMS = 15
+NEIGHBORHOOD = 150
 
 
 def candidates_for_group(word_lower, senses, wn_pos_list):
@@ -79,6 +104,24 @@ def similarity(word_lower, candidate):
     return -1.0
 
 
+def glove_neighbors(word_lower):
+    if word_lower not in vectors:
+        return {}
+    return {term: rank for rank, (term, _) in enumerate(vectors.most_similar(word_lower, topn=NEIGHBORHOOD))}
+
+
+def moby_topup(word_lower, wn_pos_list, neighbors, excluded):
+    ranked = []
+    for term in {t.lower() for t in moby.get(word_lower, [])}:
+        if term in excluded or term not in neighbors or " " in term:
+            continue
+        if not word_pos.get(term, set()).intersection(wn_pos_list):
+            continue
+        ranked.append((neighbors[term], term))
+    ranked.sort()
+    return [t for _, t in ranked]
+
+
 def antonyms_for_group(word_lower, senses, wn_pos_list):
     group_senses = [s for s in senses if s.synset().pos in wn_pos_list]
     ranked = []
@@ -100,6 +143,10 @@ antonyms_result = {}
 all_words = en.words()
 print(f"total lemmas: {len(all_words)}")
 
+word_pos = {}
+for w in all_words:
+    word_pos.setdefault(w.lemma().lower(), set()).add(w.pos)
+
 t0 = time.time()
 seen_lemmas = set()
 for i, w in enumerate(all_words):
@@ -111,15 +158,24 @@ for i, w in enumerate(all_words):
 
     senses = en.senses(lemma)
 
-    syn_entry = {}
     ant_entry = {}
     for group_name, wn_pos_list in POS_GROUPS.items():
-        syns = candidates_for_group(lower, senses, wn_pos_list)
-        if syns:
-            syn_entry[group_name] = syns
         ants = antonyms_for_group(lower, senses, wn_pos_list)
         if ants:
             ant_entry[group_name] = ants
+    all_antonyms = {a for ants in ant_entry.values() for a in ants}
+
+    syn_entry = {}
+    neighbors = None
+    for group_name, wn_pos_list in POS_GROUPS.items():
+        syns = candidates_for_group(lower, senses, wn_pos_list)
+        if len(syns) < MAX_SYNONYMS and word_pos[lower].intersection(wn_pos_list) and lower in moby:
+            if neighbors is None:
+                neighbors = glove_neighbors(lower)
+            excluded = set(syns) | all_antonyms | {lower}
+            syns += moby_topup(lower, wn_pos_list, neighbors, excluded)[:MAX_SYNONYMS - len(syns)]
+        if syns:
+            syn_entry[group_name] = syns
     if syn_entry:
         synonyms_result[lower] = syn_entry
     if ant_entry:
