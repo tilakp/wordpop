@@ -1,6 +1,6 @@
 # WordPop
 
-Select a word anywhere on your Mac, press a hotkey, and get its definition, pronunciation, synonyms, antonyms, and rhymes in a popup at your cursor. Fully offline. No accounts, no network calls.
+Select a word anywhere on your Mac, press a hotkey, and get its definition, pronunciation, synonyms, antonyms, and rhymes in a popup at your cursor. Works offline. No accounts.
 
 WordPop lives in the menu bar and stays out of the Dock.
 
@@ -14,7 +14,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 - **Rhymes**, ranked by how common the word is.
 - **Etymology**, one tap away.
 - **Customizable shortcuts** and a **Launch at Login** toggle in Preferences.
-- **100% offline.** Every lookup runs against local data. Nothing you look up leaves your machine.
+- **Offline first.** Definitions, synonyms, antonyms, and rhymes all come from local data, so the popup is instant and works without a network. If you are online, WordPop also queries the [Datamuse API](https://www.datamuse.com/api/) in the background to add extra synonyms for words the local dataset covers thinly. The popup never waits on this.
 
 ## Requirements
 
