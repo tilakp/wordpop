@@ -8,6 +8,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 
 - **Lookup from any app.** Select text in a browser, editor, PDF, chat window, or anywhere else, then press `⌃⌥⌘D`. The popup appears next to your mouse.
 - **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first.
+- **Lookup history.** Quick Search lists your recent lookups (kept for 30 days) under the field. Type to filter, use the arrow keys and Return to reopen one. Clear it from the menu bar menu.
 - **Definitions and examples** from the built-in macOS dictionary (the same data as Dictionary.app), parsed into numbered senses and sub-senses.
 - **Pronunciation** shown as IPA, plus a speaker button that reads the word aloud with the system voice.
 - **Synonyms and antonyms**, grouped by part of speech so "run" the verb and "run" the noun do not get mixed together.

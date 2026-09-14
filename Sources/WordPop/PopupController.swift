@@ -10,6 +10,7 @@ final class PopupController: NSObject, NSWindowDelegate {
     private var hostingController: NSHostingController<PopupContentView>?
 
     func show(entry: WordEntry, near point: NSPoint) {
+        remember(entry)
         viewModel.reset(with: entry)
         wireViewModelActions()
 
@@ -42,6 +43,11 @@ final class PopupController: NSObject, NSWindowDelegate {
         })
     }
 
+    private func remember(_ entry: WordEntry) {
+        guard entry.found else { return }
+        LookupHistory.shared.record(entry.word)
+    }
+
     private func wireViewModelActions() {
         viewModel.onClose = { [weak self] in self?.hide() }
         viewModel.onTogglePin = { [weak self] in self?.viewModel.isPinned.toggle() }
@@ -51,6 +57,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         }
         viewModel.onSelectWord = { [weak self] word in
             let newEntry = DictionaryLookup.lookup(word)
+            self?.remember(newEntry)
             self?.viewModel.push(newEntry)
             if let panel = self?.panel {
                 self?.relayout(panel: panel)
@@ -113,6 +120,9 @@ final class PopupController: NSObject, NSWindowDelegate {
 
     private func contentSize() -> NSSize {
         let width = PopupContentView.popupWidth
+        // View-model changes are applied on the next layout pass; without
+        // this flush, sizeThatFits measures the previous word's content.
+        hostingController?.view.layoutSubtreeIfNeeded()
         return hostingController?.sizeThatFits(in: NSSize(width: width, height: .greatestFiniteMagnitude))
             ?? NSSize(width: width, height: 160)
     }

@@ -9,6 +9,7 @@ import SwiftUI
 final class QuickSearchController: NSObject, NSWindowDelegate {
     private var panel: QuickSearchPanel?
     private var hostingController: NSHostingController<QuickSearchView>?
+    private let model = QuickSearchModel()
     private let onSubmit: (String) -> Void
 
     init(onSubmit: @escaping (String) -> Void) {
@@ -16,6 +17,7 @@ final class QuickSearchController: NSObject, NSWindowDelegate {
     }
 
     func show() {
+        model.reset()
         let panel = ensurePanel()
         layOut(panel: panel)
 
@@ -44,10 +46,18 @@ final class QuickSearchController: NSObject, NSWindowDelegate {
     private func ensurePanel() -> QuickSearchPanel {
         if let panel { return panel }
 
-        let hostingController = NSHostingController(rootView: QuickSearchView(onSubmit: { [weak self] word in
-            self?.onSubmit(word)
-            self?.hide()
-        }))
+        let view = QuickSearchView(
+            model: model,
+            onSubmit: { [weak self] word in
+                self?.onSubmit(word)
+                self?.hide()
+            },
+            onLayoutChange: { [weak self] in
+                guard let self, let panel = self.panel, panel.isVisible else { return }
+                self.layOut(panel: panel)
+            }
+        )
+        let hostingController = NSHostingController(rootView: view)
         let newPanel = QuickSearchPanel(contentViewController: hostingController)
         newPanel.styleMask = [.nonactivatingPanel, .borderless]
         newPanel.isOpaque = false
@@ -65,6 +75,9 @@ final class QuickSearchController: NSObject, NSWindowDelegate {
         return newPanel
     }
 
+    /// Anchors the panel's top edge (not its center) so that the recent
+    /// list growing or shrinking under the field extends downward and the
+    /// field itself stays put.
     private func layOut(panel: QuickSearchPanel) {
         let point = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
@@ -73,10 +86,8 @@ final class QuickSearchController: NSObject, NSWindowDelegate {
         let size = hostingController?.sizeThatFits(in: NSSize(width: QuickSearchView.width, height: .greatestFiniteMagnitude))
             ?? NSSize(width: QuickSearchView.width, height: 60)
 
-        let origin = NSPoint(
-            x: visible.midX - size.width / 2,
-            y: visible.minY + visible.height * 0.68 - size.height / 2
-        )
+        let top = visible.minY + visible.height * 0.72
+        let origin = NSPoint(x: visible.midX - size.width / 2, y: top - size.height)
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 

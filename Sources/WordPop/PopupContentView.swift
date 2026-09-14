@@ -69,45 +69,41 @@ struct PopupContentView: View {
             if hasScrollableContent {
                 Divider().padding(.horizontal, 22)
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        if !viewModel.entry.items.isEmpty {
-                            itemsList
-                        }
-                        if let origin = viewModel.entry.origin {
-                            originDisclosure(origin)
-                        }
+                // A bare ScrollView is greedy and would always claim the
+                // full maxListHeight, leaving a blank gap under short
+                // entries. Only wrap in one when the content overflows.
+                CappedHeight(maxHeight: Self.maxListHeight) {
+                    ViewThatFits(in: .vertical) {
+                        definitions
+                        ScrollView { definitions }
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 14)
                 }
-                .frame(maxHeight: Self.maxListHeight)
             }
 
             if !viewModel.entry.synonyms.isEmpty {
                 Divider().padding(.horizontal, 22)
-                pillSection(title: "Synonyms", words: viewModel.entry.synonyms)
+                pillSection(title: "Synonyms", words: viewModel.entry.synonyms, tint: .synonymTint)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
 
             if !viewModel.entry.antonyms.isEmpty {
                 Divider().padding(.horizontal, 22)
-                pillSection(title: "Antonyms", words: viewModel.entry.antonyms)
+                pillSection(title: "Antonyms", words: viewModel.entry.antonyms, tint: .antonymTint)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
 
             if !viewModel.entry.rhymes.isEmpty {
                 Divider().padding(.horizontal, 22)
-                pillSection(title: "Rhymes", words: viewModel.entry.rhymes)
+                pillSection(title: "Rhymes", words: viewModel.entry.rhymes, tint: .rhymeTint)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
 
             if isEmpty {
                 Text("No definition found for \u{201C}\(viewModel.entry.word)\u{201D}.")
-                    .font(.system(size: 13))
+                    .font(.example)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 22)
                     .padding(.bottom, 20)
@@ -115,14 +111,27 @@ struct PopupContentView: View {
         }
         .frame(width: Self.popupWidth, alignment: .leading)
         .background(Color.popupPage)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.1))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08))
         )
         .onChange(of: viewModel.entry.word) { _, _ in
             showOrigin = false
         }
+    }
+
+    private var definitions: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !viewModel.entry.items.isEmpty {
+                itemsList
+            }
+            if let origin = viewModel.entry.origin {
+                originDisclosure(origin)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 14)
     }
 
     private var header: some View {
@@ -137,12 +146,13 @@ struct PopupContentView: View {
                 }
 
                 Text(viewModel.entry.word)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.headword)
+                    .tracking(-0.3)
                     .lineLimit(1)
 
                 if let partOfSpeech = viewModel.entry.partOfSpeech {
                     Text(partOfSpeech)
-                        .font(.system(size: 13).italic())
+                        .font(.partOfSpeech)
                         .foregroundStyle(.secondary)
                 }
 
@@ -165,7 +175,7 @@ struct PopupContentView: View {
             if let pronunciation = viewModel.entry.pronunciation {
                 HStack(spacing: 6) {
                     Text(pronunciation)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.pronunciation)
                         .foregroundStyle(.secondary)
                     Button(action: viewModel.onSpeak) {
                         Image(systemName: "speaker.wave.2.fill")
@@ -191,42 +201,49 @@ struct PopupContentView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .top, spacing: 6) {
                 if let number = item.number {
-                    Text("\(number).")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
+                    Text("\(number)")
+                        .font(.senseNumber)
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 14, alignment: .trailing)
                 } else if item.isSubItem {
                     Text("\u{2022}")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
+                        .font(.definition)
+                        .foregroundStyle(.tertiary)
+                        .frame(width: 14, alignment: .trailing)
                 }
                 Text(item.text)
-                    .font(.system(size: 13))
+                    .font(.definition)
+                    .lineSpacing(2)
             }
             if let example = item.example {
                 Text("\u{201C}\(example)\u{201D}")
-                    .font(.system(size: 12).italic())
+                    .font(.example)
                     .foregroundStyle(.secondary)
-                    .padding(.leading, 19)
+                    .lineSpacing(1)
+                    .padding(.leading, 20)
             }
         }
         .padding(.leading, item.isSubItem ? 16 : 0)
     }
 
-    private func pillSection(title: String, words: [String]) -> some View {
+    private func pillSection(title: String, words: [String], tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .font(.sectionLabel)
+                .tracking(1.2)
+                .foregroundStyle(tint)
                 .textCase(.uppercase)
             FlowLayout(spacing: 6) {
                 ForEach(Array(words.prefix(10)), id: \.self) { word in
                     Button(action: { viewModel.onSelectWord(word) }) {
                         Text(word)
-                            .font(.system(size: 12))
-                            .padding(.horizontal, 8)
+                            .font(.pill)
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 10)
                             .padding(.vertical, 4)
-                            .background(Color.primary.opacity(0.06))
+                            .background(tint.opacity(0.12))
                             .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(tint.opacity(0.25)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -239,7 +256,8 @@ struct PopupContentView: View {
             Button(action: { showOrigin.toggle() }) {
                 HStack(spacing: 4) {
                     Text("Origin")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.sectionLabel)
+                        .tracking(1.2)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     Image(systemName: showOrigin ? "chevron.down" : "chevron.right")
@@ -251,9 +269,27 @@ struct PopupContentView: View {
 
             if showOrigin {
                 Text(origin)
-                    .font(.system(size: 12))
+                    .font(.origin)
                     .foregroundStyle(.secondary)
+                    .lineSpacing(1)
             }
         }
+    }
+}
+
+/// Proposes at most `maxHeight` to its child but reports the child's actual
+/// size. `.frame(maxHeight:)` cannot do this: it expands to fill the
+/// proposal, which is what left the blank gap.
+private struct CappedHeight: Layout {
+    var maxHeight: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let capped = ProposedViewSize(width: proposal.width, height: min(proposal.height ?? maxHeight, maxHeight))
+        return subviews[0].sizeThatFits(capped)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let capped = ProposedViewSize(width: bounds.width, height: min(bounds.height, maxHeight))
+        subviews[0].place(at: bounds.origin, anchor: .topLeading, proposal: capped)
     }
 }

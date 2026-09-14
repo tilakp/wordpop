@@ -22,6 +22,9 @@ final class StatusItemController: NSObject {
         let preferencesItem = NSMenuItem(title: "Preferences\u{2026}", action: #selector(preferencesClicked), keyEquivalent: ",")
         preferencesItem.target = self
         menu.addItem(preferencesItem)
+        let clearHistoryItem = NSMenuItem(title: "Clear Lookup History", action: #selector(clearHistoryClicked), keyEquivalent: "")
+        clearHistoryItem.target = self
+        menu.addItem(clearHistoryItem)
         menu.addItem(.separator())
         let quitItem = NSMenuItem(title: "Quit WordPop", action: #selector(quitClicked), keyEquivalent: "q")
         quitItem.target = self
@@ -32,5 +35,6 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func preferencesClicked() { onPreferences() }
+    @objc private func clearHistoryClicked() { LookupHistory.shared.clear() }
     @objc private func quitClicked() { onQuit() }
 }
