@@ -3,6 +3,7 @@ import SwiftUI
 final class PopupViewModel: ObservableObject {
     @Published var entry: WordEntry
     @Published var isPinned: Bool = false
+    @Published var selectedBlock: Int = 0
 
     private var history: [WordEntry] = []
 
@@ -18,15 +19,21 @@ final class PopupViewModel: ObservableObject {
 
     var canGoBack: Bool { !history.isEmpty }
 
+    var block: PartOfSpeechBlock? {
+        entry.blocks.indices.contains(selectedBlock) ? entry.blocks[selectedBlock] : nil
+    }
+
     func reset(with newEntry: WordEntry) {
         history.removeAll()
         isPinned = false
+        selectedBlock = 0
         entry = newEntry
     }
 
     func push(_ newEntry: WordEntry) {
         history.append(entry)
         withAnimation(.easeOut(duration: 0.15)) {
+            selectedBlock = 0
             entry = newEntry
         }
     }
@@ -34,6 +41,7 @@ final class PopupViewModel: ObservableObject {
     func goBack() {
         guard let previous = history.popLast() else { return }
         withAnimation(.easeOut(duration: 0.15)) {
+            selectedBlock = 0
             entry = previous
         }
     }

@@ -8,21 +8,24 @@ struct DefinitionItem {
     let isSubItem: Bool
 }
 
-struct WordEntry {
-    let word: String
+/// One part-of-speech section of an entry ("run" the verb, "run" the
+/// noun), with the synonyms and antonyms that belong to that sense group.
+struct PartOfSpeechBlock {
     let partOfSpeech: String?
-    let pronunciation: String?
     let items: [DefinitionItem]
     let synonyms: [String]
     let antonyms: [String]
+}
+
+struct WordEntry {
+    let word: String
+    let pronunciation: String?
+    let blocks: [PartOfSpeechBlock]
     let rhymes: [String]
     let origin: String?
     let found: Bool
 
-    static let empty = WordEntry(
-        word: "", partOfSpeech: nil, pronunciation: nil, items: [],
-        synonyms: [], antonyms: [], rhymes: [], origin: nil, found: false
-    )
+    static let empty = WordEntry(word: "", pronunciation: nil, blocks: [], rhymes: [], origin: nil, found: false)
 }
 
 /// Looks up a word using macOS's built-in Dictionary Services (the same data
@@ -31,39 +34,62 @@ struct WordEntry {
 /// network calls. Synonyms come from a bundled dataset (see SynonymStore)
 /// since Dictionary Services has no public API for its separate Thesaurus.
 enum DictionaryLookup {
-    static func lookup(_ rawWord: String) -> WordEntry {
-        let word = rawWord.trimmingCharacters(in: .whitespacesAndNewlines)
+    static func lookup(_ rawText: String) -> WordEntry {
+        let word = headword(in: rawText)
 
         let rhymes = RhymeStore.rhymes(for: word)
 
         guard let entryText = rawEntryText(for: word) else {
             let synonyms = SynonymStore.synonyms(for: word, partOfSpeech: nil)
             let antonyms = AntonymStore.antonyms(for: word, partOfSpeech: nil)
+            let blocks = synonyms.isEmpty && antonyms.isEmpty
+                ? []
+                : [PartOfSpeechBlock(partOfSpeech: nil, items: [], synonyms: synonyms, antonyms: antonyms)]
             return WordEntry(
-                word: word, partOfSpeech: nil, pronunciation: nil, items: [],
-                synonyms: synonyms, antonyms: antonyms, rhymes: rhymes, origin: nil,
-                found: !synonyms.isEmpty || !antonyms.isEmpty || !rhymes.isEmpty
+                word: word, pronunciation: nil, blocks: blocks, rhymes: rhymes, origin: nil,
+                found: !blocks.isEmpty || !rhymes.isEmpty
             )
         }
 
-        let pronunciation = extractPronunciation(from: entryText)
-        let partOfSpeech = extractPartOfSpeech(from: entryText)
-        let items = parseItems(entryText)
-        let origin = extractOrigin(from: entryText)
-        let synonyms = SynonymStore.synonyms(for: word, partOfSpeech: partOfSpeech)
-        let antonyms = AntonymStore.antonyms(for: word, partOfSpeech: partOfSpeech)
+        let blocks = partOfSpeechBlocks(entryText).map { partOfSpeech, items in
+            PartOfSpeechBlock(
+                partOfSpeech: partOfSpeech,
+                items: items,
+                synonyms: SynonymStore.synonyms(for: word, partOfSpeech: partOfSpeech),
+                antonyms: AntonymStore.antonyms(for: word, partOfSpeech: partOfSpeech)
+            )
+        }
 
         return WordEntry(
             word: word,
-            partOfSpeech: partOfSpeech,
-            pronunciation: pronunciation,
-            items: items,
-            synonyms: synonyms,
-            antonyms: antonyms,
+            pronunciation: extractPronunciation(from: entryText),
+            blocks: blocks,
             rhymes: rhymes,
-            origin: origin,
+            origin: extractOrigin(from: entryText),
             found: true
         )
+    }
+
+    /// Turns whatever the user selected into something worth looking up:
+    /// surrounding quotes and punctuation are dropped, and if the selection
+    /// runs on past a single term, only the term Dictionary Services
+    /// recognizes at the start is kept — so a selected sentence looks up
+    /// its first word, while "ice cream" survives as a phrase.
+    static func headword(in rawText: String) -> String {
+        let collapsed = rawText
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+        let trimmed = collapsed.trimmingCharacters(in: CharacterSet.letters.union(.decimalDigits).inverted)
+        guard !trimmed.isEmpty else { return trimmed }
+
+        let cfText = trimmed as CFString
+        let termRange = DCSGetTermRangeInString(nil, cfText, 0)
+        guard termRange.location == 0, termRange.length > 0,
+              termRange.length < CFStringGetLength(cfText),
+              let term = CFStringCreateWithSubstring(nil, cfText, termRange) as String? else {
+            return trimmed
+        }
+        return term
     }
 
     private static func rawEntryText(for word: String) -> String? {
@@ -107,12 +133,58 @@ enum DictionaryLookup {
     /// Dictionary Services returns one flat, unbroken string per entry: no
     /// newlines. Senses are marked by sequential numbers ("1 ... 2 ... 3 ..."),
     /// sub-senses by "•", and trailing sections by all-caps headers (ORIGIN,
-    /// PHRASES, DERIVATIVES, USAGE). This pulls out every sense and sub-sense,
-    /// each with its own example when the entry has one, favoring completeness
-    /// over brevity.
-    private static func parseItems(_ text: String) -> [DefinitionItem] {
-        let core = firstPartOfSpeechBlock(coreEntryText(text))
-        let senses = splitIntoSenses(core)
+    /// PHRASES, DERIVATIVES, USAGE). Entries with several parts of speech
+    /// restart the numbering for each ("run" has 13 verb senses, then
+    /// "noun 1 ... 14"), so the text is split into part-of-speech blocks
+    /// first and each block is parsed on its own — otherwise the second
+    /// block's numbers collide with the first's and its text gets swallowed
+    /// into the previous item's example.
+    private static func partOfSpeechBlocks(_ text: String) -> [(partOfSpeech: String?, items: [DefinitionItem])] {
+        let core = coreEntryText(text)
+        let nsCore = core as NSString
+
+        // Where the header (word, pronunciation, first part-of-speech label)
+        // ends — a genuine new block can only start well after this.
+        var headerEnd = 0
+        if let firstPipe = core.range(of: "|"),
+           let secondPipe = core.range(of: "|", range: firstPipe.upperBound..<core.endIndex) {
+            headerEnd = core.distance(from: core.startIndex, to: secondPipe.upperBound)
+        }
+
+        // A new part-of-speech block always starts immediately after the
+        // previous sense's closing period (the entry is one flat run-on
+        // string, so there's no other separator) — unlike a numbered
+        // restart, this also catches single-sense blocks with no "1" at all
+        // (e.g. a bare trailing "adverb ..." sense).
+        let pattern = try! NSRegularExpression(
+            pattern: "(?<=\\.\\s)(\(partOfSpeechWords))\\b",
+            options: [.caseInsensitive]
+        )
+        let starts = pattern.matches(in: core, range: NSRange(location: 0, length: nsCore.length))
+            .filter { $0.range.location > headerEnd + 20 }
+
+        var blocks: [(partOfSpeech: String?, items: [DefinitionItem])] = []
+        var cursor = 0
+        var label = extractPartOfSpeech(from: text)
+        for match in starts + [nil] {
+            let end = match?.range.location ?? nsCore.length
+            let items = parseItems(nsCore.substring(with: NSRange(location: cursor, length: end - cursor)))
+            if !items.isEmpty {
+                if let index = blocks.firstIndex(where: { $0.partOfSpeech == label }) {
+                    blocks[index].items += items
+                } else {
+                    blocks.append((label, items))
+                }
+            }
+            guard let match else { break }
+            cursor = end
+            label = nsCore.substring(with: match.range(at: 1)).lowercased()
+        }
+        return blocks
+    }
+
+    private static func parseItems(_ blockText: String) -> [DefinitionItem] {
+        let senses = splitIntoSenses(blockText)
 
         var items: [DefinitionItem] = []
         for (number, senseText) in senses {
@@ -154,45 +226,6 @@ enum DictionaryLookup {
         guard let range = text.range(of: " ORIGIN ") ?? text.range(of: " ORIGIN") else { return nil }
         let origin = String(text[range.upperBound...]).trimmingCharacters(in: .whitespaces)
         return origin.isEmpty ? nil : origin
-    }
-
-    /// NOAD entries with multiple parts of speech restart sense numbering at
-    /// 1 for each one (e.g. "run" has 13 verb senses, then "noun 1 ... 14").
-    /// Since only one part of speech is shown in the header/synonyms, this
-    /// bounds parsing to that first block — otherwise the second block's
-    /// sense numbers collide with the first's, and text after the last
-    /// number the sequential matcher recognizes silently gets swallowed into
-    /// the previous item's example (visibly corrupting entries like "run",
-    /// "go", "set", "take").
-    private static func firstPartOfSpeechBlock(_ text: String) -> String {
-        // Where the header (word, pronunciation, first part-of-speech label)
-        // ends — a genuine second part-of-speech block can only start well
-        // after this. Matching this way (rather than assuming the header
-        // itself matches the pattern below and skipping its first match) is
-        // robust to headers the pattern doesn't cleanly match, e.g. ones
-        // with a "[with object]"-style tag before the first sense number.
-        guard let firstPipe = text.range(of: "|"),
-              let secondPipe = text.range(of: "|", range: firstPipe.upperBound..<text.endIndex) else {
-            return text
-        }
-        let headerEnd = text.distance(from: text.startIndex, to: secondPipe.upperBound)
-
-        // A genuine new part-of-speech block always starts immediately after
-        // the previous sense's closing period (NOAD's entries are one flat
-        // run-on string, so there's no other separator) — unlike a numbered
-        // restart, this also catches single-sense blocks with no "1" at all
-        // (e.g. a bare trailing "adverb ..." sense).
-        let pattern = try! NSRegularExpression(
-            pattern: "(?<=\\.\\s)(\(partOfSpeechWords))\\b",
-            options: [.caseInsensitive]
-        )
-        let nsText = text as NSString
-        let matches = pattern.matches(in: text, range: NSRange(location: 0, length: nsText.length))
-
-        guard let secondBlock = matches.first(where: { $0.range.location > headerEnd + 20 }) else {
-            return text
-        }
-        return nsText.substring(to: secondBlock.range.location)
     }
 
     /// Drops the etymology/phrases/derivatives/usage-note trailer that follows
@@ -240,14 +273,15 @@ enum DictionaryLookup {
         return senses
     }
 
-    /// For entries with a single, unnumbered sense: skips past the
-    /// "word syllables | pronunciation |" header and the part-of-speech label.
+    /// For blocks with a single, unnumbered sense: skips past the
+    /// "word syllables | pronunciation |" header (first block only) and the
+    /// part-of-speech label.
     private static func stripHeaderForSingleSense(_ text: String) -> String {
-        guard let firstPipe = text.range(of: "|"),
-              let secondPipe = text.range(of: "|", range: firstPipe.upperBound..<text.endIndex) else {
-            return text
+        var remainder = text.trimmingCharacters(in: .whitespaces)
+        if let firstPipe = text.range(of: "|"),
+           let secondPipe = text.range(of: "|", range: firstPipe.upperBound..<text.endIndex) {
+            remainder = String(text[secondPipe.upperBound...]).trimmingCharacters(in: .whitespaces)
         }
-        var remainder = String(text[secondPipe.upperBound...]).trimmingCharacters(in: .whitespaces)
 
         let posPattern = try! NSRegularExpression(
             pattern: "^(\(partOfSpeechWords))\\.?\\s*(\\([^)]*\\)\\s*)*",

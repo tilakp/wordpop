@@ -51,13 +51,16 @@ struct PopupContentView: View {
     private static let maxListHeight: CGFloat = 420
     private static let scrollFadeHeight: CGFloat = 28
 
+    private var items: [DefinitionItem] { viewModel.block?.items ?? [] }
+    private var synonyms: [String] { viewModel.block?.synonyms ?? [] }
+    private var antonyms: [String] { viewModel.block?.antonyms ?? [] }
+
     private var hasScrollableContent: Bool {
-        !viewModel.entry.items.isEmpty || viewModel.entry.origin != nil
+        !items.isEmpty || viewModel.entry.origin != nil
     }
 
     private var isEmpty: Bool {
-        !hasScrollableContent && viewModel.entry.synonyms.isEmpty
-            && viewModel.entry.antonyms.isEmpty && viewModel.entry.rhymes.isEmpty
+        !hasScrollableContent && synonyms.isEmpty && antonyms.isEmpty && viewModel.entry.rhymes.isEmpty
     }
 
     var body: some View {
@@ -86,16 +89,16 @@ struct PopupContentView: View {
                 }
             }
 
-            if !viewModel.entry.synonyms.isEmpty {
+            if !synonyms.isEmpty {
                 Divider().padding(.horizontal, 22)
-                pillSection(title: "Synonyms", words: viewModel.entry.synonyms, tint: .synonymTint)
+                pillSection(title: "Synonyms", words: synonyms, tint: .synonymTint)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
 
-            if !viewModel.entry.antonyms.isEmpty {
+            if !antonyms.isEmpty {
                 Divider().padding(.horizontal, 22)
-                pillSection(title: "Antonyms", words: viewModel.entry.antonyms, tint: .antonymTint)
+                pillSection(title: "Antonyms", words: antonyms, tint: .antonymTint)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
@@ -129,7 +132,7 @@ struct PopupContentView: View {
 
     private var definitions: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if !viewModel.entry.items.isEmpty {
+            if !items.isEmpty {
                 itemsList
             }
             if let origin = viewModel.entry.origin {
@@ -156,7 +159,7 @@ struct PopupContentView: View {
                     .tracking(-0.3)
                     .lineLimit(1)
 
-                if let partOfSpeech = viewModel.entry.partOfSpeech {
+                if viewModel.entry.blocks.count == 1, let partOfSpeech = viewModel.block?.partOfSpeech {
                     Text(partOfSpeech)
                         .font(.partOfSpeech)
                         .foregroundStyle(.secondary)
@@ -192,12 +195,37 @@ struct PopupContentView: View {
                     .help("Pronounce (or press Space)")
                 }
             }
+
+            if viewModel.entry.blocks.count > 1 {
+                partOfSpeechSwitcher
+                    .padding(.top, 6)
+            }
+        }
+    }
+
+    private var partOfSpeechSwitcher: some View {
+        HStack(spacing: 14) {
+            ForEach(Array(viewModel.entry.blocks.enumerated()), id: \.offset) { index, block in
+                let isSelected = index == viewModel.selectedBlock
+                Button(action: { withAnimation(.easeOut(duration: 0.15)) { viewModel.selectedBlock = index } }) {
+                    Text(block.partOfSpeech ?? "other")
+                        .font(.partOfSpeech)
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                        .padding(.bottom, 2)
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .fill(isSelected ? Color.accentColor : Color.clear)
+                                .frame(height: 1.5)
+                        }
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
     private var itemsList: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(viewModel.entry.items.enumerated()), id: \.offset) { _, item in
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 itemRow(item)
             }
         }

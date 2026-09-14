@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 /// Owns the single reusable popup panel: centers it on the screen the
@@ -8,6 +9,7 @@ final class PopupController: NSObject, NSWindowDelegate {
     private let viewModel = PopupViewModel()
     private var panel: PopupPanel?
     private var hostingController: NSHostingController<PopupContentView>?
+    private var blockSelection: AnyCancellable?
 
     func show(entry: WordEntry, near point: NSPoint) {
         remember(entry)
@@ -88,6 +90,14 @@ final class PopupController: NSObject, NSWindowDelegate {
         newPanel.delegate = self
         newPanel.onEscape = { [weak self] in self?.hide() }
         newPanel.onSpace = { [weak self] in self?.viewModel.onSpeak() }
+
+        blockSelection = viewModel.$selectedBlock
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self, let panel = self.panel, panel.isVisible else { return }
+                self.relayout(panel: panel)
+            }
 
         self.hostingController = hostingController
         panel = newPanel

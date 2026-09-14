@@ -11,8 +11,8 @@ enum PartOfSpeechGroup {
     private static let priority = ["adjective", "noun", "verb", "adverb"]
 
     static func pick(from groups: [String: [String]], preferring partOfSpeech: String?) -> [String] {
-        if let partOfSpeech, let matched = groups[partOfSpeech] {
-            return matched
+        if let partOfSpeech, priority.contains(partOfSpeech) {
+            return groups[partOfSpeech] ?? []
         }
         for candidate in priority {
             if let matched = groups[candidate] {
