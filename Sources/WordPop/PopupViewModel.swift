@@ -89,8 +89,11 @@ final class PopupViewModel: ObservableObject {
                 }
             }
         }
-        if !entry.rhymes.isEmpty {
-            sections.append(PillSection(id: "rhymes", title: "Rhymes", tint: .rhymeTint, rows: [row(nil, entry.rhymes)]))
+        var rhymeRows: [PillRow] = []
+        if !entry.rhymes.isEmpty { rhymeRows.append(row(nil, entry.rhymes)) }
+        if !entry.nearRhymes.isEmpty { rhymeRows.append(row("near rhymes", entry.nearRhymes)) }
+        if !rhymeRows.isEmpty {
+            sections.append(PillSection(id: "rhymes", title: "Rhymes", tint: .rhymeTint, rows: rhymeRows))
         }
         return sections
     }

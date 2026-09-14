@@ -30,6 +30,7 @@ struct WordEntry {
     let forms: [String]
     let blocks: [PartOfSpeechBlock]
     let rhymes: [String]
+    let nearRhymes: [String]
     let origin: String?
     /// Idioms and phrasal verbs from the entry's PHRASES and PHRASAL VERBS sections.
     let phrases: [Phrase]
@@ -39,8 +40,8 @@ struct WordEntry {
     let found: Bool
 
     static let empty = WordEntry(
-        word: "", syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], origin: nil,
-        phrases: [], source: nil, found: false
+        word: "", syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], nearRhymes: [],
+        origin: nil, phrases: [], source: nil, found: false
     )
 }
 
@@ -65,9 +66,10 @@ enum DictionaryLookup {
     /// be exercised on fixtures without Dictionary Services.
     static func entry(word: String, entryText: String?, thesaurus: [ThesaurusBlock], phrases: [Phrase] = []) -> WordEntry {
         let rhymes = RhymeStore.rhymes(for: word)
+        let nearRhymes = RhymeStore.nearRhymes(for: word)
 
         guard let entryText else {
-            if let fallback = fallbackEntry(for: word, rhymes: rhymes) {
+            if let fallback = fallbackEntry(for: word, rhymes: rhymes, nearRhymes: nearRhymes) {
                 return fallback
             }
             var blocks = thesaurus.map { block(word, partOfSpeech: $0.partOfSpeech, items: [], thesaurus: thesaurus) }
@@ -77,7 +79,8 @@ enum DictionaryLookup {
             }
             return WordEntry(
                 word: word, syllables: nil, pronunciation: nil, forms: [], blocks: blocks, rhymes: rhymes,
-                origin: nil, phrases: [], source: nil, found: !blocks.isEmpty || !rhymes.isEmpty
+                nearRhymes: nearRhymes, origin: nil, phrases: [], source: nil,
+                found: !blocks.isEmpty || !rhymes.isEmpty || !nearRhymes.isEmpty
             )
         }
 
@@ -96,6 +99,7 @@ enum DictionaryLookup {
             forms: header.forms,
             blocks: blocks,
             rhymes: rhymes,
+            nearRhymes: nearRhymes,
             origin: extractOrigin(from: entryText),
             phrases: phrases,
             source: nil,
@@ -117,7 +121,7 @@ enum DictionaryLookup {
     /// For words the English dictionary lacks, try the other dictionaries
     /// the user enabled in Dictionary.app (typically bilingual ones). Their
     /// entry formats vary, so the text is shown as one unparsed definition.
-    private static func fallbackEntry(for word: String, rhymes: [String]) -> WordEntry? {
+    private static func fallbackEntry(for word: String, rhymes: [String], nearRhymes: [String]) -> WordEntry? {
         for dictionary in SystemDictionaries.fallbacks {
             guard var text = SystemDictionaries.definition(of: word, in: dictionary) else { continue }
             if text.lowercased().hasPrefix(word.lowercased()) {
@@ -127,7 +131,8 @@ enum DictionaryLookup {
             return WordEntry(
                 word: word, syllables: nil, pronunciation: nil, forms: [],
                 blocks: [PartOfSpeechBlock(partOfSpeech: nil, items: [item], senses: [], synonyms: [], antonyms: [])],
-                rhymes: rhymes, origin: nil, phrases: [], source: SystemDictionaries.name(of: dictionary), found: true
+                rhymes: rhymes, nearRhymes: nearRhymes, origin: nil, phrases: [],
+                source: SystemDictionaries.name(of: dictionary), found: true
             )
         }
         return nil

@@ -33,6 +33,7 @@ enum EntryDump {
             }
         }
         if !entry.rhymes.isEmpty { lines.append("\nrhymes: \(entry.rhymes.joined(separator: ", "))") }
+        if !entry.nearRhymes.isEmpty { lines.append("near rhymes: \(entry.nearRhymes.joined(separator: ", "))") }
         if let origin = entry.origin { lines.append("\norigin: \(origin)") }
         if let source = entry.source { lines.append("\nsource: \(source)") }
         if !entry.found { lines.append("(not found)") }

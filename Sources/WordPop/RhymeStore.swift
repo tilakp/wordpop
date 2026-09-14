@@ -5,4 +5,10 @@ enum RhymeStore {
     static func rhymes(for word: String) -> [String] {
         Database.list("rhymes", word: word)
     }
+
+    /// Slant rhymes (matching vowels, consonants one edit apart) for words
+    /// with few perfect rhymes: "orange" -> storage, porridge.
+    static func nearRhymes(for word: String) -> [String] {
+        Database.list("near_rhymes", word: word)
+    }
 }

@@ -22,6 +22,7 @@ db.executescript("""
     CREATE TABLE synonyms (word TEXT NOT NULL, pos TEXT NOT NULL, words TEXT NOT NULL, PRIMARY KEY (word, pos)) WITHOUT ROWID;
     CREATE TABLE antonyms (word TEXT NOT NULL, pos TEXT NOT NULL, words TEXT NOT NULL, PRIMARY KEY (word, pos)) WITHOUT ROWID;
     CREATE TABLE rhymes (word TEXT PRIMARY KEY NOT NULL, words TEXT NOT NULL) WITHOUT ROWID;
+    CREATE TABLE near_rhymes (word TEXT PRIMARY KEY NOT NULL, words TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE words (word TEXT PRIMARY KEY NOT NULL, rank INTEGER NOT NULL) WITHOUT ROWID;
 """)
 
@@ -34,10 +35,11 @@ for table in ("synonyms", "antonyms"):
     )
     print(f"{table}: {len(data)} words")
 
-with open("rhymes.json", encoding="utf-8") as f:
-    rhymes = json.load(f)
-db.executemany("INSERT INTO rhymes VALUES (?, ?)", ((w, SEPARATOR.join(r)) for w, r in rhymes.items()))
-print(f"rhymes: {len(rhymes)} words")
+for table in ("rhymes", "near_rhymes"):
+    with open(f"{table}.json", encoding="utf-8") as f:
+        rhymes = json.load(f)
+    db.executemany(f"INSERT INTO {table} VALUES (?, ?)", ((w, SEPARATOR.join(r)) for w, r in rhymes.items()))
+    print(f"{table}: {len(rhymes)} words")
 
 with open("words.txt", encoding="utf-8") as f:
     words = [line.strip() for line in f if line.strip()]
