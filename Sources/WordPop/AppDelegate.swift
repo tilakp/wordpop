@@ -39,18 +39,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
 
-    /// The synonym/antonym/rhyme datasets are a few megabytes of JSON each;
-    /// decoding them lazily on the first hotkey press would add a
-    /// noticeable stall right when the popup should feel instant. Touching
-    /// them here, on a background queue, warms that one-time cost before
-    /// the user ever presses the hotkey.
+    /// Opening the bundled database and enumerating the system dictionaries
+    /// each take a moment; doing it on a background queue at launch keeps
+    /// the first hotkey press instant.
     private func warmDatasetCachesInBackground() {
         DispatchQueue.global(qos: .utility).async {
-            _ = SynonymStore.synonyms(for: "warmup", partOfSpeech: nil)
-            _ = AntonymStore.antonyms(for: "warmup", partOfSpeech: nil)
-            _ = RhymeStore.rhymes(for: "warmup")
-            WordList.warmUp()
+            Database.warmUp()
             _ = SystemDictionaries.thesaurus
+            _ = SystemDictionaries.english
         }
     }
 

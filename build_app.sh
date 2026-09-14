@@ -14,11 +14,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/WordPop "$APP/Contents/MacOS/WordPop"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-for resource in synonyms.json antonyms.json rhymes.json words.txt; do
-    if [ -f "Sources/WordPop/Resources/$resource" ]; then
-        cp "Sources/WordPop/Resources/$resource" "$APP/Contents/Resources/$resource"
-    fi
-done
+cp Sources/WordPop/Resources/wordpop.sqlite "$APP/Contents/Resources/wordpop.sqlite"
 
 SIGN_IDENTITY="-"
 if security find-identity -v -p codesigning 2>/dev/null | grep -q "WordPop Local Signing"; then

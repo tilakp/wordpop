@@ -9,10 +9,7 @@ let package = Package(
             name: "WordPop",
             path: "Sources/WordPop",
             resources: [
-                .copy("Resources/synonyms.json"),
-                .copy("Resources/antonyms.json"),
-                .copy("Resources/rhymes.json"),
-                .copy("Resources/words.txt"),
+                .copy("Resources/wordpop.sqlite"),
             ]
         ),
         .testTarget(
