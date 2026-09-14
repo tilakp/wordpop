@@ -49,6 +49,7 @@ struct PopupContentView: View {
 
     static let popupWidth: CGFloat = 380
     private static let maxListHeight: CGFloat = 420
+    private static let scrollFadeHeight: CGFloat = 28
 
     private var hasScrollableContent: Bool {
         !viewModel.entry.items.isEmpty || viewModel.entry.origin != nil
@@ -75,7 +76,12 @@ struct PopupContentView: View {
                 CappedHeight(maxHeight: Self.maxListHeight) {
                     ViewThatFits(in: .vertical) {
                         definitions
-                        ScrollView { definitions }
+                        ScrollView { definitions.padding(.bottom, Self.scrollFadeHeight) }
+                            .overlay(alignment: .bottom) {
+                                LinearGradient(colors: [.popupPage.opacity(0), .popupPage], startPoint: .top, endPoint: .bottom)
+                                    .frame(height: Self.scrollFadeHeight)
+                                    .allowsHitTesting(false)
+                            }
                     }
                 }
             }
