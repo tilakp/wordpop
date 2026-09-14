@@ -49,6 +49,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = SynonymStore.synonyms(for: "warmup", partOfSpeech: nil)
             _ = AntonymStore.antonyms(for: "warmup", partOfSpeech: nil)
             _ = RhymeStore.rhymes(for: "warmup")
+            WordList.warmUp()
+            _ = SystemDictionaries.thesaurus
         }
     }
 

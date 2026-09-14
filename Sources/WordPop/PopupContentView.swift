@@ -48,19 +48,17 @@ struct PopupContentView: View {
     @State private var showOrigin = false
 
     static let popupWidth: CGFloat = 380
-    private static let maxListHeight: CGFloat = 420
+    private static let maxListHeight: CGFloat = 340
     private static let scrollFadeHeight: CGFloat = 28
 
     private var items: [DefinitionItem] { viewModel.block?.items ?? [] }
-    private var synonyms: [String] { viewModel.block?.synonyms ?? [] }
-    private var antonyms: [String] { viewModel.block?.antonyms ?? [] }
 
     private var hasScrollableContent: Bool {
         !items.isEmpty || viewModel.entry.origin != nil
     }
 
     private var isEmpty: Bool {
-        !hasScrollableContent && synonyms.isEmpty && antonyms.isEmpty && viewModel.entry.rhymes.isEmpty
+        !hasScrollableContent && viewModel.sections.isEmpty
     }
 
     var body: some View {
@@ -89,23 +87,9 @@ struct PopupContentView: View {
                 }
             }
 
-            if !synonyms.isEmpty {
+            ForEach(viewModel.sections) { section in
                 Divider().padding(.horizontal, 22)
-                pillSection(title: "Synonyms", words: synonyms, tint: .synonymTint)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 14)
-            }
-
-            if !antonyms.isEmpty {
-                Divider().padding(.horizontal, 22)
-                pillSection(title: "Antonyms", words: antonyms, tint: .antonymTint)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 14)
-            }
-
-            if !viewModel.entry.rhymes.isEmpty {
-                Divider().padding(.horizontal, 22)
-                pillSection(title: "Rhymes", words: viewModel.entry.rhymes, tint: .rhymeTint)
+                pillSection(section)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
@@ -154,7 +138,7 @@ struct PopupContentView: View {
                     .foregroundStyle(.secondary)
                 }
 
-                Text(viewModel.entry.word)
+                Text(viewModel.entry.syllables ?? viewModel.entry.word)
                     .font(.headword)
                     .tracking(-0.3)
                     .lineLimit(1)
@@ -196,6 +180,19 @@ struct PopupContentView: View {
                 }
             }
 
+            if !viewModel.entry.forms.isEmpty {
+                Text(viewModel.entry.forms.joined(separator: "  \u{B7}  "))
+                    .font(.forms)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            if let source = viewModel.entry.source {
+                Text(source)
+                    .font(.recentMeta)
+                    .foregroundStyle(.tertiary)
+            }
+
             if viewModel.entry.blocks.count > 1 {
                 partOfSpeechSwitcher
                     .padding(.top, 6)
@@ -207,7 +204,7 @@ struct PopupContentView: View {
         HStack(spacing: 14) {
             ForEach(Array(viewModel.entry.blocks.enumerated()), id: \.offset) { index, block in
                 let isSelected = index == viewModel.selectedBlock
-                Button(action: { withAnimation(.easeOut(duration: 0.15)) { viewModel.selectedBlock = index } }) {
+                Button(action: { viewModel.selectBlock(index) }) {
                     Text(block.partOfSpeech ?? "other")
                         .font(.partOfSpeech)
                         .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
@@ -245,9 +242,13 @@ struct PopupContentView: View {
                         .foregroundStyle(.tertiary)
                         .frame(width: 14, alignment: .trailing)
                 }
+                // fixedSize so a long single-paragraph entry reports its
+                // real height; otherwise Text truncates to the proposal and
+                // ViewThatFits never falls back to the ScrollView.
                 Text(item.text)
                     .font(.definition)
                     .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if let example = item.example {
                 Text("\u{201C}\(example)\u{201D}")
@@ -255,34 +256,59 @@ struct PopupContentView: View {
                     .foregroundStyle(.secondary)
                     .lineSpacing(1)
                     .padding(.leading, 20)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.leading, item.isSubItem ? 16 : 0)
     }
 
-    private func pillSection(title: String, words: [String], tint: Color) -> some View {
+    private func pillSection(_ section: PillSection) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+            Text(section.title)
                 .font(.sectionLabel)
                 .tracking(1.2)
-                .foregroundStyle(tint)
+                .foregroundStyle(section.tint)
                 .textCase(.uppercase)
-            FlowLayout(spacing: 6) {
-                ForEach(Array(words.prefix(10)), id: \.self) { word in
-                    Button(action: { viewModel.onSelectWord(word) }) {
-                        Text(word)
-                            .font(.pill)
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(tint.opacity(0.12))
-                            .clipShape(Capsule())
-                            .overlay(Capsule().strokeBorder(tint.opacity(0.25)))
+            ForEach(section.rows) { row in
+                VStack(alignment: .leading, spacing: 5) {
+                    if let example = row.example {
+                        Text(example)
+                            .font(.example)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    .buttonStyle(.plain)
+                    FlowLayout(spacing: 6) {
+                        ForEach(Array(row.words.enumerated()), id: \.offset) { offset, word in
+                            pill(word, tint: section.tint, focused: viewModel.focusedPill == row.firstPillIndex + offset)
+                        }
+                    }
                 }
+                .padding(.top, row.example != nil && row.id != section.rows.first?.id ? 4 : 0)
+            }
+            if section.id == "synonyms", viewModel.hiddenSenseCount > 0 {
+                Button(action: { withAnimation(.easeOut(duration: 0.15)) { viewModel.showAllSenses = true } }) {
+                    Text("\(viewModel.hiddenSenseCount) more sense\(viewModel.hiddenSenseCount == 1 ? "" : "s")")
+                        .font(.recentMeta)
+                        .foregroundStyle(section.tint)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
             }
         }
+    }
+
+    private func pill(_ word: String, tint: Color, focused: Bool) -> some View {
+        Button(action: { viewModel.onSelectWord(word) }) {
+            Text(word)
+                .font(.pill)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(tint.opacity(focused ? 0.28 : 0.12))
+                .clipShape(Capsule())
+                .overlay(Capsule().strokeBorder(focused ? tint : tint.opacity(0.25), lineWidth: focused ? 1.5 : 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private func originDisclosure(_ origin: String) -> some View {
@@ -306,6 +332,7 @@ struct PopupContentView: View {
                     .font(.origin)
                     .foregroundStyle(.secondary)
                     .lineSpacing(1)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

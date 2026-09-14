@@ -23,6 +23,7 @@ extension Font {
     static let headword = Font.system(size: 30, weight: .semibold, design: .serif)
     static let partOfSpeech = Font.system(size: 14, design: .serif).italic()
     static let pronunciation = Font.system(size: 13, design: .monospaced)
+    static let forms = Font.system(size: 12, design: .serif).italic()
     static let definition = Font.system(size: 13.5)
     static let senseNumber = Font.system(size: 12, weight: .semibold, design: .serif)
     static let example = Font.system(size: 13, design: .serif).italic()

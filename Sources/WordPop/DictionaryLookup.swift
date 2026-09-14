@@ -13,19 +13,33 @@ struct DefinitionItem {
 struct PartOfSpeechBlock {
     let partOfSpeech: String?
     let items: [DefinitionItem]
+    /// Sense-grouped synonyms from the system Thesaurus; empty when it has
+    /// no entry for this word and part of speech.
+    let senses: [ThesaurusSense]
+    /// Flat fallback lists (WordNet + Moby) used when `senses` is empty.
     let synonyms: [String]
     let antonyms: [String]
 }
 
 struct WordEntry {
     let word: String
+    /// The headword with syllable dots ("me·tic·u·lous"), when the entry has them.
+    let syllables: String?
     let pronunciation: String?
+    /// Inflected forms as the dictionary lists them: "runs", "past ran".
+    let forms: [String]
     let blocks: [PartOfSpeechBlock]
     let rhymes: [String]
     let origin: String?
+    /// Name of the dictionary the entry came from when it is not the
+    /// default English one (a bilingual dictionary the user enabled).
+    let source: String?
     let found: Bool
 
-    static let empty = WordEntry(word: "", pronunciation: nil, blocks: [], rhymes: [], origin: nil, found: false)
+    static let empty = WordEntry(
+        word: "", syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], origin: nil,
+        source: nil, found: false
+    )
 }
 
 /// Looks up a word using macOS's built-in Dictionary Services (the same data
@@ -38,36 +52,72 @@ enum DictionaryLookup {
         let word = headword(in: rawText)
 
         let rhymes = RhymeStore.rhymes(for: word)
+        let thesaurus = Thesaurus.blocks(for: word)
 
         guard let entryText = rawEntryText(for: word) else {
-            let synonyms = SynonymStore.synonyms(for: word, partOfSpeech: nil)
-            let antonyms = AntonymStore.antonyms(for: word, partOfSpeech: nil)
-            let blocks = synonyms.isEmpty && antonyms.isEmpty
-                ? []
-                : [PartOfSpeechBlock(partOfSpeech: nil, items: [], synonyms: synonyms, antonyms: antonyms)]
+            if let fallback = fallbackEntry(for: word, rhymes: rhymes) {
+                return fallback
+            }
+            var blocks = thesaurus.map { block(word, partOfSpeech: $0.partOfSpeech, items: [], thesaurus: thesaurus) }
+            if blocks.isEmpty {
+                let fallback = block(word, partOfSpeech: nil, items: [], thesaurus: [])
+                if !fallback.synonyms.isEmpty || !fallback.antonyms.isEmpty { blocks = [fallback] }
+            }
             return WordEntry(
-                word: word, pronunciation: nil, blocks: blocks, rhymes: rhymes, origin: nil,
-                found: !blocks.isEmpty || !rhymes.isEmpty
+                word: word, syllables: nil, pronunciation: nil, forms: [], blocks: blocks, rhymes: rhymes,
+                origin: nil, source: nil, found: !blocks.isEmpty || !rhymes.isEmpty
             )
         }
 
-        let blocks = partOfSpeechBlocks(entryText).map { partOfSpeech, items in
-            PartOfSpeechBlock(
-                partOfSpeech: partOfSpeech,
-                items: items,
-                synonyms: SynonymStore.synonyms(for: word, partOfSpeech: partOfSpeech),
-                antonyms: AntonymStore.antonyms(for: word, partOfSpeech: partOfSpeech)
-            )
+        var blocks = partOfSpeechBlocks(entryText).map { partOfSpeech, items in
+            block(word, partOfSpeech: partOfSpeech, items: items, thesaurus: thesaurus)
+        }
+        for extra in thesaurus where !blocks.contains(where: { $0.partOfSpeech == extra.partOfSpeech }) {
+            blocks.append(block(word, partOfSpeech: extra.partOfSpeech, items: [], thesaurus: thesaurus))
         }
 
+        let header = parseHeader(entryText)
         return WordEntry(
             word: word,
+            syllables: header.syllables,
             pronunciation: extractPronunciation(from: entryText),
+            forms: header.forms,
             blocks: blocks,
             rhymes: rhymes,
             origin: extractOrigin(from: entryText),
+            source: nil,
             found: true
         )
+    }
+
+    private static func block(_ word: String, partOfSpeech: String?, items: [DefinitionItem], thesaurus: [ThesaurusBlock]) -> PartOfSpeechBlock {
+        let senses = thesaurus.first { $0.partOfSpeech == partOfSpeech }?.senses ?? []
+        return PartOfSpeechBlock(
+            partOfSpeech: partOfSpeech,
+            items: items,
+            senses: senses,
+            synonyms: SynonymStore.synonyms(for: word, partOfSpeech: partOfSpeech),
+            antonyms: AntonymStore.antonyms(for: word, partOfSpeech: partOfSpeech)
+        )
+    }
+
+    /// For words the English dictionary lacks, try the other dictionaries
+    /// the user enabled in Dictionary.app (typically bilingual ones). Their
+    /// entry formats vary, so the text is shown as one unparsed definition.
+    private static func fallbackEntry(for word: String, rhymes: [String]) -> WordEntry? {
+        for dictionary in SystemDictionaries.fallbacks {
+            guard var text = SystemDictionaries.definition(of: word, in: dictionary) else { continue }
+            if text.lowercased().hasPrefix(word.lowercased()) {
+                text = String(text.dropFirst(word.count)).trimmingCharacters(in: .whitespaces)
+            }
+            let item = DefinitionItem(number: nil, text: text, example: nil, isSubItem: false)
+            return WordEntry(
+                word: word, syllables: nil, pronunciation: nil, forms: [],
+                blocks: [PartOfSpeechBlock(partOfSpeech: nil, items: [item], senses: [], synonyms: [], antonyms: [])],
+                rhymes: rhymes, origin: nil, source: SystemDictionaries.name(of: dictionary), found: true
+            )
+        }
+        return nil
     }
 
     /// Turns whatever the user selected into something worth looking up:
@@ -105,6 +155,84 @@ enum DictionaryLookup {
 
         guard let definition = DCSCopyTextDefinition(nil, cfWord, rangeToUse) else { return nil }
         return definition.takeRetainedValue() as String
+    }
+
+    /// The header runs "word syl·la·bles | pronunciation | part-of-speech
+    /// (inflections) ...". Inflection groups look like "(runs)",
+    /// "(, running | ˈrəniNG |)", "(past; ran | ran |)", "(plural children)"
+    /// or "(third singular present goes; present participle going; ...)".
+    private static func parseHeader(_ text: String) -> (syllables: String?, forms: [String]) {
+        guard let firstPipe = text.range(of: "|"),
+              let secondPipe = text.range(of: "|", range: firstPipe.upperBound..<text.endIndex) else {
+            return (nil, [])
+        }
+        // "United Nations U·nit·ed Na·tions |": the syllabified form is
+        // every token from the first dotted one onward.
+        let titleTokens = text[..<firstPipe.lowerBound].split(separator: " ").map(String.init)
+        let syllables = titleTokens.firstIndex { $0.contains("\u{B7}") }
+            .map { titleTokens[$0...].joined(separator: " ") }
+
+        var remainder = Substring(text[secondPipe.upperBound...]).drop(while: \.isWhitespace)
+        let label = try! NSRegularExpression(pattern: "^(\(partOfSpeechWords))\\.?\\s*", options: [.caseInsensitive])
+        let nsRemainder = String(remainder) as NSString
+        if let match = label.firstMatch(in: String(remainder), range: NSRange(location: 0, length: nsRemainder.length)) {
+            remainder = remainder.dropFirst(nsRemainder.substring(with: match.range).count)
+        }
+
+        var forms: [String] = []
+        while remainder.first == "(", let close = matchingParenthesis(in: remainder) {
+            let inner = String(remainder[remainder.index(after: remainder.startIndex)..<close])
+            forms += parseFormGroup(inner)
+            remainder = remainder[remainder.index(after: close)...].drop(while: \.isWhitespace)
+        }
+        return (syllables, forms)
+    }
+
+    private static let formLabelWords: Set<String> = [
+        "past", "participle", "present", "plural", "singular", "third", "person",
+        "comparative", "superlative", "feminine", "masculine", "or",
+    ]
+
+    private static func matchingParenthesis(in text: Substring) -> Substring.Index? {
+        var depth = 0
+        for index in text.indices {
+            switch text[index] {
+            case "(": depth += 1
+            case ")":
+                depth -= 1
+                if depth == 0 { return index }
+            default: break
+            }
+        }
+        return nil
+    }
+
+    /// Within a group, "| ... |" pronunciations are dropped, then ";" separates
+    /// either whole "label form" entries or a bare label from the form that
+    /// follows it ("past; ran").
+    private static func parseFormGroup(_ inner: String) -> [String] {
+        let cleaned = inner
+            .replacingOccurrences(of: "\\s*\\|[^|]*\\|", with: "", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ", "))
+        let segments = cleaned.components(separatedBy: ";")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        var forms: [String] = []
+        var pendingLabel: String?
+        for (index, segment) in segments.enumerated() {
+            let words = segment.split(separator: " ").map(String.init)
+            if let first = words.first, ["abbreviation", "abbr", "also", "symbol"].contains(first.lowercased()) {
+                continue
+            }
+            if index < segments.count - 1, words.allSatisfy(formLabelWords.contains) {
+                pendingLabel = segment
+                continue
+            }
+            forms.append(pendingLabel.map { "\($0) \(segment)" } ?? segment)
+            pendingLabel = nil
+        }
+        return forms
     }
 
     private static func extractPronunciation(from text: String) -> String? {

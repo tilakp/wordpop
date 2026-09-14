@@ -12,6 +12,7 @@ let package = Package(
                 .copy("Resources/synonyms.json"),
                 .copy("Resources/antonyms.json"),
                 .copy("Resources/rhymes.json"),
+                .copy("Resources/words.txt"),
             ]
         )
     ]

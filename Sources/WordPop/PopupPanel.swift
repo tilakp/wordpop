@@ -5,7 +5,9 @@ import AppKit
 /// user was in, and without showing a Dock icon or menu bar switch.
 final class PopupPanel: NSPanel {
     var onEscape: (() -> Void)?
-    var onSpace: (() -> Void)?
+    /// Return true to consume the event; otherwise it falls through to the
+    /// content (e.g. arrow keys scrolling the definitions).
+    var onKey: ((NSEvent) -> Bool)?
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
@@ -15,11 +17,19 @@ final class PopupPanel: NSPanel {
             onEscape?()
             return
         }
-        if event.keyCode == 49 { // kVK_Space
-            onSpace?()
+        if onKey?(event) == true {
             return
         }
         super.keyDown(with: event)
+    }
+
+    /// Command shortcuts (⌘C, ⌘[) never reach keyDown on a panel without a
+    /// menu bar to route them, so they are intercepted here.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.contains(.command), onKey?(event) == true {
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
     }
 
     override func cancelOperation(_ sender: Any?) {

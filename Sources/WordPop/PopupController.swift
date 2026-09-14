@@ -73,6 +73,33 @@ final class PopupController: NSObject, NSWindowDelegate {
         }
     }
 
+    /// Keyboard map: Space speaks, ←/→/Tab move through the pills, Return
+    /// follows the focused pill, 1-9 switch part of speech, ⌘[ goes back,
+    /// ⌘C copies the word and ⌘⇧C the first definition.
+    private func handleKey(_ event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags.contains(.command) {
+            switch event.charactersIgnoringModifiers {
+            case "[": viewModel.onGoBack()
+            case "c": viewModel.copyWord()
+            case "C": viewModel.copyDefinition()
+            default: return false
+            }
+            return true
+        }
+        switch event.keyCode {
+        case 49: viewModel.onSpeak() // Space
+        case 124: viewModel.moveFocus(by: 1) // →
+        case 123: viewModel.moveFocus(by: -1) // ←
+        case 48: viewModel.moveFocus(by: flags.contains(.shift) ? -1 : 1) // Tab
+        case 36, 76: viewModel.followFocusedPill() // Return, Enter
+        default:
+            guard let digit = event.charactersIgnoringModifiers.flatMap(Int.init), (1...9).contains(digit) else { return false }
+            viewModel.selectBlock(digit - 1)
+        }
+        return true
+    }
+
     private func ensurePanel() -> PopupPanel {
         if let panel { return panel }
 
@@ -89,10 +116,11 @@ final class PopupController: NSObject, NSWindowDelegate {
         newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         newPanel.delegate = self
         newPanel.onEscape = { [weak self] in self?.hide() }
-        newPanel.onSpace = { [weak self] in self?.viewModel.onSpeak() }
+        newPanel.onKey = { [weak self] event in self?.handleKey(event) ?? false }
 
-        blockSelection = viewModel.$selectedBlock
-            .dropFirst()
+        blockSelection = viewModel.$selectedBlock.map { _ in () }
+            .merge(with: viewModel.$showAllSenses.map { _ in () })
+            .dropFirst(2)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self, let panel = self.panel, panel.isVisible else { return }
@@ -138,6 +166,7 @@ final class PopupController: NSObject, NSWindowDelegate {
     }
 
     private func applyFrame(panel: PopupPanel, topLeft: NSPoint, size: NSSize, visible: NSRect) {
+        let size = NSSize(width: size.width, height: min(size.height, visible.height))
         var origin = NSPoint(x: topLeft.x, y: topLeft.y - size.height)
         origin.x = min(max(origin.x, visible.minX), visible.maxX - size.width)
         origin.y = min(max(origin.y, visible.minY), visible.maxY - size.height)

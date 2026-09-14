@@ -12,7 +12,13 @@ final class QuickSearchModel: ObservableObject {
 
 struct QuickSearchView: View {
     static let width: CGFloat = 380
-    private static let maxRecent = 8
+    private static let maxRows = 8
+
+    private struct Row: Identifiable {
+        let word: String
+        let date: Date?
+        var id: String { word }
+    }
 
     @ObservedObject var model: QuickSearchModel
     @ObservedObject private var history = LookupHistory.shared
@@ -20,8 +26,17 @@ struct QuickSearchView: View {
     let onSubmit: (String) -> Void
     let onLayoutChange: () -> Void
 
-    private var recent: [HistoryItem] {
-        history.recent(matching: model.query.trimmingCharacters(in: .whitespaces), limit: Self.maxRecent)
+    /// Recent lookups matching the query come first, then dictionary
+    /// completions to fill the remaining rows.
+    private var rows: [Row] {
+        let query = model.query.trimmingCharacters(in: .whitespaces)
+        var rows = history.recent(matching: query, limit: Self.maxRows).map { Row(word: $0.word, date: $0.date) }
+        let seen = Set(rows.map(\.word))
+        for word in WordList.suggestions(for: query, limit: Self.maxRows + seen.count) where !seen.contains(word) {
+            guard rows.count < Self.maxRows else { break }
+            rows.append(Row(word: word, date: nil))
+        }
+        return rows
     }
 
     var body: some View {
@@ -30,9 +45,9 @@ struct QuickSearchView: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 14)
 
-            if !recent.isEmpty {
+            if !rows.isEmpty {
                 Divider().padding(.horizontal, 18)
-                recentList
+                rowList
                     .padding(.horizontal, 8)
                     .padding(.vertical, 8)
             }
@@ -46,7 +61,7 @@ struct QuickSearchView: View {
         )
         .onAppear { isFocused = true }
         .onChange(of: model.query) { _, _ in model.selection = nil }
-        .onChange(of: recent.count) { _, _ in onLayoutChange() }
+        .onChange(of: rows.count) { _, _ in onLayoutChange() }
     }
 
     private var searchField: some View {
@@ -65,18 +80,20 @@ struct QuickSearchView: View {
         }
     }
 
-    private var recentList: some View {
+    private var rowList: some View {
         VStack(spacing: 2) {
-            ForEach(Array(recent.enumerated()), id: \.element.id) { index, item in
-                Button(action: { onSubmit(item.word) }) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                Button(action: { onSubmit(row.word) }) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(item.word)
+                        Text(row.word)
                             .font(.recentWord)
                             .foregroundStyle(.primary)
                         Spacer()
-                        Text(Self.relativeDate.localizedString(for: item.date, relativeTo: Date()))
-                            .font(.recentMeta)
-                            .foregroundStyle(.tertiary)
+                        if let date = row.date {
+                            Text(Self.relativeDate.localizedString(for: date, relativeTo: Date()))
+                                .font(.recentMeta)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
@@ -92,8 +109,8 @@ struct QuickSearchView: View {
     }
 
     private func submit() {
-        if let selection = model.selection, recent.indices.contains(selection) {
-            onSubmit(recent[selection].word)
+        if let selection = model.selection, rows.indices.contains(selection) {
+            onSubmit(rows[selection].word)
             return
         }
         let word = model.query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -102,9 +119,9 @@ struct QuickSearchView: View {
     }
 
     private func move(by delta: Int) -> KeyPress.Result {
-        guard !recent.isEmpty else { return .ignored }
+        guard !rows.isEmpty else { return .ignored }
         let current = model.selection ?? -1
-        model.selection = min(max(current + delta, 0), recent.count - 1)
+        model.selection = min(max(current + delta, 0), rows.count - 1)
         return .handled
     }
 
