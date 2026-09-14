@@ -22,7 +22,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 - **Other languages.** If a word is not in the English dictionary, WordPop tries the other dictionaries you have enabled in Dictionary.app (for example Spanish or German) and shows that entry.
 - **Rhymes**, ranked by how common the word is.
 - **Phrases and phrasal verbs** ("on the quiet", "run out of") from the entry, in a collapsible section, along with **etymology**.
-- **Customizable shortcuts** and a **Launch at Login** toggle in Preferences.
+- **Preferences** for the two shortcuts, text size, popup position (screen centre or next to the pointer), and Launch at Login.
 - **100% offline.** Every lookup runs against local data. Nothing you look up leaves your machine.
 
 ## Requirements

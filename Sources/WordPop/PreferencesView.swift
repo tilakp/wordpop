@@ -3,6 +3,8 @@ import AppKit
 
 struct PreferencesView: View {
     @State private var launchAtLogin = LoginItemManager.isEnabled
+    @AppStorage(Settings.textSizeKey) private var textSize = TextSize.medium
+    @AppStorage(Settings.popupPlacementKey) private var popupPlacement = PopupPlacement.center
     let onLookupShortcutChanged: (HotkeyShortcut) -> Bool
     let onQuickSearchShortcutChanged: (HotkeyShortcut) -> Bool
 
@@ -33,6 +35,26 @@ struct PreferencesView: View {
                     return true
                 }
             )
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Text Size").font(.headline)
+                Picker("Text Size", selection: $textSize) {
+                    ForEach(TextSize.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Popup Position").font(.headline)
+                Picker("Popup Position", selection: $popupPlacement) {
+                    ForEach(PopupPlacement.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.radioGroup)
+                .labelsHidden()
+            }
 
             Divider()
 

@@ -19,19 +19,25 @@ extension Color {
 
 /// Editorial type scale: the headword and quoted examples set in the system
 /// serif (New York), everything else in SF for legibility at small sizes.
+/// Sizes follow the Text Size preference; they are read on each access so
+/// the next popup picks up a change.
 extension Font {
-    static let headword = Font.system(size: 30, weight: .semibold, design: .serif)
-    static let partOfSpeech = Font.system(size: 14, design: .serif).italic()
-    static let pronunciation = Font.system(size: 13, design: .monospaced)
-    static let forms = Font.system(size: 12, design: .serif).italic()
-    static let definition = Font.system(size: 13.5)
-    static let senseNumber = Font.system(size: 12, weight: .semibold, design: .serif)
-    static let example = Font.system(size: 13, design: .serif).italic()
-    static let sectionLabel = Font.system(size: 10.5, weight: .semibold)
-    static let pill = Font.system(size: 12.5, design: .serif)
-    static let origin = Font.system(size: 12.5, design: .serif)
-    static let phrase = Font.system(size: 13.5, weight: .semibold, design: .serif)
-    static let searchField = Font.system(size: 20, design: .serif)
-    static let recentWord = Font.system(size: 14, design: .serif)
-    static let recentMeta = Font.system(size: 11)
+    private static func scaled(_ size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
+        .system(size: size * Settings.textScale, weight: weight, design: design)
+    }
+
+    static var headword: Font { scaled(30, weight: .semibold, design: .serif) }
+    static var partOfSpeech: Font { scaled(14, design: .serif).italic() }
+    static var pronunciation: Font { scaled(13, design: .monospaced) }
+    static var forms: Font { scaled(12, design: .serif).italic() }
+    static var definition: Font { scaled(13.5) }
+    static var senseNumber: Font { scaled(12, weight: .semibold, design: .serif) }
+    static var example: Font { scaled(13, design: .serif).italic() }
+    static var sectionLabel: Font { scaled(10.5, weight: .semibold) }
+    static var pill: Font { scaled(12.5, design: .serif) }
+    static var origin: Font { scaled(12.5, design: .serif) }
+    static var phrase: Font { scaled(13.5, weight: .semibold, design: .serif) }
+    static var searchField: Font { scaled(20, design: .serif) }
+    static var recentWord: Font { scaled(14, design: .serif) }
+    static var recentMeta: Font { scaled(11) }
 }

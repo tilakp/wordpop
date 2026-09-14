@@ -46,7 +46,7 @@ struct FlowLayout: Layout {
 struct PopupContentView: View {
     @ObservedObject var viewModel: PopupViewModel
 
-    static let popupWidth: CGFloat = 380
+    static var popupWidth: CGFloat { 380 * Settings.textScale }
     private static let maxListHeight: CGFloat = 340
     private static let scrollFadeHeight: CGFloat = 28
 

@@ -134,14 +134,22 @@ final class PopupController: NSObject, NSWindowDelegate {
         return newPanel
     }
 
-    /// Centers the panel on the screen containing `point` (the cursor, at
-    /// the time the hotkey was pressed). Only used for the initial
-    /// appearance — see `relayout` for why later resizes don't re-center.
+    /// Places the panel on the screen containing `point` (the cursor, at
+    /// the time the hotkey was pressed): centered, or just below and to the
+    /// right of the pointer, per the Popup Position preference. Only used
+    /// for the initial appearance — see `relayout` for why later resizes
+    /// don't re-place it.
     private func layOut(panel: PopupPanel, near point: NSPoint) {
         let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let size = contentSize()
-        let topLeft = NSPoint(x: visible.midX - size.width / 2, y: visible.midY + size.height / 2)
+        let topLeft: NSPoint
+        switch Settings.popupPlacement {
+        case .center:
+            topLeft = NSPoint(x: visible.midX - size.width / 2, y: visible.midY + size.height / 2)
+        case .cursor:
+            topLeft = NSPoint(x: point.x + 12, y: point.y - 16)
+        }
         applyFrame(panel: panel, topLeft: topLeft, size: size, visible: visible)
     }
 

@@ -11,7 +11,7 @@ final class QuickSearchModel: ObservableObject {
 }
 
 struct QuickSearchView: View {
-    static let width: CGFloat = 380
+    static var width: CGFloat { 380 * Settings.textScale }
     private static let maxRows = 8
 
     private struct Row: Identifiable {
