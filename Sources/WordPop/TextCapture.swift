@@ -1,19 +1,41 @@
 import AppKit
 
-/// Captures the currently selected text in whatever app is frontmost by
-/// simulating Cmd+C and reading the clipboard, then restores the clipboard
-/// to what it held before. Requires Accessibility permission to post events.
+/// Captures the currently selected text in whatever app is frontmost.
 ///
-/// This is the same clipboard-simulation technique used by PopClip,
-/// Alfred's clipboard actions, and similar tools — it has an inherent, hard
-/// -to-close race: if the frontmost app is slow to write its own copy (a
-/// heavily loaded Electron app, a remote session), our restore can land
-/// before that copy does, and it ends up overwriting the user's clipboard
-/// with our restored (stale) content. The brief extra wait below narrows
-/// that window but can't eliminate it without a fundamentally different,
-/// OS-level way to read a selection.
+/// First choice is the Accessibility API: the focused element's
+/// AXSelectedText, which native apps (Safari, Mail, Notes, Xcode, most
+/// Chromium browsers) expose and which touches nothing. Apps that don't
+/// (many Electron apps, terminals, remote desktops) fall back to simulating
+/// Cmd+C and reading the clipboard, then restoring it. Both need
+/// Accessibility permission.
+///
+/// The clipboard route is the same technique PopClip and Alfred use, and
+/// has an inherent, hard-to-close race: if the frontmost app is slow to
+/// write its own copy, our restore can land before that copy does and
+/// overwrite the user's clipboard with stale content. The brief extra wait
+/// below narrows that window but can't eliminate it.
 enum TextCapture {
     static func captureSelectedText() async -> String? {
+        if let selected = accessibilitySelectedText(), !selected.isEmpty {
+            return selected
+        }
+        return await clipboardSelectedText()
+    }
+
+    private static func accessibilitySelectedText() -> String? {
+        let system = AXUIElementCreateSystemWide()
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else { return nil }
+        let element = focused as! AXUIElement
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value) == .success else {
+            return nil
+        }
+        return (value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func clipboardSelectedText() async -> String? {
         let pasteboard = NSPasteboard.general
         // Only the plain-text representation is saved/restored (not a full
         // multi-type item copy) — cheap, and covers the case that matters;
