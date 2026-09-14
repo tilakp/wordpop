@@ -4,12 +4,18 @@ Select a word anywhere on your Mac, press a hotkey, and get its definition, pron
 
 WordPop lives in the menu bar and stays out of the Dock.
 
+<p align="center">
+  <img src="docs/popup.png" width="380" alt="WordPop popup showing the entry for quiet, with senses, synonyms, antonyms, and rhymes">
+  &nbsp;&nbsp;
+  <img src="docs/quick-search.png" width="380" alt="WordPop Quick Search bar with recent lookups" valign="top">
+</p>
+
 ## Features
 
 - **Lookup from any app.** Select text in a browser, editor, PDF, chat window, or anywhere else, then press `⌃⌥⌘D`. The popup appears next to your mouse.
 - **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first.
 - **Lookup history.** Quick Search lists your recent lookups (kept for 30 days) under the field. Type to filter, use the arrow keys and Return to reopen one. Clear it from the menu bar menu.
-- **Definitions and examples** from the built-in macOS dictionary (the same data as Dictionary.app), parsed into numbered senses and sub-senses.
+- **Definitions and examples** from the built-in macOS dictionary (the same data as Dictionary.app), parsed into numbered senses and sub-senses. Words with several parts of speech get a verb/noun/adjective switcher.
 - **Pronunciation** shown as IPA, plus a speaker button that reads the word aloud with the system voice.
 - **Synonyms and antonyms**, grouped by part of speech so "run" the verb and "run" the noun do not get mixed together.
 - **Rhymes**, ranked by how common the word is.
@@ -24,6 +30,12 @@ WordPop lives in the menu bar and stays out of the Dock.
 - Accessibility permission (WordPop needs it to capture your selected text)
 
 ## Install
+
+### Download
+
+Grab `WordPop.zip` from the [latest release](https://github.com/tilakp/wordpop/releases/latest), unzip it, and move `WordPop.app` to your Applications folder. The build is not notarized, so on first launch right-click the app and choose **Open**.
+
+### Build from source
 
 ```sh
 git clone https://github.com/tilakp/wordpop.git
