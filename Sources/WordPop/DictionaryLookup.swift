@@ -6,6 +6,8 @@ struct DefinitionItem {
     let text: String
     let example: String?
     let isSubItem: Bool
+    /// Register or region label ("informal", "mainly British English").
+    var label: String? = nil
 }
 
 /// One part-of-speech section of an entry ("run" the verb, "run" the
@@ -53,22 +55,38 @@ struct WordEntry {
 enum DictionaryLookup {
     static func lookup(_ rawText: String) -> WordEntry {
         let word = headword(in: rawText)
-        let markup = SystemDictionaries.english.flatMap { SystemDictionaries.entryMarkup(of: word, in: $0) }
-        return entry(
-            word: word,
-            entryText: rawEntryText(for: word),
-            thesaurus: Thesaurus.blocks(for: word),
-            phrases: markup.map(PhraseParser.phrases(in:)) ?? []
+        let entryText = rawEntryText(for: word)
+        // The flat text always starts with the canonical headword, so an
+        // inflected selection ("running") resolves to its entry ("run")
+        // before the structured record is fetched by exact match.
+        let canonical = entryText.map(canonicalHeadword(in:)) ?? word
+        let thesaurus = Thesaurus.blocks(for: canonical)
+
+        if let dictionary = SystemDictionaries.english,
+           let parsed = EntryMarkupParser.merge(
+               SystemDictionaries.entryMarkups(of: canonical, in: dictionary).compactMap(EntryMarkupParser.parse)
+           ) {
+            return entry(from: parsed, thesaurus: thesaurus)
+        }
+        return entry(word: canonical, entryText: entryText, thesaurus: thesaurus)
+    }
+
+    /// Builds the entry from a parsed markup record.
+    static func entry(from parsed: EntryMarkupParser.Parsed, thesaurus: [ThesaurusBlock]) -> WordEntry {
+        let word = parsed.title
+        return assemble(
+            word: word, syllables: parsed.syllables, pronunciation: parsed.pronunciation, forms: parsed.forms,
+            blocks: parsed.blocks, origin: parsed.origin, phrases: parsed.phrases, thesaurus: thesaurus
         )
     }
 
-    /// Builds the entry from already-fetched dictionary text, so parsing can
-    /// be exercised on fixtures without Dictionary Services.
-    static func entry(word: String, entryText: String?, thesaurus: [ThesaurusBlock], phrases: [Phrase] = []) -> WordEntry {
-        let rhymes = RhymeStore.rhymes(for: word)
-        let nearRhymes = RhymeStore.nearRhymes(for: word)
-
+    /// Builds the entry from the flat definition text (the fallback when no
+    /// structured record matches), so parsing can be exercised on fixtures
+    /// without Dictionary Services.
+    static func entry(word: String, entryText: String?, thesaurus: [ThesaurusBlock]) -> WordEntry {
         guard let entryText else {
+            let rhymes = RhymeStore.rhymes(for: word)
+            let nearRhymes = RhymeStore.nearRhymes(for: word)
             if let fallback = fallbackEntry(for: word, rhymes: rhymes, nearRhymes: nearRhymes) {
                 return fallback
             }
@@ -84,27 +102,46 @@ enum DictionaryLookup {
             )
         }
 
-        var blocks = partOfSpeechBlocks(entryText).map { partOfSpeech, items in
-            block(word, partOfSpeech: partOfSpeech, items: items, thesaurus: thesaurus)
-        }
+        let header = parseHeader(entryText)
+        return assemble(
+            word: word, syllables: header.syllables, pronunciation: extractPronunciation(from: entryText),
+            forms: header.forms, blocks: partOfSpeechBlocks(entryText), origin: extractOrigin(from: entryText),
+            phrases: [], thesaurus: thesaurus
+        )
+    }
+
+    private static func assemble(
+        word: String, syllables: String?, pronunciation: String?, forms: [String],
+        blocks parsedBlocks: [(partOfSpeech: String?, items: [DefinitionItem])],
+        origin: String?, phrases: [Phrase], thesaurus: [ThesaurusBlock]
+    ) -> WordEntry {
+        var blocks = parsedBlocks.map { block(word, partOfSpeech: $0.partOfSpeech, items: $0.items, thesaurus: thesaurus) }
         for extra in thesaurus where !blocks.contains(where: { $0.partOfSpeech == extra.partOfSpeech }) {
             blocks.append(block(word, partOfSpeech: extra.partOfSpeech, items: [], thesaurus: thesaurus))
         }
-
-        let header = parseHeader(entryText)
         return WordEntry(
             word: word,
-            syllables: header.syllables,
-            pronunciation: extractPronunciation(from: entryText),
-            forms: header.forms,
+            syllables: syllables,
+            pronunciation: pronunciation,
+            forms: forms,
             blocks: blocks,
-            rhymes: rhymes,
-            nearRhymes: nearRhymes,
-            origin: extractOrigin(from: entryText),
+            rhymes: RhymeStore.rhymes(for: word),
+            nearRhymes: RhymeStore.nearRhymes(for: word),
+            origin: origin,
             phrases: phrases,
             source: nil,
             found: true
         )
+    }
+
+    /// The headword as the flat text spells it: everything before the first
+    /// pipe, minus the syllabified repeat and any homograph number
+    /// ("meticulous me·tic·u·lous |", "go 1 |").
+    static func canonicalHeadword(in entryText: String) -> String {
+        guard let pipe = entryText.range(of: "|") else { return headword(in: entryText) }
+        let tokens = entryText[..<pipe.lowerBound].split(separator: " ").map(String.init)
+            .filter { !$0.contains("\u{B7}") && Int($0) == nil }
+        return tokens.joined(separator: " ")
     }
 
     private static func block(_ word: String, partOfSpeech: String?, items: [DefinitionItem], thesaurus: [ThesaurusBlock]) -> PartOfSpeechBlock {

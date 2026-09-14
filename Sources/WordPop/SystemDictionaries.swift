@@ -14,6 +14,7 @@ import Foundation
     _ dictionary: DCSDictionary, _ string: CFString, _ method: Int, _ maxResults: Int
 ) -> Unmanaged<CFArray>?
 @_silgen_name("DCSRecordCopyData") private func DCSRecordCopyData(_ record: AnyObject, _ format: Int) -> Unmanaged<CFString>?
+@_silgen_name("DCSRecordGetHeadword") private func DCSRecordGetHeadword(_ record: AnyObject) -> Unmanaged<CFString>?
 
 enum SystemDictionaries {
     static let thesaurusIdentifiers = ["com.apple.dictionary.OAWT", "com.apple.dictionary.OTE"]
@@ -47,13 +48,20 @@ enum SystemDictionaries {
         return active.first { ["com.apple.dictionary.NOAD", "com.apple.dictionary.ODE"].contains(identifier(of: $0)) }
     }()
 
-    /// The entry as the dictionary's own XHTML markup, which keeps the
-    /// structure (phrase sub-entries, definitions, examples) that the flat
-    /// text from DCSCopyTextDefinition throws away. Exact-match only.
-    static func entryMarkup(of word: String, in dictionary: DCSDictionary) -> String? {
-        guard let records = DCSCopyRecordsForSearchString(dictionary, word as CFString, 0, 1)?.takeRetainedValue() as? [AnyObject],
-              let record = records.first else { return nil }
-        return DCSRecordCopyData(record, 0)?.takeRetainedValue() as String?
+    /// The entries for `word` as the dictionary's own XHTML markup, which
+    /// keeps the structure (phrase sub-entries, definitions, examples) that
+    /// the flat text from DCSCopyTextDefinition throws away. An exact-match
+    /// search also returns entries like "Child, Julia" for "child" and the
+    /// homographs "lead" (verb) and "lead" (metal); only records whose
+    /// headword is exactly `word` are kept, and all of them are returned.
+    static func entryMarkups(of word: String, in dictionary: DCSDictionary) -> [String] {
+        guard let records = DCSCopyRecordsForSearchString(dictionary, word as CFString, 0, 8)?.takeRetainedValue() as? [AnyObject] else {
+            return []
+        }
+        return records.compactMap { record in
+            guard let headword = DCSRecordGetHeadword(record)?.takeUnretainedValue() as String?, headword == word else { return nil }
+            return DCSRecordCopyData(record, 0)?.takeRetainedValue() as String?
+        }
     }
 
     static func name(of dictionary: DCSDictionary) -> String {

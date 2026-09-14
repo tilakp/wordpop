@@ -22,11 +22,58 @@ struct ThesaurusBlock {
 /// semicolon-separated group and apply to every word in it.
 enum Thesaurus {
     static func blocks(for word: String) -> [ThesaurusBlock] {
-        guard let dictionary = SystemDictionaries.thesaurus,
-              let raw = SystemDictionaries.definition(of: word, in: dictionary) else { return [] }
+        guard let dictionary = SystemDictionaries.thesaurus else { return [] }
+        let markups = SystemDictionaries.entryMarkups(of: word, in: dictionary)
+        if !markups.isEmpty {
+            return markups.compactMap(parseMarkup).flatMap { $0 }
+        }
+        guard let raw = SystemDictionaries.definition(of: word, in: dictionary) else { return [] }
         return parse(raw, word: word)
     }
 
+    /// Structured parse from the entry markup: se1 per part of speech,
+    /// se2 per sense (or one msThes for single-sense entries), each with an
+    /// example, synGroups (a group carrying an `lg` label is register- or
+    /// region-restricted) and an antList.
+    static func parseMarkup(_ markup: String) -> [ThesaurusBlock]? {
+        guard let root = MarkupDocument.parse(markup), let entry = root.first("entry") else { return nil }
+        var blocks: [ThesaurusBlock] = []
+        for senseGroup in entry.descendants("se1") {
+            let rawPartOfSpeech = senseGroup.first("posg")?.first("pos")?.fullText.lowercased()
+                .trimmingCharacters(in: CharacterSet.letters.inverted)
+            let partOfSpeech = rawPartOfSpeech.flatMap { $0.isEmpty ? nil : $0 }
+            let numbered = senseGroup.descendants("se2")
+            let containers = numbered.isEmpty ? [senseGroup] : numbered
+            let senses = containers.compactMap { container -> ThesaurusSense? in
+                guard let body = container.first("msThes") else { return nil }
+                var plain: [String] = []
+                var labelled: [String] = []
+                for group in body.descendants("synGroup") {
+                    let isLabelled = group.children.contains { $0.has("lg") }
+                    let words = group.descendants("syn").map(\.text).filter { !$0.isEmpty }
+                    if isLabelled { labelled += words } else { plain += words }
+                }
+                let synonyms = uniqued(plain + labelled)
+                let antonyms = uniqued(body.descendants("ant").map(\.text).filter { !$0.isEmpty })
+                guard !synonyms.isEmpty || !antonyms.isEmpty else { return nil }
+                return ThesaurusSense(
+                    example: body.first("ex")?.text,
+                    synonyms: Array(synonyms.prefix(12)),
+                    antonyms: Array(antonyms.prefix(8))
+                )
+            }
+            guard !senses.isEmpty else { continue }
+            blocks.append(ThesaurusBlock(partOfSpeech: partOfSpeech, senses: senses))
+        }
+        return blocks
+    }
+
+    private static func uniqued(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.filter { seen.insert($0.lowercased()).inserted }
+    }
+
+    /// Fallback parser for the flat text from DCSCopyTextDefinition.
     static func parse(_ raw: String, word: String) -> [ThesaurusBlock] {
         var text = raw
         if text.lowercased().hasPrefix(word.lowercased()) {

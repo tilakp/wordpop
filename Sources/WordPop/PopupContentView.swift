@@ -244,7 +244,7 @@ struct PopupContentView: View {
                 // fixedSize so a long single-paragraph entry reports its
                 // real height; otherwise Text truncates to the proposal and
                 // ViewThatFits never falls back to the ScrollView.
-                Text(item.text)
+                definitionText(item)
                     .font(.definition)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -259,6 +259,11 @@ struct PopupContentView: View {
             }
         }
         .padding(.leading, item.isSubItem ? 16 : 0)
+    }
+
+    private func definitionText(_ item: DefinitionItem) -> Text {
+        guard let label = item.label else { return Text(item.text) }
+        return Text("\(label) ").font(.example).foregroundColor(.secondary) + Text(item.text)
     }
 
     private func pillSection(_ section: PillSection) -> some View {
