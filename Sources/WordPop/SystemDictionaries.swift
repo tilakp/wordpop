@@ -10,6 +10,10 @@ import Foundation
 @_silgen_name("DCSGetActiveDictionaries") private func DCSGetActiveDictionaries() -> Unmanaged<CFArray>
 @_silgen_name("DCSDictionaryGetName") private func DCSDictionaryGetName(_ dictionary: DCSDictionary) -> Unmanaged<CFString>
 @_silgen_name("DCSDictionaryGetIdentifier") private func DCSDictionaryGetIdentifier(_ dictionary: DCSDictionary) -> Unmanaged<CFString>
+@_silgen_name("DCSCopyRecordsForSearchString") private func DCSCopyRecordsForSearchString(
+    _ dictionary: DCSDictionary, _ string: CFString, _ method: Int, _ maxResults: Int
+) -> Unmanaged<CFArray>?
+@_silgen_name("DCSRecordCopyData") private func DCSRecordCopyData(_ record: AnyObject, _ format: Int) -> Unmanaged<CFString>?
 
 enum SystemDictionaries {
     static let thesaurusIdentifiers = ["com.apple.dictionary.OAWT", "com.apple.dictionary.OTE"]
@@ -35,6 +39,22 @@ enum SystemDictionaries {
         let active = DCSGetActiveDictionaries().takeUnretainedValue() as? [DCSDictionary] ?? []
         return active.filter { !englishIdentifiers.contains(identifier(of: $0)) }
     }()
+
+    /// The default English dictionary (NOAD, or ODE on British systems),
+    /// needed because record lookups require an explicit dictionary.
+    static let english: DCSDictionary? = {
+        let active = DCSGetActiveDictionaries().takeUnretainedValue() as? [DCSDictionary] ?? []
+        return active.first { ["com.apple.dictionary.NOAD", "com.apple.dictionary.ODE"].contains(identifier(of: $0)) }
+    }()
+
+    /// The entry as the dictionary's own XHTML markup, which keeps the
+    /// structure (phrase sub-entries, definitions, examples) that the flat
+    /// text from DCSCopyTextDefinition throws away. Exact-match only.
+    static func entryMarkup(of word: String, in dictionary: DCSDictionary) -> String? {
+        guard let records = DCSCopyRecordsForSearchString(dictionary, word as CFString, 0, 1)?.takeRetainedValue() as? [AnyObject],
+              let record = records.first else { return nil }
+        return DCSRecordCopyData(record, 0)?.takeRetainedValue() as String?
+    }
 
     static func name(of dictionary: DCSDictionary) -> String {
         DCSDictionaryGetName(dictionary).takeUnretainedValue() as String

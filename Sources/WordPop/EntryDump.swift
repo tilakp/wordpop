@@ -26,6 +26,12 @@ enum EntryDump {
                 if !block.antonyms.isEmpty { lines.append("antonyms: \(block.antonyms.joined(separator: ", "))") }
             }
         }
+        if !entry.phrases.isEmpty {
+            lines.append("")
+            for phrase in entry.phrases {
+                lines.append("phrase: \(phrase.phrase) — \(phrase.definition)" + (phrase.example.map { " (\($0))" } ?? ""))
+            }
+        }
         if !entry.rhymes.isEmpty { lines.append("\nrhymes: \(entry.rhymes.joined(separator: ", "))") }
         if let origin = entry.origin { lines.append("\norigin: \(origin)") }
         if let source = entry.source { lines.append("\nsource: \(source)") }

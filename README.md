@@ -21,7 +21,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 - **Synonyms by sense** from the Oxford American Writer's Thesaurus that ships with macOS: each sense gets its example sentence and its own synonyms, with everyday words ahead of informal or archaic ones. Words the Thesaurus lacks fall back to a bundled WordNet and Moby dataset. Antonyms are grouped the same way.
 - **Other languages.** If a word is not in the English dictionary, WordPop tries the other dictionaries you have enabled in Dictionary.app (for example Spanish or German) and shows that entry.
 - **Rhymes**, ranked by how common the word is.
-- **Etymology**, one tap away.
+- **Phrases and phrasal verbs** ("on the quiet", "run out of") from the entry, in a collapsible section, along with **etymology**.
 - **Customizable shortcuts** and a **Launch at Login** toggle in Preferences.
 - **100% offline.** Every lookup runs against local data. Nothing you look up leaves your machine.
 

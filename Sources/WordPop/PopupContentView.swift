@@ -45,7 +45,6 @@ struct FlowLayout: Layout {
 
 struct PopupContentView: View {
     @ObservedObject var viewModel: PopupViewModel
-    @State private var showOrigin = false
 
     static let popupWidth: CGFloat = 380
     private static let maxListHeight: CGFloat = 340
@@ -54,7 +53,7 @@ struct PopupContentView: View {
     private var items: [DefinitionItem] { viewModel.block?.items ?? [] }
 
     private var hasScrollableContent: Bool {
-        !items.isEmpty || viewModel.entry.origin != nil
+        !items.isEmpty || viewModel.entry.origin != nil || !viewModel.entry.phrases.isEmpty
     }
 
     private var isEmpty: Bool {
@@ -109,15 +108,15 @@ struct PopupContentView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.08))
         )
-        .onChange(of: viewModel.entry.word) { _, _ in
-            showOrigin = false
-        }
     }
 
     private var definitions: some View {
         VStack(alignment: .leading, spacing: 14) {
             if !items.isEmpty {
                 itemsList
+            }
+            if !viewModel.entry.phrases.isEmpty {
+                phrasesDisclosure
             }
             if let origin = viewModel.entry.origin {
                 originDisclosure(origin)
@@ -311,23 +310,55 @@ struct PopupContentView: View {
         .buttonStyle(.plain)
     }
 
-    private func originDisclosure(_ origin: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button(action: { showOrigin.toggle() }) {
-                HStack(spacing: 4) {
-                    Text("Origin")
-                        .font(.sectionLabel)
-                        .tracking(1.2)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                    Image(systemName: showOrigin ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
+    private func disclosureLabel(_ title: String, expanded: Bool) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+                .font(.sectionLabel)
+                .tracking(1.2)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            Image(systemName: expanded ? "chevron.down" : "chevron.right")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var phrasesDisclosure: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button(action: { viewModel.showPhrases.toggle() }) {
+                disclosureLabel("Phrases (\(viewModel.entry.phrases.count))", expanded: viewModel.showPhrases)
             }
             .buttonStyle(.plain)
 
-            if showOrigin {
+            if viewModel.showPhrases {
+                ForEach(Array(viewModel.entry.phrases.enumerated()), id: \.offset) { _, phrase in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(phrase.phrase)
+                            .font(.phrase)
+                        Text(phrase.definition)
+                            .font(.definition)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let example = phrase.example {
+                            Text("\u{201C}\(example)\u{201D}")
+                                .font(.example)
+                                .foregroundStyle(.tertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func originDisclosure(_ origin: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button(action: { viewModel.showOrigin.toggle() }) {
+                disclosureLabel("Origin", expanded: viewModel.showOrigin)
+            }
+            .buttonStyle(.plain)
+
+            if viewModel.showOrigin {
                 Text(origin)
                     .font(.origin)
                     .foregroundStyle(.secondary)

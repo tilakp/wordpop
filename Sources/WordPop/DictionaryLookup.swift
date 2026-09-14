@@ -31,6 +31,8 @@ struct WordEntry {
     let blocks: [PartOfSpeechBlock]
     let rhymes: [String]
     let origin: String?
+    /// Idioms and phrasal verbs from the entry's PHRASES and PHRASAL VERBS sections.
+    let phrases: [Phrase]
     /// Name of the dictionary the entry came from when it is not the
     /// default English one (a bilingual dictionary the user enabled).
     let source: String?
@@ -38,7 +40,7 @@ struct WordEntry {
 
     static let empty = WordEntry(
         word: "", syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], origin: nil,
-        source: nil, found: false
+        phrases: [], source: nil, found: false
     )
 }
 
@@ -50,12 +52,18 @@ struct WordEntry {
 enum DictionaryLookup {
     static func lookup(_ rawText: String) -> WordEntry {
         let word = headword(in: rawText)
-        return entry(word: word, entryText: rawEntryText(for: word), thesaurus: Thesaurus.blocks(for: word))
+        let markup = SystemDictionaries.english.flatMap { SystemDictionaries.entryMarkup(of: word, in: $0) }
+        return entry(
+            word: word,
+            entryText: rawEntryText(for: word),
+            thesaurus: Thesaurus.blocks(for: word),
+            phrases: markup.map(PhraseParser.phrases(in:)) ?? []
+        )
     }
 
     /// Builds the entry from already-fetched dictionary text, so parsing can
     /// be exercised on fixtures without Dictionary Services.
-    static func entry(word: String, entryText: String?, thesaurus: [ThesaurusBlock]) -> WordEntry {
+    static func entry(word: String, entryText: String?, thesaurus: [ThesaurusBlock], phrases: [Phrase] = []) -> WordEntry {
         let rhymes = RhymeStore.rhymes(for: word)
 
         guard let entryText else {
@@ -69,7 +77,7 @@ enum DictionaryLookup {
             }
             return WordEntry(
                 word: word, syllables: nil, pronunciation: nil, forms: [], blocks: blocks, rhymes: rhymes,
-                origin: nil, source: nil, found: !blocks.isEmpty || !rhymes.isEmpty
+                origin: nil, phrases: [], source: nil, found: !blocks.isEmpty || !rhymes.isEmpty
             )
         }
 
@@ -89,6 +97,7 @@ enum DictionaryLookup {
             blocks: blocks,
             rhymes: rhymes,
             origin: extractOrigin(from: entryText),
+            phrases: phrases,
             source: nil,
             found: true
         )
@@ -118,7 +127,7 @@ enum DictionaryLookup {
             return WordEntry(
                 word: word, syllables: nil, pronunciation: nil, forms: [],
                 blocks: [PartOfSpeechBlock(partOfSpeech: nil, items: [item], senses: [], synonyms: [], antonyms: [])],
-                rhymes: rhymes, origin: nil, source: SystemDictionaries.name(of: dictionary), found: true
+                rhymes: rhymes, origin: nil, phrases: [], source: SystemDictionaries.name(of: dictionary), found: true
             )
         }
         return nil

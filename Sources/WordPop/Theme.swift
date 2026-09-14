@@ -30,6 +30,7 @@ extension Font {
     static let sectionLabel = Font.system(size: 10.5, weight: .semibold)
     static let pill = Font.system(size: 12.5, design: .serif)
     static let origin = Font.system(size: 12.5, design: .serif)
+    static let phrase = Font.system(size: 13.5, weight: .semibold, design: .serif)
     static let searchField = Font.system(size: 20, design: .serif)
     static let recentWord = Font.system(size: 14, design: .serif)
     static let recentMeta = Font.system(size: 11)
