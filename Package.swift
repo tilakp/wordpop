@@ -14,6 +14,12 @@ let package = Package(
                 .copy("Resources/rhymes.json"),
                 .copy("Resources/words.txt"),
             ]
-        )
+        ),
+        .testTarget(
+            name: "WordPopTests",
+            dependencies: ["WordPop"],
+            path: "Tests/WordPopTests",
+            resources: [.copy("Fixtures")]
+        ),
     ]
 )

@@ -74,7 +74,7 @@ Both shortcuts can be changed from the menu bar icon under **Preferences**.
 | `⌘C` / `⌘⇧C` | Copy the word / the first definition |
 | `Esc` | Close |
 
-To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`.
+To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`. `swift test` runs the parser tests against captured dictionary text in `Tests/WordPopTests/Fixtures`.
 
 ## How it works
 

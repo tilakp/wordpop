@@ -50,11 +50,15 @@ struct WordEntry {
 enum DictionaryLookup {
     static func lookup(_ rawText: String) -> WordEntry {
         let word = headword(in: rawText)
+        return entry(word: word, entryText: rawEntryText(for: word), thesaurus: Thesaurus.blocks(for: word))
+    }
 
+    /// Builds the entry from already-fetched dictionary text, so parsing can
+    /// be exercised on fixtures without Dictionary Services.
+    static func entry(word: String, entryText: String?, thesaurus: [ThesaurusBlock]) -> WordEntry {
         let rhymes = RhymeStore.rhymes(for: word)
-        let thesaurus = Thesaurus.blocks(for: word)
 
-        guard let entryText = rawEntryText(for: word) else {
+        guard let entryText else {
             if let fallback = fallbackEntry(for: word, rhymes: rhymes) {
                 return fallback
             }
@@ -411,16 +415,18 @@ enum DictionaryLookup {
             remainder = String(text[secondPipe.upperBound...]).trimmingCharacters(in: .whitespaces)
         }
 
-        let posPattern = try! NSRegularExpression(
-            pattern: "^(\(partOfSpeechWords))\\.?\\s*(\\([^)]*\\)\\s*)*",
-            options: [.caseInsensitive]
-        )
+        let posPattern = try! NSRegularExpression(pattern: "^(\(partOfSpeechWords))\\.?\\s*", options: [.caseInsensitive])
         let nsRemainder = remainder as NSString
-        if let match = posPattern.firstMatch(in: remainder, range: NSRange(location: 0, length: nsRemainder.length)),
-           match.range.location == 0 {
-            remainder = nsRemainder.replacingCharacters(in: match.range, with: "")
+        if let match = posPattern.firstMatch(in: remainder, range: NSRange(location: 0, length: nsRemainder.length)) {
+            remainder = nsRemainder.substring(from: match.range.length)
         }
-        return remainder.trimmingCharacters(in: .whitespaces)
+        // Inflection groups can nest parentheses inside their pronunciations
+        // ("(plural children | ˈCHildr(ə)n |)"), so a regex cannot skip them.
+        var rest = Substring(remainder).drop(while: \.isWhitespace)
+        while rest.first == "(", let close = matchingParenthesis(in: rest) {
+            rest = rest[rest.index(after: close)...].drop(while: \.isWhitespace)
+        }
+        return String(rest).trimmingCharacters(in: .whitespaces)
     }
 
     /// Strips leading grammar tags like "[no object]" or "[with object]".
