@@ -166,7 +166,9 @@ enum EntryMarkupParser {
         return DefinitionItem(
             number: number,
             text: text,
-            example: msDict.first("ex")?.text,
+            // Some examples keep the colon that introduces them (": the car
+            // runs on unleaded fuel").
+            example: msDict.first("ex")?.text.trimmingCharacters(in: CharacterSet(charactersIn: ": ")),
             isSubItem: isSubItem,
             label: label.flatMap { $0.isEmpty ? nil : $0 }
         )
