@@ -26,6 +26,15 @@ struct PartOfSpeechBlock {
     var pronunciation: String? = nil
 }
 
+/// One row of a hand-written hint: an optional caption ("very tired")
+/// and the words to use instead ("exhausted", "drained").
+struct Hint: Equatable {
+    /// "stronger" or "inclusive".
+    let kind: String
+    let caption: String?
+    let words: [String]
+}
+
 struct WordEntry {
     let word: String
     /// The headword with syllable dots ("me·tic·u·lous"), when the entry has them.
@@ -49,6 +58,9 @@ struct WordEntry {
     /// and the short sense that tells this word apart.
     var confusedWith: [String] = []
     var confusionSense: String? = nil
+    /// Stronger words for vague ones ("very tired" -> exhausted) and
+    /// inclusive alternatives ("chairman" -> chair).
+    var hints: [Hint] = []
     /// Spelling suggestions, set when the word has no definition.
     var suggestions: [String] = []
 
@@ -66,6 +78,9 @@ struct WordEntry {
 enum DictionaryLookup {
     static func lookup(_ rawText: String) -> WordEntry {
         var entry = entry(forSelection: rawText)
+        // Hint lines for inflected forms ("went quickly", "said loudly")
+        // are keyed by the form, which the entry resolves away ("go").
+        if entry.hints.isEmpty { entry.hints = Database.hints(for: headword(in: rawText)) }
         // Without a definition, the word may be misspelled even when a
         // dataset knows it (CMUdict lists "liason" for rhymes).
         if entry.blocks.allSatisfy({ $0.items.isEmpty }) { entry.suggestions = Spelling.suggestions(for: entry.word) }
@@ -182,6 +197,7 @@ enum DictionaryLookup {
         )
         entry.confusedWith = confusables.words
         entry.confusionSense = confusables.sense
+        entry.hints = Database.hints(for: word)
         return entry
     }
 

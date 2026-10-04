@@ -1,7 +1,7 @@
 """
 Packs synonyms.json, antonyms.json, rhymes.json and words.txt (the outputs
-of the other build scripts) and the hand-written confusables.txt into
-Sources/WordPop/Resources/wordpop.sqlite.
+of the other build scripts) and the hand-written confusables.txt,
+stronger.txt and inclusive.txt into Sources/WordPop/Resources/wordpop.sqlite.
 
 The app queries this database on demand instead of decoding the JSON at
 launch, which took about half a second of CPU and held ~100 MB resident.
@@ -27,6 +27,8 @@ db.executescript("""
     CREATE TABLE words (word TEXT PRIMARY KEY NOT NULL, rank INTEGER NOT NULL) WITHOUT ROWID;
     CREATE TABLE confusables (grp INTEGER NOT NULL, word TEXT NOT NULL, sense TEXT NOT NULL, PRIMARY KEY (word, grp)) WITHOUT ROWID;
     CREATE INDEX confusables_grp ON confusables (grp);
+    CREATE TABLE hints (word TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT, words TEXT NOT NULL,
+                        PRIMARY KEY (word, kind, position)) WITHOUT ROWID;
 """)
 
 for table in ("synonyms", "antonyms"):
@@ -57,6 +59,21 @@ db.executemany(
      for index, group in enumerate(groups) for member in group.split(" ; ")),
 )
 print(f"confusables: {len(groups)} groups")
+
+# "word | caption: alternatives | alternatives": one hint row per group.
+for kind in ("stronger", "inclusive"):
+    rows = []
+    with open(f"{kind}.txt", encoding="utf-8") as f:
+        for line in f:
+            if not line.strip() or line.startswith("#"):
+                continue
+            word, *groups = (part.strip() for part in line.split(" | "))
+            for position, group in enumerate(groups):
+                caption, _, words = group.rpartition(": ")
+                rows.append((word.lower(), kind, position, caption or None,
+                             SEPARATOR.join(w.strip() for w in words.split(","))))
+    db.executemany("INSERT INTO hints VALUES (?, ?, ?, ?, ?)", rows)
+    print(f"hints {kind}: {len(rows)} rows")
 
 db.commit()
 db.execute("VACUUM")

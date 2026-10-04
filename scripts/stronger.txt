@@ -1,0 +1,26 @@
+# Weak or vague words and the stronger single words that can replace a
+# common phrase with them. One word per line: "word | caption: words |
+# caption: words". build_db.py loads this into the hints table.
+very | very tired: exhausted, drained | very happy: elated, overjoyed | very sad: miserable, heartbroken | very big: huge, enormous | very small: tiny, minute | very good: excellent, superb | very bad: terrible, dreadful | very angry: furious, livid | very scared: terrified, petrified | very important: crucial, vital | very hungry: starving, ravenous | very cold: freezing, frigid | very hot: scorching, sweltering | very fast: rapid, swift | very old: ancient, antique | very clean: spotless, immaculate
+really | really want: crave, long for | really like: adore, relish | really need: require, depend on | really surprised: astonished, stunned | really sure: certain, convinced | really quiet: silent, hushed
+so | so happy: thrilled, delighted | so tired: exhausted, worn out | so beautiful: stunning, exquisite
+good | good food: delicious, tasty | good idea: clever, sound, smart | good person: kind, decent, honest | good work: excellent, skilful, thorough | good news: welcome, encouraging | good reason: valid, compelling | good time: enjoyable, pleasant
+bad | bad smell: foul, rank | bad weather: stormy, foul | bad mood: irritable, sullen | bad idea: unwise, foolish | bad pain: severe, acute | bad person: wicked, cruel | bad work: shoddy, careless
+nice | nice person: kind, friendly, considerate | nice day: pleasant, sunny, lovely | nice view: beautiful, picturesque | nice gesture: thoughtful, generous | nice clothes: smart, elegant
+big | big problem: serious, major | big house: spacious, sprawling | big mistake: grave, costly | big deal: significant, momentous | big person: tall, burly
+small | small room: cramped, poky | small amount: meagre, modest | small problem: minor, trivial | small detail: subtle, fine
+thing | a thing to do: task, chore | a thing you own: object, item, possession | a thing that happened: event, incident | a thing to think about: issue, matter, factor | a good thing: advantage, benefit
+stuff | stuff you own: belongings, possessions | stuff to do: tasks, errands | stuff in a book: material, content
+get | get better: improve, recover | get bigger: grow, expand | get there: arrive, reach | get it: understand, grasp | get ready: prepare
+got | got better: improved, recovered | got bigger: grew, expanded | got there: arrived, reached | got it: understood, grasped | got a prize: won, received | got angry: flared up, bristled
+went | went quickly: hurried, rushed, raced | went slowly: crept, ambled, trudged | went up: rose, climbed | went down: fell, dropped
+said | said quietly: whispered, murmured | said loudly: shouted, exclaimed | said angrily: snapped, barked | said again: repeated, reiterated | said yes: agreed, accepted
+walk | walk slowly: amble, stroll, trudge | walk quickly: stride, march, hurry | walk quietly: tiptoe, creep | walk with difficulty: limp, stagger, hobble
+look | look quickly: glance, glimpse | look closely: examine, inspect, study | look for a long time: stare, gaze | look angrily: glare, scowl
+run | run fast: sprint, dash, race | run slowly: jog, trot | run away: flee, bolt, escape
+eat | eat quickly: gobble, wolf, devour | eat slowly: nibble, savour | eat noisily: munch, slurp
+think | think about: consider, ponder, reflect on | think carefully: deliberate, weigh up | think up: devise, invent, conceive
+make | make bigger: enlarge, expand | make smaller: reduce, shrink | make sure: ensure, confirm | make up: invent, fabricate | make better: improve, enhance
+interesting | interesting book: gripping, compelling | interesting idea: intriguing, thought-provoking | interesting person: fascinating, engaging
+great | great idea: brilliant, inspired | great view: magnificent, breathtaking | great effort: tremendous, immense | great time: wonderful, marvellous
+pretty | pretty good: fairly good, decent | pretty sure: fairly sure, confident | pretty face: attractive, lovely

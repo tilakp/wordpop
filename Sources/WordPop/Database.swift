@@ -74,6 +74,14 @@ enum Database {
         return ranks
     }
 
+    /// Hand-written hint rows for `word` (scripts/stronger.txt and
+    /// inclusive.txt), in file order.
+    static func hints(for word: String) -> [Hint] {
+        rows("SELECT kind, caption, words FROM hints WHERE word = ?1 ORDER BY kind, position", [word.lowercased()]).map {
+            Hint(kind: $0[0], caption: $0[1].isEmpty ? nil : $0[1], words: $0[2].components(separatedBy: separator))
+        }
+    }
+
     static func warmUp() {
         _ = connection
     }

@@ -89,6 +89,10 @@ final class PopupViewModel: ObservableObject {
         if !bestFits.isEmpty {
             sections.append(PillSection(id: "fits", title: "Fits your sentence", tint: .fitTint, rows: [row(nil, bestFits)]))
         }
+        for (kind, title, tint) in [("stronger", "Stronger words", Color.strongerTint), ("inclusive", "Inclusive alternatives", Color.inclusiveTint)] {
+            let rows = entry.hints.filter { $0.kind == kind }.map { row($0.caption, $0.words) }
+            if !rows.isEmpty { sections.append(PillSection(id: kind, title: title, tint: tint, rows: rows)) }
+        }
         if let block {
             if !block.senses.isEmpty {
                 let shown = showAllSenses ? block.senses : Array(block.senses.prefix(Self.collapsedSenseCount))

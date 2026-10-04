@@ -18,6 +18,8 @@ extension Color {
     static let confusedTint = Color.orange
     static let fitTint = Color.green
     static let spellingTint = Color.blue
+    static let strongerTint = Color.purple
+    static let inclusiveTint = Color.mint
 }
 
 /// Editorial type scale: the headword and quoted examples set in the system

@@ -1,0 +1,48 @@
+# Gendered or exclusionary words and inclusive alternatives. One word per
+# line: "word | words" or "word | caption: words". build_db.py loads this
+# into the hints table.
+chairman | chair, chairperson, convener
+chairwoman | chair, chairperson
+businessman | businessperson, executive, professional, entrepreneur
+businesswoman | businessperson, executive, professional
+salesman | salesperson, sales representative, seller
+spokesman | spokesperson, representative
+spokeswoman | spokesperson, representative
+fireman | firefighter
+policeman | police officer, officer
+policewoman | police officer, officer
+mailman | mail carrier, letter carrier, postal worker
+postman | postal worker, mail carrier
+cameraman | camera operator
+foreman | supervisor, team leader
+workman | worker, laborer
+middleman | intermediary, go-between, broker
+fisherman | fisher, angler
+congressman | member of Congress, representative, legislator
+congresswoman | member of Congress, representative, legislator
+stewardess | flight attendant
+waitress | server
+actress | actor
+manpower | workforce, staff, labor, personnel
+mankind | humankind, humanity, people
+man-made | artificial, synthetic, manufactured
+manhole | maintenance hole, utility hole
+freshman | first-year student, first-year
+layman | layperson, nonspecialist
+craftsman | artisan, craftsperson
+craftsmanship | craft, artistry, skill
+gentleman's agreement | informal agreement, unwritten agreement, handshake deal
+man-hours | work hours, person-hours, labor hours
+forefather | ancestors, forebears
+mother tongue | native language, first language
+guy | you guys: everyone, folks, you all, team
+blacklist | blocklist, denylist
+whitelist | allowlist, safelist
+master | master copy: primary, original | master bedroom: main bedroom, primary bedroom
+slave | slave device: secondary, replica
+sanity check | quick check, confidence check, coherence check
+crazy | wild, chaotic, incredible, unbelievable
+lame | dull, boring, unconvincing
+handicapped | disabled, person with a disability
+wheelchair-bound | wheelchair user, uses a wheelchair
+elderly | older people, older adults, seniors
