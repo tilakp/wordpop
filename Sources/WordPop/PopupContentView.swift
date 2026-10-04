@@ -345,9 +345,16 @@ struct PopupContentView: View {
                 viewModel.onSelectWord(word)
             }
         }) {
-            Text(word)
-                .font(.pill)
-                .foregroundStyle(isRare ? .secondary : .primary)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(word)
+                    .font(.pill)
+                    .foregroundStyle(isRare ? .secondary : .primary)
+                if let label = viewModel.registerLabels[word.lowercased()] {
+                    Text(label)
+                        .font(.pillLabel)
+                        .foregroundStyle(.secondary)
+                }
+            }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(tint.opacity(focused ? 0.28 : 0.12))

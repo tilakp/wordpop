@@ -135,16 +135,18 @@ final class ParserTests: XCTestCase {
         XCTAssertEqual(noun.senses[0].synonyms.first, "sprint")
     }
 
-    func testRegisterLabelledGroupsSortAfterPlainOnes() {
-        let verb = block(entry("run"), "verb")!
-        let first = verb.senses[0].synonyms
-        XCTAssertFalse(first.contains("informal"))
-        XCTAssertTrue(first.firstIndex(of: "bolt")! < first.count, "plain group words precede the informal group")
+    func testRegisterLabelledGroupsSortAfterPlainOnesAndKeepTheirLabel() {
+        let sense = block(entry("run"), "verb")!.senses[0]
+        XCTAssertFalse(sense.synonyms.contains("informal"))
+        XCTAssertEqual(sense.labels["tear"], "informal")
+        XCTAssertNil(sense.labels["sprint"])
+        let firstLabelled = sense.synonyms.firstIndex { sense.labels[$0] != nil }!
+        XCTAssertTrue(sense.synonyms[firstLabelled...].allSatisfy { sense.labels[$0] != nil }, "plain words precede labelled ones")
     }
 
     func testParentheticalsAreRemovedFromTerms() {
-        let flee = block(entry("run"), "verb")!.senses[1].synonyms
-        XCTAssertTrue(flee.contains("beat a retreat"), "\"beat a (hasty) retreat\" loses the parenthetical and the double space")
+        let terms = Thesaurus.terms(in: "flee, beat a (hasty) retreat; informal skedaddle").words
+        XCTAssertEqual(terms, ["flee", "beat a retreat", "skedaddle"])
     }
 
     func testQuietAdjectiveHasEightSensesAndNounIgnoresPhrasesTrailer() {

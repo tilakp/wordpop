@@ -34,6 +34,9 @@ final class PopupViewModel: ObservableObject {
     /// Pill words that are rare in everyday English, shown dimmed so the
     /// plainer choices stand out.
     @Published private(set) var rareWords: Set<String> = []
+    /// Register or region labels for synonyms ("informal", "archaic",
+    /// "British"), keyed by lowercased word, shown as a tag on the pill.
+    @Published private(set) var registerLabels: [String: String] = [:]
 
     private var history: [WordEntry] = []
 
@@ -89,7 +92,13 @@ final class PopupViewModel: ObservableObject {
         if let block {
             if !block.senses.isEmpty {
                 let shown = showAllSenses ? block.senses : Array(block.senses.prefix(Self.collapsedSenseCount))
-                let synonymRows = shown.filter { !$0.synonyms.isEmpty }.map { row($0.example, $0.synonyms, limit: Self.pillsPerSense) }
+                let synonymRows = shown.filter { !$0.synonyms.isEmpty }.map { sense in
+                    // Room for up to two labelled words (informal, archaic),
+                    // which come last in the list and a plain cut would drop.
+                    let labelled = sense.synonyms.filter { sense.labels[$0.lowercased()] != nil }.prefix(2)
+                    let plain = sense.synonyms.filter { sense.labels[$0.lowercased()] == nil }.prefix(Self.pillsPerSense - labelled.count)
+                    return row(sense.example, Array(plain + labelled), limit: Self.pillsPerSense)
+                }
                 if !synonymRows.isEmpty {
                     sections.append(PillSection(id: "synonyms", title: "Synonyms", tint: .synonymTint, rows: synonymRows))
                 }
@@ -155,6 +164,13 @@ final class PopupViewModel: ObservableObject {
         }
     }
 
+    /// "British English" -> "British", "North American English" ->
+    /// "N. American", so the tag stays short next to the word.
+    static func shortLabel(_ label: String) -> String {
+        label.replacingOccurrences(of: " English", with: "")
+            .replacingOccurrences(of: "North American", with: "N. American")
+    }
+
     func moveFocus(by delta: Int) {
         let count = pills.count
         guard count > 0 else { return }
@@ -204,5 +220,8 @@ final class PopupViewModel: ObservableObject {
             block.senses.flatMap(\.synonyms) + block.synonyms
         }))
         rareWords = Set(Database.ranks(of: words).filter { $0.value >= Self.rareRank }.keys)
+        registerLabels = entry.blocks.flatMap(\.senses).reduce(into: [:]) { labels, sense in
+            labels.merge(sense.labels.mapValues(Self.shortLabel)) { first, _ in first }
+        }
     }
 }

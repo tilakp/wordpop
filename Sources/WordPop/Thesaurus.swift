@@ -4,6 +4,9 @@ struct ThesaurusSense {
     let example: String?
     let synonyms: [String]
     let antonyms: [String]
+    /// Register or region labels by lowercased synonym ("pelt": informal,
+    /// "hie": archaic); synonyms in everyday use have none.
+    var labels: [String: String] = [:]
 }
 
 struct ThesaurusBlock {
@@ -48,24 +51,38 @@ enum Thesaurus {
                 guard let body = container.first("msThes") else { return nil }
                 var plain: [String] = []
                 var labelled: [String] = []
+                var labels: [String: String] = [:]
                 for group in body.descendants("synGroup") {
-                    let isLabelled = group.children.contains { $0.has("lg") }
+                    let label = group.children.first { $0.has("lg") }?.text
                     let words = group.descendants("syn").map(\.text).filter { !$0.isEmpty }
-                    if isLabelled { labelled += words } else { plain += words }
+                    if let label, !label.isEmpty {
+                        labelled += words
+                        for word in words where labels[word.lowercased()] == nil { labels[word.lowercased()] = label }
+                    } else {
+                        plain += words
+                    }
                 }
-                let synonyms = uniqued(plain + labelled)
+                let synonyms = keepingLabelled(plain: uniqued(plain), labelled: uniqued(labelled))
                 let antonyms = uniqued(body.descendants("ant").map(\.text).filter { !$0.isEmpty })
                 guard !synonyms.isEmpty || !antonyms.isEmpty else { return nil }
                 return ThesaurusSense(
                     example: body.first("ex")?.text,
-                    synonyms: Array(synonyms.prefix(12)),
-                    antonyms: Array(antonyms.prefix(8))
+                    synonyms: synonyms,
+                    antonyms: Array(antonyms.prefix(8)),
+                    labels: labels
                 )
             }
             guard !senses.isEmpty else { continue }
             blocks.append(ThesaurusBlock(partOfSpeech: partOfSpeech, senses: senses))
         }
         return blocks
+    }
+
+    /// Up to 12 synonyms, everyday ones first, keeping up to 3 labelled
+    /// ones (informal, archaic, regional) that a plain cut would drop.
+    private static func keepingLabelled(plain: [String], labelled: [String]) -> [String] {
+        let kept = Array(labelled.prefix(3))
+        return Array(plain.prefix(12 - kept.count)) + kept
     }
 
     private static func uniqued(_ values: [String]) -> [String] {
@@ -161,10 +178,12 @@ enum Thesaurus {
             body = String(body[..<range.lowerBound])
         }
 
-        let synonyms = terms(in: body)
-        let antonyms = terms(in: antonymText)
+        let (synonyms, labels) = terms(in: body)
+        let antonyms = terms(in: antonymText).words
         guard !synonyms.isEmpty || !antonyms.isEmpty else { return nil }
-        return ThesaurusSense(example: example, synonyms: Array(synonyms.prefix(12)), antonyms: Array(antonyms.prefix(8)))
+        return ThesaurusSense(
+            example: example, synonyms: synonyms, antonyms: Array(antonyms.prefix(8)), labels: labels
+        )
     }
 
     private static let registerLabel = try! NSRegularExpression(
@@ -179,19 +198,18 @@ enum Thesaurus {
     /// Unlabelled groups come first; labelled ones (informal, archaic,
     /// regional) keep their words but sort after, so the everyday synonyms
     /// lead the list.
-    private static func terms(in text: String) -> [String] {
+    static func terms(in text: String) -> (words: [String], labels: [String: String]) {
         var plain: [String] = []
         var labelled: [String] = []
+        var labels: [String: String] = [:]
         var seen = Set<String>()
         for group in text.components(separatedBy: ";") {
             var groupText = group.trimmingCharacters(in: CharacterSet(charactersIn: " ."))
             let nsGroup = groupText as NSString
-            let isLabelled: Bool
+            var label: String?
             if let match = registerLabel.firstMatch(in: groupText, range: NSRange(location: 0, length: nsGroup.length)) {
+                label = nsGroup.substring(with: match.range).trimmingCharacters(in: CharacterSet(charactersIn: ", "))
                 groupText = nsGroup.substring(from: match.range.length)
-                isLabelled = true
-            } else {
-                isLabelled = false
             }
             for rawTerm in groupText.components(separatedBy: ",") {
                 let term = rawTerm
@@ -200,9 +218,14 @@ enum Thesaurus {
                     .trimmingCharacters(in: CharacterSet(charactersIn: " ."))
                 guard !term.isEmpty, !term.hasPrefix("and "), term.split(separator: " ").count <= 4,
                       seen.insert(term.lowercased()).inserted else { continue }
-                if isLabelled { labelled.append(term) } else { plain.append(term) }
+                if let label {
+                    labelled.append(term)
+                    labels[term.lowercased()] = label
+                } else {
+                    plain.append(term)
+                }
             }
         }
-        return plain + labelled
+        return (keepingLabelled(plain: plain, labelled: labelled), labels)
     }
 }

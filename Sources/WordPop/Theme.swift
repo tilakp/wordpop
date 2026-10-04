@@ -38,6 +38,7 @@ extension Font {
     static var example: Font { scaled(13, design: .serif).italic() }
     static var sectionLabel: Font { scaled(10.5, weight: .semibold) }
     static var pill: Font { scaled(12.5, design: .serif) }
+    static var pillLabel: Font { scaled(10, design: .serif).italic() }
     static var origin: Font { scaled(12.5, design: .serif) }
     static var phrase: Font { scaled(13.5, weight: .semibold, design: .serif) }
     static var searchField: Font { scaled(20, design: .serif) }

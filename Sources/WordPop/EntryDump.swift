@@ -19,7 +19,7 @@ enum EntryDump {
             }
             for (index, sense) in block.senses.enumerated() {
                 lines.append("sense \(index + 1): \(sense.example ?? "-")")
-                lines.append("    synonyms: \(sense.synonyms.joined(separator: ", "))")
+                lines.append("    synonyms: \(sense.synonyms.map { word in sense.labels[word.lowercased()].map { "\(word) (\($0))" } ?? word }.joined(separator: ", "))")
                 if !sense.antonyms.isEmpty { lines.append("    antonyms: \(sense.antonyms.joined(separator: ", "))") }
             }
             if block.senses.isEmpty {
