@@ -42,6 +42,9 @@ final class PopupViewModel: ObservableObject {
     /// opened for (not when it came from Quick Search).
     @Published var canReplace = false
     @Published var comparison: Comparison?
+    /// Set when the selection was a passage: the popup shows its
+    /// readability notes instead of a dictionary entry.
+    @Published var textStats: TextStats?
     /// Phrases with the word from the on-device model ("tough decision");
     /// nil until asked for, as each request takes about a second.
     @Published var collocations: [String]?
@@ -251,6 +254,7 @@ final class PopupViewModel: ObservableObject {
         showUsage = false
         bestFits = []
         comparison = nil
+        textStats = nil
         collocations = nil
         isLoadingCollocations = false
         focusedPill = nil

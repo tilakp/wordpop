@@ -63,6 +63,23 @@ struct PopupContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if let stats = viewModel.textStats {
+                TextStatsView(stats: stats, onClose: viewModel.onClose)
+            } else {
+                entryContent
+            }
+        }
+        .frame(width: Self.popupWidth, alignment: .leading)
+        .background(Color.popupPage)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08))
+        )
+    }
+
+    private var entryContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
             header
                 .padding(.horizontal, 22)
                 .padding(.top, 20)
@@ -87,13 +104,6 @@ struct PopupContentView: View {
                     .padding(.bottom, 20)
             }
         }
-        .frame(width: Self.popupWidth, alignment: .leading)
-        .background(Color.popupPage)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08))
-        )
     }
 
     private func body(definitionsCapped: Bool) -> some View {

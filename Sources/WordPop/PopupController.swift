@@ -40,6 +40,26 @@ final class PopupController: NSObject, NSWindowDelegate {
         }
     }
 
+    /// Shows readability notes for a selected passage.
+    func show(passage: String, near point: NSPoint) {
+        replaceTarget = nil
+        viewModel.reset(with: .empty)
+        viewModel.canReplace = false
+        viewModel.textStats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) })
+        wireViewModelActions()
+
+        let panel = ensurePanel()
+        layOut(panel: panel, near: point)
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+        panel.makeKey()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.12
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
+        }
+    }
+
     func hide() {
         guard let panel, panel.isVisible else { return }
         NSAnimationContext.runAnimationGroup({ context in

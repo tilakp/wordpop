@@ -68,6 +68,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // thread — without this, that call can crash.
         Task { @MainActor in
             guard let selection = await TextCapture.captureSelection() else { return }
+            if TextStats.isPassage(selection.trimmed) {
+                popupController.show(passage: selection.trimmed, near: NSEvent.mouseLocation)
+                return
+            }
             let entry = DictionaryLookup.lookup(selection.trimmed)
             let location = NSEvent.mouseLocation
             popupController.show(entry: entry, near: location, replacing: selection)
