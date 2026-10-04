@@ -235,6 +235,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$showAllSenses.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$showPhrases.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$showOrigin.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$showAllDefinitions.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$showUsage.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$bestFits.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$comparison.map { _ in () }.eraseToAnyPublisher(),

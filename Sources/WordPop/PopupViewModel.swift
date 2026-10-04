@@ -33,6 +33,7 @@ final class PopupViewModel: ObservableObject {
     @Published var showAllSenses: Bool = false
     @Published var showPhrases: Bool = false
     @Published var showOrigin: Bool = false
+    @Published var showAllDefinitions: Bool = false
     @Published var showUsage: Bool = false
     @Published var focusedPill: Int?
     /// Synonyms the on-device model judged to fit the sentence the word
@@ -194,6 +195,7 @@ final class PopupViewModel: ObservableObject {
         withAnimation(.easeOut(duration: 0.15)) {
             selectedBlock = index
             showAllSenses = false
+            showAllDefinitions = false
             focusedPill = nil
         }
     }
@@ -251,6 +253,7 @@ final class PopupViewModel: ObservableObject {
         showAllSenses = false
         showPhrases = false
         showOrigin = false
+        showAllDefinitions = false
         showUsage = false
         bestFits = []
         comparison = nil

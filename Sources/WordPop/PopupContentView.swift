@@ -130,7 +130,7 @@ struct PopupContentView: View {
                         }
                     }
                 } else {
-                    definitions
+                    definitions(collapsible: true)
                 }
             }
 
@@ -203,10 +203,25 @@ struct PopupContentView: View {
             .allowsHitTesting(false)
     }
 
-    private var definitions: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if !items.isEmpty {
-                itemsList
+    private var definitions: some View { definitions(collapsible: false) }
+
+    /// In the scrolling layout a long entry shows its first senses and a
+    /// link to the rest, so the synonyms and other pills stay a short
+    /// scroll away instead of after every sense of "run".
+    private func definitions(collapsible: Bool) -> some View {
+        let shown = collapsible && !viewModel.showAllDefinitions ? Self.firstSenses(of: items) : items
+        return VStack(alignment: .leading, spacing: 14) {
+            if !shown.isEmpty {
+                itemsList(shown)
+            }
+            if shown.count < items.count {
+                let senses = items.filter { $0.number != nil }.count
+                Button(action: { viewModel.showAllDefinitions = true }) {
+                    Text("Show all \(senses) senses")
+                        .font(.recentMeta)
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
             }
             if !viewModel.entry.usageNotes.isEmpty {
                 usageDisclosure
@@ -325,7 +340,16 @@ struct PopupContentView: View {
         }
     }
 
-    private var itemsList: some View {
+    /// The items up to the start of the fourth numbered sense.
+    private static func firstSenses(of items: [DefinitionItem]) -> [DefinitionItem] {
+        var numbered = 0
+        return Array(items.prefix { item in
+            if item.number != nil { numbered += 1 }
+            return numbered <= 3
+        })
+    }
+
+    private func itemsList(_ items: [DefinitionItem]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 itemRow(item)
