@@ -8,15 +8,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController!
     private var preferencesWindowController: PreferencesWindowController?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        requestAccessibilityPermissionIfNeeded()
-        warmDatasetCachesInBackground()
-
+    /// The controllers exist before launch finishes: a wordpop:// URL that
+    /// launches the app is delivered before applicationDidFinishLaunching.
+    func applicationWillFinishLaunching(_ notification: Notification) {
         popupController = PopupController()
         quickSearchController = QuickSearchController { [weak self] word in
             let entry = DictionaryLookup.lookup(word)
             self?.popupController.show(entry: entry, near: NSEvent.mouseLocation)
         }
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        requestAccessibilityPermissionIfNeeded()
+        warmDatasetCachesInBackground()
 
         hotkeyManager = HotkeyManager { [weak self] in
             self?.handleHotkey()
