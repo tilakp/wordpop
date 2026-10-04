@@ -24,5 +24,36 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.tilak.wordpop</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>wordpop</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Look Up in WordPop</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>lookUp</string>
+			<key>NSPortName</key>
+			<string>WordPop</string>
+			<key>NSSendTypes</key>
+			<array>
+				<string>public.utf8-plain-text</string>
+			</array>
+			<key>NSRequiredContext</key>
+			<dict/>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -28,6 +28,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         quickSearchHotkeyManager.register(shortcut: HotkeySettings.quickSearch)
 
+        NSApp.servicesProvider = self
+        NSUpdateDynamicServices()
+
         statusItemController = StatusItemController(
             onPreferences: { [weak self] in self?.showPreferences() },
             onQuit: { NSApp.terminate(nil) }
@@ -95,6 +98,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         }
         preferencesWindowController?.show()
+    }
+
+    /// `wordpop://lookup?word=serendipity` shows the popup for a word and
+    /// `wordpop://search` opens Quick Search, for Shortcuts, launchers and
+    /// scripts.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "wordpop" {
+            switch url.host {
+            case "lookup":
+                let word = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .queryItems?.first { $0.name == "word" }?.value?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !word.isEmpty { showLookup(word) }
+            case "search":
+                quickSearchController.show()
+            default:
+                break
+            }
+        }
+    }
+
+    /// The "Look Up in WordPop" item in the Services menu.
+    @objc func lookUp(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        guard let text = pasteboard.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return }
+        showLookup(text)
+    }
+
+    private func showLookup(_ text: String) {
+        popupController.show(entry: DictionaryLookup.lookup(text), near: NSEvent.mouseLocation)
     }
 
     /// Returns an error message, or nil when the shortcut is now active.
