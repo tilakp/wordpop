@@ -96,6 +96,10 @@ struct PopupContentView: View {
                 body(definitionsCapped: true)
                 ScrollView { body(definitionsCapped: false).padding(.bottom, Self.scrollFadeHeight) }
                     .overlay(alignment: .bottom) { scrollFade }
+                    // A new entry starts at the top; without a new identity
+                    // the scroll view kept the previous word's position and
+                    // could open past the definitions.
+                    .id(viewModel.entry.word)
             }
 
             if isEmpty {
@@ -129,6 +133,7 @@ struct PopupContentView: View {
                             definitions
                             ScrollView { definitions.padding(.bottom, Self.scrollFadeHeight) }
                                 .overlay(alignment: .bottom) { scrollFade }
+                                .id(viewModel.entry.word)
                         }
                     }
                 } else {
