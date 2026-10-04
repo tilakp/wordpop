@@ -153,6 +153,15 @@ enum WritingModel {
         return sentence.lowercased().split(whereSeparator: { !$0.isLetter }).contains { $0.hasPrefix(stem) }
     }
 
+    /// A plain explanation of an idiom or phrase the dictionary lacks, with
+    /// a note on its tone ("touch base: make brief contact; informal").
+    static func explain(phrase: String, in sentence: String?) async -> String? {
+        await ask(
+            "You explain English idioms and phrases to a writer in one or two plain sentences, and say when a phrase is informal, dated or regional. No preamble.",
+            "Phrase: \(phrase)" + (sentence.map { "\nUsed in: \($0)" } ?? "")
+        )
+    }
+
     /// Which of `definitions` (0-based) matches how `word` is used in
     /// `sentence`: "She runs a small bakery" -> "be in charge of; manage".
     static func senseIndex(of word: String, in sentence: String, definitions: [String]) async -> Int? {

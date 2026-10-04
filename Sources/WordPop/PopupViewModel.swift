@@ -70,6 +70,14 @@ final class PopupViewModel: ObservableObject {
     @Published var loadingTone: Tone?
     /// Rhymes the on-device model picked for the line the word ends.
     @Published var lineRhymes: [String] = []
+    /// A selected phrase the lookup reduced to one word ("spill the
+    /// beans" -> spill), with the dictionary's phrase entry for it, or the
+    /// model's explanation when the dictionary has none.
+    @Published var selectedPhrase: String?
+    @Published var phraseMatch: (phrase: Phrase, source: String)?
+    @Published var phraseExplanation: String?
+    @Published var isExplainingPhrase = false
+    var onExplainPhrase: () -> Void = {}
     /// Fresh example sentences from the on-device model, for `exampleSense`.
     @Published var moreExamples: [String]?
     @Published var isLoadingExamples = false
@@ -335,6 +343,10 @@ final class PopupViewModel: ObservableObject {
         toneChoices = nil
         loadingTone = nil
         lineRhymes = []
+        selectedPhrase = nil
+        phraseMatch = nil
+        phraseExplanation = nil
+        isExplainingPhrase = false
         moreExamples = nil
         isLoadingExamples = false
         contextSense = nil

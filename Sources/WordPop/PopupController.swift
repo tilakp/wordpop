@@ -28,6 +28,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         if Settings.shows(.fits) { rankSynonyms(of: entry, for: selection, in: contextBlock) }
         if Settings.shows(.fits) { findSense(of: entry, for: selection, in: contextBlock ?? 0) }
         if Settings.shows(.rhymes) { rankRhymes(of: entry, for: selection) }
+        findPhrase(of: entry, for: selection)
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -157,6 +158,19 @@ final class PopupController: NSObject, NSWindowDelegate {
         }
     }
 
+    /// For a selected idiom the lookup reduced to one word, finds its
+    /// phrase entry under any of its words, after the popup is up.
+    private func findPhrase(of entry: WordEntry, for selection: TextCapture.Selection?) {
+        guard let selection, PhraseMatch.isPhrase(selection.trimmed, lookedUpAs: entry.word) else { return }
+        viewModel.selectedPhrase = selection.trimmed
+        Task { @MainActor in
+            await Task.yield()
+            let match = PhraseMatch.find(selection.trimmed, in: entry) { DictionaryLookup.lookup($0) }
+            guard viewModel.entry.word == entry.word else { return }
+            viewModel.phraseMatch = match
+        }
+    }
+
     private func remember(_ entry: WordEntry) {
         guard entry.found else { return }
         LookupHistory.shared.record(entry.word)
@@ -240,6 +254,17 @@ final class PopupController: NSObject, NSWindowDelegate {
                     self.viewModel.loadingTone = nil
                     self.viewModel.toneChoices = (tone, Array(words.prefix(3)))
                 }
+            }
+        }
+        viewModel.onExplainPhrase = { [weak self] in
+            guard let self, let phrase = self.viewModel.selectedPhrase, !self.viewModel.isExplainingPhrase else { return }
+            let entry = self.viewModel.entry
+            self.viewModel.isExplainingPhrase = true
+            Task { @MainActor in
+                let explanation = await WritingModel.explain(phrase: phrase, in: self.replaceTarget?.sentence)
+                guard self.viewModel.entry.word == entry.word else { return }
+                self.viewModel.isExplainingPhrase = false
+                self.viewModel.phraseExplanation = explanation ?? "No explanation came back."
             }
         }
         viewModel.onLoadExamples = { [weak self] in
@@ -341,6 +366,10 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$toneChoices.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$lineRhymes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$moreExamples.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$selectedPhrase.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$phraseMatch.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$phraseExplanation.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$isExplainingPhrase.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isLoadingExamples.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$loadingTone.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$contextSense.map { _ in () }.eraseToAnyPublisher(),

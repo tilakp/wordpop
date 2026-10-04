@@ -114,6 +114,12 @@ struct PopupContentView: View {
 
     private func body(definitionsCapped: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
+            if let phrase = viewModel.selectedPhrase {
+                Divider().padding(.horizontal, 22)
+                phraseView(phrase)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 14)
+            }
             if let comparison = viewModel.comparison {
                 Divider().padding(.horizontal, 22)
                 comparisonView(comparison)
@@ -174,6 +180,55 @@ struct PopupContentView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
+            }
+        }
+    }
+
+    /// The selected idiom: its dictionary phrase entry and where it is
+    /// listed, or a link to the model's explanation when the dictionary
+    /// has none, marked as such.
+    private func phraseView(_ phrase: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Phrase")
+                .font(.sectionLabel)
+                .tracking(1.2)
+                .foregroundStyle(Color.fitTint)
+                .textCase(.uppercase)
+            if let match = viewModel.phraseMatch {
+                Text(match.phrase.phrase).font(.phrase)
+                Text(match.phrase.definition)
+                    .font(.definition)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let example = match.phrase.example {
+                    Text("\u{201C}\(example)\u{201D}")
+                        .font(.example)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text("From the entry for \u{201C}\(match.source)\u{201D}")
+                    .font(.recentMeta)
+                    .foregroundStyle(.tertiary)
+            } else if let explanation = viewModel.phraseExplanation {
+                Text(phrase).font(.phrase)
+                Text(explanation)
+                    .font(.definition)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("From Apple Intelligence, not the dictionary; it may be wrong.")
+                    .font(.recentMeta)
+                    .foregroundStyle(.tertiary)
+            } else if WritingModel.isAvailable {
+                Button(action: viewModel.onExplainPhrase) {
+                    Text(viewModel.isExplainingPhrase
+                         ? "Explaining \u{201C}\(phrase)\u{201D}\u{2026}"
+                         : "\u{201C}\(phrase)\u{201D} is not in the dictionary. Explain it?")
+                        .font(.recentMeta)
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("\u{201C}\(phrase)\u{201D} is not in the dictionary as a phrase.")
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
             }
         }
     }
