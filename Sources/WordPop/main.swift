@@ -36,6 +36,29 @@ if let index = CommandLine.arguments.firstIndex(of: "--collocations"), index + 1
     dispatchMain()
 }
 
+if CommandLine.arguments.contains("--model-check") {
+    // Runs every on-device model feature on fixed inputs, for spotting
+    // requests the model refuses or answers badly.
+    Task {
+        print("fits:", await WritingModel.bestFits(for: "quiet", in: "The room fell quiet after the verdict.",
+                                                   candidates: ["silent", "hushed", "calm", "discreet", "reserved"]))
+        print("sense:", await WritingModel.senseIndex(of: "runs", in: "She runs a small bakery.",
+                                                      definitions: ["move fast on foot", "be in charge of; manage", "flow"]) as Any)
+        print("tone:", await WritingModel.toneChoices(for: "walked", in: "He walked into the room.", tone: "more vivid",
+                                                      candidates: ["strode", "marched", "ambled", "proceeded"]))
+        print("rhymes:", await WritingModel.rhymes(for: "I walked alone beneath the fading light", endingIn: "light",
+                                                   candidates: ["night", "bright", "kite", "white", "polite"]))
+        print("collocations:", await WritingModel.collocations(for: "evidence", partOfSpeech: "noun"))
+        print("compare:", await WritingModel.difference(between: "famous", "known about by many people",
+                                                        and: "notorious", "famous for some bad quality or deed") ?? "-")
+        print("describe:", await WritingModel.words(describedBy: "a long angry speech"))
+        print("sensitive:", await WritingModel.senseIndex(of: "killed", in: "The frost killed the plants.",
+                                                          definitions: ["cause the death of", "put an end to", "pass time"]) as Any)
+        exit(0)
+    }
+    dispatchMain()
+}
+
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()

@@ -30,3 +30,15 @@ final class CollocationFilterTests: XCTestCase {
         XCTAssertEqual(WritingModel.usefulCollocations(["evidence of", "evidence for", "strong evidence"], word: "evidence"), ["strong evidence"])
     }
 }
+
+final class ModelAnswerParsingTests: XCTestCase {
+    func testListItemsDropNumberingBulletsAndQuotes() {
+        XCTAssertEqual(WritingModel.listItems("1. *tirade*\n2. rant.\n- \u{201C}harangue\u{201D}"), ["tirade", "rant", "harangue"])
+        XCTAssertEqual(WritingModel.listItems("silent, hushed, still."), ["silent", "hushed", "still"])
+    }
+
+    func testNumbers() {
+        XCTAssertEqual(WritingModel.numbers("4, 5"), [4, 5])
+        XCTAssertEqual(WritingModel.numbers("The answer is 2."), [2])
+    }
+}
