@@ -5,9 +5,11 @@ Select a word anywhere on your Mac, press a hotkey, and get its definition, pron
 WordPop lives in the menu bar and stays out of the Dock.
 
 <p align="center">
-  <img src="docs/popup.png" width="380" alt="WordPop popup showing the entry for quiet, with senses, synonyms, antonyms, and rhymes">
-  &nbsp;&nbsp;
-  <img src="docs/quick-search.png" width="380" alt="WordPop Quick Search bar with recent lookups" valign="top">
+  <img src="docs/popup.png" width="300" alt="WordPop popup for meticulous, selected in a sentence: the definition, synonyms that fit the sentence, tagged synonyms, antonyms, rhymes and tone buttons" valign="top">
+  &nbsp;
+  <img src="docs/quick-search.png" width="300" alt="Quick Search with the pattern con* : agree, listing consent, conform, concede, concord, consort and concur with their meanings" valign="top">
+  &nbsp;
+  <img src="docs/passage.png" width="300" alt="Notes on a selected passage: word count, reading grade, a long sentence, possible passive voice, adverbs and repeated words" valign="top">
 </p>
 
 ## Features
