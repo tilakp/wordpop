@@ -5,8 +5,8 @@ struct PreferencesView: View {
     @State private var launchAtLogin = LoginItemManager.isEnabled
     @AppStorage(Settings.textSizeKey) private var textSize = TextSize.medium
     @AppStorage(Settings.popupPlacementKey) private var popupPlacement = PopupPlacement.center
-    let onLookupShortcutChanged: (HotkeyShortcut) -> Bool
-    let onQuickSearchShortcutChanged: (HotkeyShortcut) -> Bool
+    let onLookupShortcutChanged: (HotkeyShortcut) -> String?
+    let onQuickSearchShortcutChanged: (HotkeyShortcut) -> String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -16,9 +16,9 @@ struct PreferencesView: View {
                 current: HotkeySettings.current,
                 defaultShortcut: .default,
                 onChange: { newValue in
-                    guard onLookupShortcutChanged(newValue) else { return false }
+                    if let error = onLookupShortcutChanged(newValue) { return error }
                     HotkeySettings.current = newValue
-                    return true
+                    return nil
                 }
             )
 
@@ -30,9 +30,9 @@ struct PreferencesView: View {
                 current: HotkeySettings.quickSearch,
                 defaultShortcut: .defaultQuickSearch,
                 onChange: { newValue in
-                    guard onQuickSearchShortcutChanged(newValue) else { return false }
+                    if let error = onQuickSearchShortcutChanged(newValue) { return error }
                     HotkeySettings.quickSearch = newValue
-                    return true
+                    return nil
                 }
             )
 
@@ -73,7 +73,7 @@ struct PreferencesView: View {
 }
 
 final class PreferencesWindowController: NSWindowController {
-    convenience init(onLookupShortcutChanged: @escaping (HotkeyShortcut) -> Bool, onQuickSearchShortcutChanged: @escaping (HotkeyShortcut) -> Bool) {
+    convenience init(onLookupShortcutChanged: @escaping (HotkeyShortcut) -> String?, onQuickSearchShortcutChanged: @escaping (HotkeyShortcut) -> String?) {
         let view = PreferencesView(
             onLookupShortcutChanged: onLookupShortcutChanged,
             onQuickSearchShortcutChanged: onQuickSearchShortcutChanged

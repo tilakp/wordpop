@@ -7,9 +7,9 @@ struct ShortcutSettingRow: View {
     let subtitle: String
     let defaultShortcut: HotkeyShortcut
     /// Attempts to apply a new shortcut (re-registering the global hotkey);
-    /// returns false if that failed (most likely already claimed by another
-    /// app), in which case the row reverts to the previous value.
-    let onChange: (HotkeyShortcut) -> Bool
+    /// returns an error message if that failed (already the other WordPop
+    /// shortcut, or claimed by another app), and the row reverts.
+    let onChange: (HotkeyShortcut) -> String?
 
     @State private var shortcut: HotkeyShortcut
     @State private var errorMessage: String?
@@ -18,7 +18,7 @@ struct ShortcutSettingRow: View {
     /// value and clear the error message we just set).
     @State private var isReverting = false
 
-    init(title: String, subtitle: String, current: HotkeyShortcut, defaultShortcut: HotkeyShortcut, onChange: @escaping (HotkeyShortcut) -> Bool) {
+    init(title: String, subtitle: String, current: HotkeyShortcut, defaultShortcut: HotkeyShortcut, onChange: @escaping (HotkeyShortcut) -> String?) {
         self.title = title
         self.subtitle = subtitle
         self.defaultShortcut = defaultShortcut
@@ -63,10 +63,8 @@ struct ShortcutSettingRow: View {
     }
 
     private func apply(_ newValue: HotkeyShortcut, revertTo previous: HotkeyShortcut) {
-        if onChange(newValue) {
-            errorMessage = nil
-        } else {
-            errorMessage = "Couldn't use \(newValue.displayString) — it may already be in use by another app."
+        errorMessage = onChange(newValue)
+        if errorMessage != nil {
             isReverting = true
             shortcut = previous
         }

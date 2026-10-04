@@ -1,65 +1,79 @@
 import AppKit
 import Carbon.HIToolbox
 
-/// Registers a system-wide hotkey that fires even when this app is not
-/// frontmost. Uses an NSEvent global monitor rather than Carbon's
-/// RegisterEventHotKey/InstallEventHandler: extensive on-device testing
-/// found that Carbon's hotkey callback silently never fires on this macOS
-/// version (RegisterEventHotKey succeeds, GetEventParameter runs, but
-/// InstallEventHandler's callback is never invoked) even though the exact
-/// same keyDown is reliably delivered to an NSEvent global monitor in the
-/// same process. Carbon Event Manager is long-deprecated; NSEvent's global
-/// monitor is the modern, reliable mechanism for this.
+/// Registers a system-wide hotkey with Carbon's RegisterEventHotKey. Unlike
+/// an NSEvent global monitor, a registered hotkey is consumed (⌘\ no longer
+/// also reaches the frontmost app), fires while one of WordPop's own panels
+/// is key, and fails to register when another app already owns the
+/// combination. The handler is installed on the event dispatcher target:
+/// on the application target its callback never runs in an app started
+/// with NSApplication.run.
 final class HotkeyManager {
+    private static var actions: [UInt32: () -> Void] = [:]
+    private static var nextID: UInt32 = 1
+    private static var eventHandler: EventHandlerRef?
+    private static let signature = OSType(0x5750_4F50) // 'WPOP'
+
+    private let id: UInt32
     private let onPress: () -> Void
-    private var monitor: Any?
-    private var shortcut: HotkeyShortcut?
+    private var hotKey: EventHotKeyRef?
+    private(set) var shortcut: HotkeyShortcut?
 
     init(onPress: @escaping () -> Void) {
         self.onPress = onPress
+        id = Self.nextID
+        Self.nextID += 1
+        Self.installEventHandlerIfNeeded()
     }
 
+    /// Returns false when the shortcut could not be registered, most
+    /// likely because another app has it; the previous shortcut then
+    /// stays active.
     @discardableResult
-    func register(shortcut: HotkeyShortcut) -> Bool {
-        self.shortcut = shortcut
-        installMonitorIfNeeded()
+    func register(shortcut newShortcut: HotkeyShortcut) -> Bool {
+        let previous = shortcut
+        unregister()
+        if install(newShortcut) { return true }
+        if let previous { _ = install(previous) }
+        return false
+    }
+
+    private func install(_ newShortcut: HotkeyShortcut) -> Bool {
+        var ref: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            newShortcut.keyCode, newShortcut.carbonModifiers, EventHotKeyID(signature: Self.signature, id: id),
+            GetEventDispatcherTarget(), 0, &ref
+        )
+        guard status == noErr, let ref else { return false }
+        hotKey = ref
+        shortcut = newShortcut
+        Self.actions[id] = onPress
         return true
     }
 
-    @discardableResult
-    func update(shortcut: HotkeyShortcut) -> Bool {
-        self.shortcut = shortcut
-        installMonitorIfNeeded()
-        return true
+    private func unregister() {
+        if let hotKey { UnregisterEventHotKey(hotKey) }
+        hotKey = nil
+        shortcut = nil
+        Self.actions[id] = nil
     }
 
-    private func installMonitorIfNeeded() {
-        guard monitor == nil else { return }
-        monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            self?.handle(event)
-        }
-    }
-
-    private func handle(_ event: NSEvent) {
-        guard let shortcut else { return }
-        guard event.keyCode == UInt16(shortcut.keyCode) else { return }
-        let pressed = event.modifierFlags.intersection([.control, .option, .shift, .command])
-        guard pressed == Self.modifierFlags(fromCarbon: shortcut.carbonModifiers) else { return }
-        onPress()
-    }
-
-    private static func modifierFlags(fromCarbon carbon: UInt32) -> NSEvent.ModifierFlags {
-        var flags: NSEvent.ModifierFlags = []
-        if carbon & UInt32(controlKey) != 0 { flags.insert(.control) }
-        if carbon & UInt32(optionKey) != 0 { flags.insert(.option) }
-        if carbon & UInt32(cmdKey) != 0 { flags.insert(.command) }
-        if carbon & UInt32(shiftKey) != 0 { flags.insert(.shift) }
-        return flags
+    private static func installEventHandlerIfNeeded() {
+        guard eventHandler == nil else { return }
+        var pressed = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        InstallEventHandler(GetEventDispatcherTarget(), { _, event, _ in
+            var hotKeyID = EventHotKeyID()
+            let status = GetEventParameter(
+                event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
+                nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKeyID
+            )
+            guard status == noErr, hotKeyID.signature == HotkeyManager.signature else { return OSStatus(eventNotHandledErr) }
+            DispatchQueue.main.async { HotkeyManager.actions[hotKeyID.id]?() }
+            return noErr
+        }, 1, &pressed, nil, &eventHandler)
     }
 
     deinit {
-        if let monitor {
-            NSEvent.removeMonitor(monitor)
-        }
+        unregister()
     }
 }

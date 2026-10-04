@@ -87,13 +87,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if preferencesWindowController == nil {
             preferencesWindowController = PreferencesWindowController(
                 onLookupShortcutChanged: { [weak self] shortcut in
-                    self?.hotkeyManager.update(shortcut: shortcut) ?? false
+                    self?.apply(shortcut, to: self?.hotkeyManager, other: self?.quickSearchHotkeyManager, otherName: "Quick Search")
                 },
                 onQuickSearchShortcutChanged: { [weak self] shortcut in
-                    self?.quickSearchHotkeyManager.update(shortcut: shortcut) ?? false
+                    self?.apply(shortcut, to: self?.quickSearchHotkeyManager, other: self?.hotkeyManager, otherName: "Lookup")
                 }
             )
         }
         preferencesWindowController?.show()
+    }
+
+    /// Returns an error message, or nil when the shortcut is now active.
+    private func apply(_ shortcut: HotkeyShortcut, to manager: HotkeyManager?, other: HotkeyManager?, otherName: String) -> String? {
+        if other?.shortcut == shortcut {
+            return "\(shortcut.displayString) is already the \(otherName) shortcut."
+        }
+        guard manager?.register(shortcut: shortcut) == true else {
+            return "Couldn\u{2019}t use \(shortcut.displayString). Another app may already use it."
+        }
+        return nil
     }
 }
