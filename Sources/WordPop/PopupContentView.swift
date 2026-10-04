@@ -68,30 +68,15 @@ struct PopupContentView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 14)
 
-            if hasScrollableContent {
-                Divider().padding(.horizontal, 22)
-
-                // A bare ScrollView is greedy and would always claim the
-                // full maxListHeight, leaving a blank gap under short
-                // entries. Only wrap in one when the content overflows.
-                CappedHeight(maxHeight: Self.maxListHeight) {
-                    ViewThatFits(in: .vertical) {
-                        definitions
-                        ScrollView { definitions.padding(.bottom, Self.scrollFadeHeight) }
-                            .overlay(alignment: .bottom) {
-                                LinearGradient(colors: [.popupPage.opacity(0), .popupPage], startPoint: .top, endPoint: .bottom)
-                                    .frame(height: Self.scrollFadeHeight)
-                                    .allowsHitTesting(false)
-                            }
-                    }
-                }
-            }
-
-            ForEach(viewModel.sections) { section in
-                Divider().padding(.horizontal, 22)
-                pillSection(section)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 14)
+            // When the definitions (capped at maxListHeight) and the pill
+            // sections together are taller than the screen allows, the
+            // panel is clamped and the definitions used to shrink to a
+            // line or two. Instead, everything below the header scrolls
+            // as one, with the definitions at full length.
+            ViewThatFits(in: .vertical) {
+                body(definitionsCapped: true)
+                ScrollView { body(definitionsCapped: false).padding(.bottom, Self.scrollFadeHeight) }
+                    .overlay(alignment: .bottom) { scrollFade }
             }
 
             if isEmpty {
@@ -109,6 +94,42 @@ struct PopupContentView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.08))
         )
+    }
+
+    private func body(definitionsCapped: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if hasScrollableContent {
+                Divider().padding(.horizontal, 22)
+
+                if definitionsCapped {
+                    // A bare ScrollView is greedy and would always claim the
+                    // full maxListHeight, leaving a blank gap under short
+                    // entries. Only wrap in one when the content overflows.
+                    CappedHeight(maxHeight: Self.maxListHeight) {
+                        ViewThatFits(in: .vertical) {
+                            definitions
+                            ScrollView { definitions.padding(.bottom, Self.scrollFadeHeight) }
+                                .overlay(alignment: .bottom) { scrollFade }
+                        }
+                    }
+                } else {
+                    definitions
+                }
+            }
+
+            ForEach(viewModel.sections) { section in
+                Divider().padding(.horizontal, 22)
+                pillSection(section)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 14)
+            }
+        }
+    }
+
+    private var scrollFade: some View {
+        LinearGradient(colors: [.popupPage.opacity(0), .popupPage], startPoint: .top, endPoint: .bottom)
+            .frame(height: Self.scrollFadeHeight)
+            .allowsHitTesting(false)
     }
 
     private var definitions: some View {
