@@ -114,6 +114,23 @@ final class PopupController: NSObject, NSWindowDelegate {
                 await TextReplacer.paste(text, into: target.app)
             }
         }
+        viewModel.onCompare = { [weak self] other in
+            guard let self else { return }
+            let entry = self.viewModel.entry
+            let partOfSpeech = self.viewModel.block?.partOfSpeech
+            let comparison = Comparison(
+                word: entry.word, definition: self.viewModel.block?.items.first?.text,
+                other: other, otherDefinition: DictionaryLookup.firstDefinition(of: other, partOfSpeech: partOfSpeech)?.text
+            )
+            self.viewModel.comparison = comparison
+            Task { @MainActor in
+                let difference = await WritingModel.difference(
+                    between: comparison.word, comparison.definition, and: other, comparison.otherDefinition
+                )
+                guard self.viewModel.comparison?.other == other, self.viewModel.entry.word == entry.word else { return }
+                self.viewModel.comparison?.difference = difference
+            }
+        }
         viewModel.onGoBack = { [weak self] in
             self?.viewModel.goBack()
             if let panel = self?.panel {
@@ -123,8 +140,8 @@ final class PopupController: NSObject, NSWindowDelegate {
     }
 
     /// Keyboard map: Space speaks, ←/→/Tab move through the pills, Return
-    /// follows the focused pill and ⌥Return puts it in place of the
-    /// selection, 1-9 switch part of speech, ⌘[ goes back, ⌘D stars the
+    /// follows the focused pill, ⌥Return puts it in place of the
+    /// selection, ⇧Return compares it with the word, 1-9 switch part of speech, ⌘[ goes back, ⌘D stars the
     /// word, ⌘C copies the word and ⌘⇧C the first definition.
     private func handleKey(_ event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
@@ -143,8 +160,14 @@ final class PopupController: NSObject, NSWindowDelegate {
         case 124: viewModel.moveFocus(by: 1) // →
         case 123: viewModel.moveFocus(by: -1) // ←
         case 48: viewModel.moveFocus(by: flags.contains(.shift) ? -1 : 1) // Tab
-        case 36, 76: // Return, Enter; with ⌥, replace the selection
-            if flags.contains(.option) { viewModel.replaceWithFocusedPill() } else { viewModel.followFocusedPill() }
+        case 36, 76: // Return, Enter; with ⌥, replace the selection; with ⇧, compare
+            if flags.contains(.option) {
+                viewModel.replaceWithFocusedPill()
+            } else if flags.contains(.shift) {
+                viewModel.compareWithFocusedPill()
+            } else {
+                viewModel.followFocusedPill()
+            }
         default:
             guard let digit = event.charactersIgnoringModifiers.flatMap(Int.init), (1...9).contains(digit) else { return false }
             viewModel.selectBlock(digit - 1)
@@ -175,8 +198,9 @@ final class PopupController: NSObject, NSWindowDelegate {
                    viewModel.$showPhrases.map { _ in () },
                    viewModel.$showOrigin.map { _ in () },
                    viewModel.$showUsage.map { _ in () },
-                   viewModel.$bestFits.map { _ in () })
-            .dropFirst(6)
+                   viewModel.$bestFits.map { _ in () },
+                   viewModel.$comparison.map { _ in () })
+            .dropFirst(7)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self, let panel = self.panel, panel.isVisible else { return }

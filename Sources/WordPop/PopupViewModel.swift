@@ -9,6 +9,16 @@ struct PillRow: Identifiable {
     let firstPillIndex: Int
 }
 
+/// Two words side by side: their definitions at once, and the on-device
+/// model's one-sentence difference when it answers.
+struct Comparison: Equatable {
+    let word: String
+    let definition: String?
+    let other: String
+    let otherDefinition: String?
+    var difference: String?
+}
+
 struct PillSection: Identifiable {
     let id: String
     let title: String
@@ -31,6 +41,7 @@ final class PopupViewModel: ObservableObject {
     /// Whether a chosen word can replace the selection the popup was
     /// opened for (not when it came from Quick Search).
     @Published var canReplace = false
+    @Published var comparison: Comparison?
     /// Pill words that are rare in everyday English, shown dimmed so the
     /// plainer choices stand out.
     @Published private(set) var rareWords: Set<String> = []
@@ -55,6 +66,7 @@ final class PopupViewModel: ObservableObject {
     var onSelectWord: (String) -> Void = { _ in }
     var onGoBack: () -> Void = {}
     var onReplace: (String) -> Void = { _ in }
+    var onCompare: (String) -> Void = { _ in }
 
     init() {
         entry = .empty
@@ -194,6 +206,11 @@ final class PopupViewModel: ObservableObject {
         onSelectWord(pills[focusedPill])
     }
 
+    func compareWithFocusedPill() {
+        guard let focusedPill, pills.indices.contains(focusedPill) else { return }
+        onCompare(pills[focusedPill])
+    }
+
     func replaceWithFocusedPill() {
         guard canReplace, let focusedPill, pills.indices.contains(focusedPill) else { return }
         onReplace(pills[focusedPill])
@@ -225,6 +242,7 @@ final class PopupViewModel: ObservableObject {
         showOrigin = false
         showUsage = false
         bestFits = []
+        comparison = nil
         focusedPill = nil
         rhymeSyllables = Database.syllables(of: newEntry.rhymes)
         entry = newEntry

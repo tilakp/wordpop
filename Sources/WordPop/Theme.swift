@@ -20,6 +20,7 @@ extension Color {
     static let spellingTint = Color.blue
     static let strongerTint = Color.purple
     static let inclusiveTint = Color.mint
+    static let compareTint = Color.cyan
 }
 
 /// Editorial type scale: the headword and quoted examples set in the system

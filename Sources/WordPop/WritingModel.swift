@@ -55,6 +55,24 @@ enum WritingModel {
         return []
     }
 
+    /// One sentence on how two similar words differ in meaning, tone or
+    /// use, given their definitions ("famous implies positive recognition;
+    /// notorious implies negative reputation").
+    static func difference(between first: String, _ firstDefinition: String?, and second: String, _ secondDefinition: String?) async -> String? {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), isAvailable {
+            let session = LanguageModelSession(instructions: """
+                You explain to a writer how two similar words differ. Answer in one plain sentence of at most 25 words, \
+                about meaning, tone or typical use. No preamble.
+                """)
+            let prompt = "\(first): \(firstDefinition ?? "")\n\(second): \(secondDefinition ?? "")\nHow do \(first) and \(second) differ?"
+            let answer = try? await session.respond(to: prompt).content.trimmingCharacters(in: .whitespacesAndNewlines)
+            return answer?.isEmpty == false ? answer : nil
+        }
+        #endif
+        return nil
+    }
+
     private static func unique(_ words: [String]) -> [String] {
         var seen = Set<String>()
         return words.filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }

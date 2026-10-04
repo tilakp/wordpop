@@ -92,9 +92,18 @@ enum DictionaryLookup {
     /// text without touching the bundled database, so it is cheap enough
     /// to run while the user types.
     static func gloss(of word: String) -> String? {
-        guard let text = rawEntryText(for: word), let block = partOfSpeechBlocks(text).first,
+        guard let (partOfSpeech, definition) = firstDefinition(of: word) else { return nil }
+        return [partOfSpeech, definition].compactMap { $0 }.joined(separator: " \u{B7} ")
+    }
+
+    /// The first definition of `word`, from the block for `partOfSpeech`
+    /// when it has one, so a comparison sets like against like.
+    static func firstDefinition(of word: String, partOfSpeech: String? = nil) -> (partOfSpeech: String?, text: String)? {
+        guard let text = rawEntryText(for: word) else { return nil }
+        let blocks = partOfSpeechBlocks(text)
+        guard let block = blocks.first(where: { $0.partOfSpeech == partOfSpeech && partOfSpeech != nil }) ?? blocks.first,
               let definition = block.items.first?.text else { return nil }
-        return [block.partOfSpeech, definition].compactMap { $0 }.joined(separator: " \u{B7} ")
+        return (block.partOfSpeech, definition)
     }
 
     private static func entry(forSelection rawText: String) -> WordEntry {

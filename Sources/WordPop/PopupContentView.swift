@@ -98,6 +98,13 @@ struct PopupContentView: View {
 
     private func body(definitionsCapped: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
+            if let comparison = viewModel.comparison {
+                Divider().padding(.horizontal, 22)
+                comparisonView(comparison)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 14)
+            }
+
             if hasScrollableContent {
                 Divider().padding(.horizontal, 22)
 
@@ -122,6 +129,39 @@ struct PopupContentView: View {
                 pillSection(section)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
+            }
+        }
+    }
+
+    private func comparisonView(_ comparison: Comparison) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Compare")
+                    .font(.sectionLabel)
+                    .tracking(1.2)
+                    .foregroundStyle(Color.compareTint)
+                    .textCase(.uppercase)
+                Spacer()
+                Button(action: { viewModel.comparison = nil }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("Close the comparison")
+            }
+            ForEach([(comparison.word, comparison.definition), (comparison.other, comparison.otherDefinition)], id: \.0) { word, definition in
+                (Text(word).font(.phrase) + Text("  " + (definition ?? "no definition")).font(.definition).foregroundColor(.secondary))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let difference = comparison.difference {
+                Text(difference)
+                    .font(.example)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if WritingModel.isAvailable {
+                Text("Comparing\u{2026}")
+                    .font(.recentMeta)
+                    .foregroundStyle(.tertiary)
             }
         }
     }
@@ -341,6 +381,8 @@ struct PopupContentView: View {
         return Button(action: {
             if viewModel.canReplace, NSEvent.modifierFlags.contains(.option) {
                 viewModel.onReplace(word)
+            } else if NSEvent.modifierFlags.contains(.shift) {
+                viewModel.onCompare(word)
             } else {
                 viewModel.onSelectWord(word)
             }
@@ -362,7 +404,8 @@ struct PopupContentView: View {
                 .overlay(Capsule().strokeBorder(focused ? tint : tint.opacity(0.25), lineWidth: focused ? 1.5 : 1))
         }
         .buttonStyle(.plain)
-        .help([isRare ? "Less common word." : nil, viewModel.canReplace ? "\u{2325}-click to replace your selection." : nil]
+        .help([isRare ? "Less common word." : nil, viewModel.canReplace ? "\u{2325}-click to replace your selection." : nil,
+               "\u{21E7}-click to compare."]
             .compactMap { $0 }.joined(separator: " "))
     }
 
