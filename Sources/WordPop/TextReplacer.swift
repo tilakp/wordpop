@@ -7,12 +7,21 @@ import AppKit
 /// managers skip it.
 enum TextReplacer {
     /// The selection with its looked-up word swapped for `word`, in the
-    /// same capitalization: "Quiet," -> "Hushed,". Text around the word
+    /// same capitalization and word form: "Quiet," -> "Hushed,", "ran" ->
+    /// "sprinted" (when `lemma` is "run"). Text around the word
     /// (punctuation, spacing, the rest of a selected phrase) is kept.
-    static func replacement(in selection: String, with word: String) -> String {
+    /// `lemmaForms` is the looked-up entry's form list and `formsOf` gives
+    /// any word's, for irregular synonyms ("tear" -> "tore").
+    static func replacement(
+        in selection: String, with word: String, lemma: String? = nil, lemmaForms: [String] = [],
+        formsOf: (String) -> [String] = { _ in [] }
+    ) -> String {
         let original = DictionaryLookup.headword(in: selection)
         guard !original.isEmpty, let range = selection.range(of: original, options: .caseInsensitive) else { return word }
-        return selection.replacingCharacters(in: range, with: matchingCase(of: String(selection[range]), word))
+        let token = String(selection[range])
+        let form = lemma.map { Inflection.form(of: token, lemma: $0, forms: lemmaForms) } ?? .plain
+        let inflected = Inflection.inflect(word, as: form, formsOf: formsOf)
+        return selection.replacingCharacters(in: range, with: matchingCase(of: token, inflected))
     }
 
     private static func matchingCase(of original: String, _ word: String) -> String {

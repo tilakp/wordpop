@@ -13,10 +13,14 @@ final class PopupController: NSObject, NSWindowDelegate {
     /// The selection the popup was opened for, which a chosen synonym can
     /// replace; nil for Quick Search lookups.
     private var replaceTarget: TextCapture.Selection?
+    /// The entry the selection was looked up as, whose word and forms tell
+    /// which form the selection is in ("ran" is the past of "run").
+    private var replaceEntry: WordEntry?
 
     func show(entry: WordEntry, near point: NSPoint, replacing selection: TextCapture.Selection? = nil) {
         remember(entry)
         replaceTarget = selection
+        replaceEntry = entry
         viewModel.reset(with: entry)
         viewModel.canReplace = selection != nil
         rankSynonyms(of: entry, for: selection)
@@ -103,7 +107,11 @@ final class PopupController: NSObject, NSWindowDelegate {
                 // Let the panel give up key status so the paste lands in
                 // the app the selection came from.
                 try? await Task.sleep(nanoseconds: 150_000_000)
-                await TextReplacer.paste(TextReplacer.replacement(in: target.text, with: word), into: target.app)
+                let text = TextReplacer.replacement(
+                    in: target.text, with: word, lemma: self.replaceEntry?.word, lemmaForms: self.replaceEntry?.forms ?? [],
+                    formsOf: { DictionaryLookup.lookup($0).forms }
+                )
+                await TextReplacer.paste(text, into: target.app)
             }
         }
         viewModel.onGoBack = { [weak self] in
