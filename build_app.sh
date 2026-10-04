@@ -8,12 +8,14 @@ cd "$(dirname "$0")"
 # Universal: Apple silicon and Intel. The Apple Intelligence features
 # need Apple silicon; everything else runs on Intel Macs too.
 swift build -c release --arch arm64 --arch x86_64
+# A multi-architecture build has no .build/release link; ask for the path.
+BIN_DIR=$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)
 
 APP="WordPop.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp .build/release/WordPop "$APP/Contents/MacOS/WordPop"
+cp "$BIN_DIR/WordPop" "$APP/Contents/MacOS/WordPop"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Sources/WordPop/Resources/wordpop.sqlite "$APP/Contents/Resources/wordpop.sqlite"
