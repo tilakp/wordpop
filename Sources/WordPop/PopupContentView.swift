@@ -222,6 +222,11 @@ struct PopupContentView: View {
                 }
                 .buttonStyle(.plain)
             }
+            if let choices = viewModel.toneChoices, choices.words.isEmpty {
+                Text("none found")
+                    .font(.recentMeta)
+                    .foregroundStyle(.tertiary)
+            }
         }
     }
 

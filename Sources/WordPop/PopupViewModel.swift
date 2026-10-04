@@ -57,6 +57,9 @@ final class PopupViewModel: ObservableObject {
     /// Synonyms the on-device model judged to fit the sentence the word
     /// was selected in, best first; empty until it answers.
     @Published var bestFits: [String] = []
+    /// The synonyms of the thesaurus sense the sentence uses, once the
+    /// model has picked it; tone shifts choose from these.
+    var contextSynonyms: [String]?
     /// Whether a chosen word can replace the selection the popup was
     /// opened for (not when it came from Quick Search).
     @Published var canReplace = false
@@ -272,6 +275,7 @@ final class PopupViewModel: ObservableObject {
     /// The synonyms a tone shift chooses from: the selected block's,
     /// everyday ones first.
     var toneCandidates: [String] {
+        if let contextSynonyms, !contextSynonyms.isEmpty { return contextSynonyms }
         guard let block else { return [] }
         var words: [String] = []
         for word in block.senses.flatMap(\.synonyms) + block.synonyms where !words.contains(word) { words.append(word) }
@@ -315,6 +319,7 @@ final class PopupViewModel: ObservableObject {
         showAllDefinitions = false
         showUsage = false
         bestFits = []
+        contextSynonyms = nil
         comparison = nil
         toneChoices = nil
         loadingTone = nil

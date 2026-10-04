@@ -104,10 +104,24 @@ final class PopupController: NSObject, NSWindowDelegate {
             }
         }
         guard candidates.count > 1 else { return }
+        // A word with many thesaurus senses ("run" has 22) puts most of its
+        // synonyms past any candidate list the model can take, so first
+        // the model picks the sense the sentence uses, from each sense's
+        // example and leading synonyms; its synonyms are the fit.
+        let senses = (matching.first ?? entry.blocks.first)?.senses.filter { !$0.synonyms.isEmpty } ?? []
         Task { @MainActor in
-            let fits = await WritingModel.bestFits(
-                for: selection.trimmed, in: sentence, candidates: Array(candidates.prefix(40))
-            )
+            var fits: [String]
+            if senses.count > 1 {
+                let descriptions = senses.map { sense in
+                    (sense.example.map { "(\($0)) " } ?? "") + sense.synonyms.prefix(4).joined(separator: ", ")
+                }
+                guard let index = await WritingModel.senseIndex(of: selection.trimmed, in: sentence, definitions: descriptions) else { return }
+                guard viewModel.entry.word == entry.word else { return }
+                viewModel.contextSynonyms = senses[index].synonyms
+                fits = senses[index].synonyms
+            } else {
+                fits = await WritingModel.bestFits(for: selection.trimmed, in: sentence, candidates: Array(candidates.prefix(40)))
+            }
             guard viewModel.entry.word == entry.word, viewModel.bestFits.isEmpty else { return }
             // The new section comes first, so a focused pill's index would
             // now point at another word.
