@@ -83,6 +83,10 @@ final class QuickSearchController: NSObject, NSWindowDelegate {
         let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
 
+        // Model changes reach the view on its next layout pass; without
+        // this flush the panel was sized for the previous keystroke's rows
+        // and could stay a bare search field while rows were listed.
+        hostingController?.view.layoutSubtreeIfNeeded()
         let size = hostingController?.sizeThatFits(in: NSSize(width: QuickSearchView.width, height: .greatestFiniteMagnitude))
             ?? NSSize(width: QuickSearchView.width, height: 60)
 

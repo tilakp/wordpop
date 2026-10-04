@@ -111,7 +111,9 @@ struct QuickSearchView: View {
             model.described = []
             model.isDescribing = false
         }
-        .onChange(of: rows.count) { _, _ in onLayoutChange() }
+        // Any change to the rows can change the height, not only their
+        // count: spelling corrections carry a second line.
+        .onChange(of: rows.map(\.id)) { _, _ in onLayoutChange() }
         .onChange(of: describeNote) { _, _ in onLayoutChange() }
     }
 
