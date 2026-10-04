@@ -3,12 +3,39 @@ import SwiftUI
 final class QuickSearchModel: ObservableObject {
     @Published var query: String = ""
     @Published var selection: Int?
+    /// Words the on-device model found for a "?description" query.
+    @Published var described: [String] = []
+    @Published var isDescribing = false
+    /// The meaning the last describe ran for, to tell "no results" apart
+    /// from "not asked yet".
+    @Published var lastDescribed: String?
+
+    /// A query that starts with "?" describes a word instead of naming it.
+    var describedMeaning: String? {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("?") else { return nil }
+        return String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+    }
 
     func reset() {
         query = ""
         selection = nil
+        described = []
+        isDescribing = false
+        lastDescribed = nil
     }
 
+    @MainActor
+    func describe() async {
+        guard let meaning = describedMeaning, !meaning.isEmpty else { return }
+        isDescribing = true
+        let words = await WritingModel.words(describedBy: meaning)
+        guard describedMeaning == meaning else { return }
+        described = words
+        selection = words.isEmpty ? nil : 0
+        isDescribing = false
+        lastDescribed = meaning
+    }
 }
 
 struct QuickSearchView: View {
@@ -32,6 +59,9 @@ struct QuickSearchView: View {
     /// Starred words matching the query come first, then recent lookups,
     /// then dictionary completions to fill the remaining rows.
     private var rows: [Row] {
+        if model.describedMeaning != nil {
+            return model.described.map { Row(word: $0, date: nil) }
+        }
         let query = model.query.trimmingCharacters(in: .whitespaces)
         var rows = starred.matching(query).prefix(Self.maxRows).map { Row(word: $0, date: nil, isStarred: true) }
         var seen = Set(rows.map(\.id))
@@ -58,6 +88,14 @@ struct QuickSearchView: View {
                 rowList
                     .padding(.horizontal, 8)
                     .padding(.vertical, 8)
+            } else if let note = describeNote {
+                Divider().padding(.horizontal, 18)
+                Text(note)
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
             }
         }
         .frame(width: Self.width)
@@ -68,8 +106,13 @@ struct QuickSearchView: View {
                 .strokeBorder(Color.primary.opacity(0.08))
         )
         .onAppear { isFocused = true }
-        .onChange(of: model.query) { _, _ in model.selection = nil }
+        .onChange(of: model.query) { _, _ in
+            model.selection = nil
+            model.described = []
+            model.isDescribing = false
+        }
         .onChange(of: rows.count) { _, _ in onLayoutChange() }
+        .onChange(of: describeNote) { _, _ in onLayoutChange() }
     }
 
     private var searchField: some View {
@@ -78,7 +121,7 @@ struct QuickSearchView: View {
                 .foregroundStyle(.secondary)
                 .font(.system(size: 17))
 
-            TextField("Look up a word\u{2026}", text: $model.query)
+            TextField("Look up a word, or ?describe one\u{2026}", text: $model.query)
                 .textFieldStyle(.plain)
                 .font(.searchField)
                 .focused($isFocused)
@@ -120,9 +163,23 @@ struct QuickSearchView: View {
         }
     }
 
+    /// What the describe mode has to say when it has no rows to show.
+    private var describeNote: String? {
+        guard let meaning = model.describedMeaning else { return nil }
+        if !WritingModel.isAvailable { return "Describing a word needs Apple Intelligence (macOS 26 or later)." }
+        if model.isDescribing { return "Looking for words\u{2026}" }
+        if meaning.isEmpty { return "Describe the meaning, then press Return. Suggestions are a starting point, not always right." }
+        if model.lastDescribed == meaning { return "No dictionary words found. Try describing it another way." }
+        return "Press Return to find words for this meaning."
+    }
+
     private func submit() {
         if let selection = model.selection, rows.indices.contains(selection) {
             onSubmit(rows[selection].word)
+            return
+        }
+        if model.describedMeaning != nil {
+            Task { await model.describe() }
             return
         }
         let word = model.query.trimmingCharacters(in: .whitespacesAndNewlines)

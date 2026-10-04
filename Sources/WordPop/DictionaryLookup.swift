@@ -180,6 +180,14 @@ enum DictionaryLookup {
         return tokens[..<end].joined(separator: " ")
     }
 
+    /// Whether the dictionary has an entry headed by `word` itself (or an
+    /// inflection of it), not merely by its first word.
+    static func hasOwnEntry(_ word: String) -> Bool {
+        guard let text = rawEntryText(for: word) else { return false }
+        return canonicalHeadword(in: text).compare(word, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+            || inflectionBase(in: text) != nil
+    }
+
     /// The base form when the whole entry is an inflection pointer:
     /// "seen | sēn | verb past participle of see1" -> "see". Entries that
     /// only mention a base form in their header ("better ... (comparative

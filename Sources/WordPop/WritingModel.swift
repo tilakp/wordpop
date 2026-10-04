@@ -36,6 +36,25 @@ enum WritingModel {
         return []
     }
 
+    /// Words that match a description ("the smell of rain on dry earth" ->
+    /// petrichor), keeping only those with an entry of their own in the
+    /// dictionary, which drops phrases the model makes up.
+    static func words(describedBy description: String) async -> [String] {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), isAvailable {
+            let session = LanguageModelSession(instructions: """
+                You are a reverse dictionary for writers. Given a description, list the precise words that dictionaries \
+                define this way, including rare, literary or technical words. Never invent phrases. For example, \
+                "a strong desire to travel" gives wanderlust and "a word that imitates a sound" gives onomatopoeia.
+                """)
+            guard let response = try? await session.respond(to: "Description: \(description)", generating: Described.self) else { return [] }
+            return unique(response.content.words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+                .filter(DictionaryLookup.hasOwnEntry)
+        }
+        #endif
+        return []
+    }
+
     private static func unique(_ words: [String]) -> [String] {
         var seen = Set<String>()
         return words.filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
@@ -50,4 +69,10 @@ private struct Fits {
     var words: [String]
 }
 
+@available(macOS 26, *)
+@Generable
+private struct Described {
+    @Guide(description: "Precise English words that mean what the description says, best match first.", .count(10))
+    var words: [String]
+}
 #endif
