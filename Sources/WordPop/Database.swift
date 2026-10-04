@@ -9,11 +9,13 @@ enum Database {
 
     /// In the app bundle the file sits in Contents/Resources; when run from
     /// `swift build` output it is inside SwiftPM's resource bundle next to
-    /// the binary.
+    /// the binary, flat with the Command Line Tools and in
+    /// Contents/Resources with Xcode's build system.
     private static var url: URL? {
         if let url = Bundle.main.url(forResource: "wordpop", withExtension: "sqlite") { return url }
-        let packaged = Bundle.main.bundleURL.appendingPathComponent("WordPop_WordPop.bundle/wordpop.sqlite")
-        return FileManager.default.fileExists(atPath: packaged.path) ? packaged : nil
+        return ["WordPop_WordPop.bundle/wordpop.sqlite", "WordPop_WordPop.bundle/Contents/Resources/wordpop.sqlite"]
+            .map { Bundle.main.bundleURL.appendingPathComponent($0) }
+            .first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     private static let connection: OpaquePointer? = {
@@ -45,6 +47,19 @@ enum Database {
         // Range scan on the primary key: [prefix, prefix + U+FFFF).
         query("SELECT word FROM words WHERE word >= ?1 AND word < ?2 ORDER BY rank LIMIT ?3",
               [prefix, prefix + "\u{FFFF}", limit])
+    }
+
+    /// The words in the same confusables groups as `word`, and the short
+    /// sense that tells `word` apart from them (scripts/confusables.txt).
+    static func confusables(for word: String) -> (sense: String?, words: [String]) {
+        let rows = rows(
+            "SELECT word, sense FROM confusables WHERE grp IN (SELECT grp FROM confusables WHERE word = ?1) ORDER BY grp",
+            [word.lowercased()]
+        )
+        let sense = rows.first { $0[0] == word.lowercased() }?[1]
+        var words: [String] = []
+        for row in rows where row[0] != word.lowercased() && !words.contains(row[0]) { words.append(row[0]) }
+        return (sense, words)
     }
 
     static func warmUp() {

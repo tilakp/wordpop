@@ -1,6 +1,7 @@
 """
 Packs synonyms.json, antonyms.json, rhymes.json and words.txt (the outputs
-of the other build scripts) into Sources/WordPop/Resources/wordpop.sqlite.
+of the other build scripts) and the hand-written confusables.txt into
+Sources/WordPop/Resources/wordpop.sqlite.
 
 The app queries this database on demand instead of decoding the JSON at
 launch, which took about half a second of CPU and held ~100 MB resident.
@@ -24,6 +25,8 @@ db.executescript("""
     CREATE TABLE rhymes (word TEXT PRIMARY KEY NOT NULL, words TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE near_rhymes (word TEXT PRIMARY KEY NOT NULL, words TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE words (word TEXT PRIMARY KEY NOT NULL, rank INTEGER NOT NULL) WITHOUT ROWID;
+    CREATE TABLE confusables (grp INTEGER NOT NULL, word TEXT NOT NULL, sense TEXT NOT NULL, PRIMARY KEY (word, grp)) WITHOUT ROWID;
+    CREATE INDEX confusables_grp ON confusables (grp);
 """)
 
 for table in ("synonyms", "antonyms"):
@@ -45,6 +48,15 @@ with open("words.txt", encoding="utf-8") as f:
     words = [line.strip() for line in f if line.strip()]
 db.executemany("INSERT INTO words VALUES (?, ?)", ((w, i) for i, w in enumerate(words)))
 print(f"words: {len(words)}")
+
+with open("confusables.txt", encoding="utf-8") as f:
+    groups = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+db.executemany(
+    "INSERT INTO confusables VALUES (?, ?, ?)",
+    ((index, *(part.strip() for part in member.split("=", 1)))
+     for index, group in enumerate(groups) for member in group.split(" ; ")),
+)
+print(f"confusables: {len(groups)} groups")
 
 db.commit()
 db.execute("VACUUM")

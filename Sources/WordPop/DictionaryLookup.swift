@@ -45,6 +45,10 @@ struct WordEntry {
     let found: Bool
     /// USAGE notes on easily confused or disputed uses.
     var usageNotes: [String] = []
+    /// Words writers often mix up with this one ("effect" for "affect"),
+    /// and the short sense that tells this word apart.
+    var confusedWith: [String] = []
+    var confusionSense: String? = nil
 
     static let empty = WordEntry(
         word: "", syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], nearRhymes: [],
@@ -142,7 +146,8 @@ enum DictionaryLookup {
         for extra in thesaurus where !blocks.contains(where: { $0.partOfSpeech == extra.partOfSpeech }) {
             blocks.append(block(word, partOfSpeech: extra.partOfSpeech, items: [], thesaurus: thesaurus))
         }
-        return WordEntry(
+        let confusables = Database.confusables(for: word)
+        var entry = WordEntry(
             word: word,
             syllables: syllables,
             pronunciation: pronunciation,
@@ -155,6 +160,9 @@ enum DictionaryLookup {
             source: nil,
             found: true
         )
+        entry.confusedWith = confusables.words
+        entry.confusionSense = confusables.sense
+        return entry
     }
 
     /// The headword as the flat text spells it: the words before the first

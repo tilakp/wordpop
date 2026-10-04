@@ -90,6 +90,10 @@ final class PopupViewModel: ObservableObject {
                 }
             }
         }
+        if !entry.confusedWith.isEmpty {
+            let caption = entry.confusionSense.map { "\(entry.word): \($0)" }
+            sections.append(PillSection(id: "confused", title: "Often confused with", tint: .confusedTint, rows: [row(caption, entry.confusedWith)]))
+        }
         var rhymeRows: [PillRow] = []
         if !entry.rhymes.isEmpty { rhymeRows.append(row(nil, entry.rhymes)) }
         if !entry.nearRhymes.isEmpty { rhymeRows.append(row("near rhymes", entry.nearRhymes)) }

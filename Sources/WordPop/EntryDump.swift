@@ -33,6 +33,9 @@ enum EntryDump {
                 lines.append("phrase: \(phrase.phrase) — \(phrase.definition)" + (phrase.example.map { " (\($0))" } ?? ""))
             }
         }
+        if !entry.confusedWith.isEmpty {
+            lines.append("\noften confused with: \(entry.confusedWith.joined(separator: ", "))" + (entry.confusionSense.map { " (\(entry.word): \($0))" } ?? ""))
+        }
         for note in entry.usageNotes { lines.append("\nusage: \(note)") }
         if !entry.rhymes.isEmpty { lines.append("\nrhymes: \(entry.rhymes.joined(separator: ", "))") }
         if !entry.nearRhymes.isEmpty { lines.append("near rhymes: \(entry.nearRhymes.joined(separator: ", "))") }

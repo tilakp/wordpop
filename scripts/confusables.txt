@@ -1,0 +1,119 @@
+# Words that writers often mix up. One group per line; each member is
+# "word = short sense". build_db.py loads this into the confusables table.
+accept = to receive or agree to ; except = apart from, excluding
+adverse = harmful, unfavourable ; averse = strongly disliking
+advice = a recommendation (noun) ; advise = to recommend (verb)
+affect = usually a verb: to influence ; effect = usually a noun: a result
+aid = help, or to help ; aide = an assistant to an official
+allude = to refer to indirectly ; elude = to escape or evade
+allusion = an indirect reference ; illusion = a false perception ; delusion = a false belief held firmly
+altar = a table used in worship ; alter = to change
+alternate = every other; to take turns ; alternative = another option
+amoral = without moral sense ; immoral = morally wrong
+appraise = to assess the value of ; apprise = to inform
+assure = to tell confidently ; ensure = to make certain ; insure = to cover with insurance
+bated = held, as in bated breath ; baited = with bait attached
+breath = air taken in (noun) ; breathe = to take in air (verb)
+canvas = a strong cloth ; canvass = to seek votes or opinions
+capital = a city; money; upper-case letter ; capitol = a legislative building
+censor = to suppress content ; censure = to criticize formally ; sensor = a detecting device
+cite = to quote as evidence ; site = a place ; sight = vision, something seen
+climactic = of a climax ; climatic = of climate
+complement = to complete or go well with ; compliment = to praise
+comprise = to consist of ; compose = to make up
+connote = to suggest beyond the literal ; denote = to indicate literally
+conscience = a sense of right and wrong ; conscious = awake and aware
+continual = repeated with breaks ; continuous = without a break
+council = an advisory or governing body ; counsel = advice, or a lawyer
+credible = believable ; credulous = too ready to believe ; creditable = deserving praise
+defuse = to make less dangerous ; diffuse = to spread out
+desert = a dry region; to abandon ; dessert = a sweet course
+discreet = careful, tactful ; discrete = separate, distinct
+disinterested = impartial ; uninterested = not interested
+elicit = to draw out ; illicit = illegal
+eminent = distinguished ; imminent = about to happen ; immanent = inherent
+emigrate = to leave a country ; immigrate = to come into a country
+envelop = to wrap around (verb) ; envelope = a paper cover for a letter
+everyday = ordinary (adjective) ; every day = each day
+exalt = to praise highly ; exult = to rejoice
+farther = at a greater physical distance ; further = additional; to a greater degree
+faze = to disconcert ; phase = a stage
+fewer = for things you can count ; less = for amounts you cannot count
+flair = natural talent ; flare = a sudden flame; to widen
+flaunt = to show off ; flout = to defy openly
+flounder = to struggle clumsily ; founder = to fail or sink
+forego = to go before ; forgo = to do without
+foreword = an introduction to a book ; forward = toward the front
+formally = in a formal way ; formerly = previously
+gibe = a taunt ; jibe = to agree; to change a sail's tack
+grisly = gruesome ; grizzly = grey; a kind of bear
+hanged = executed by hanging ; hung = suspended
+hoard = a stock saved away ; horde = a large crowd
+hone = to sharpen ; home = to move toward a target, as in home in
+historic = important in history ; historical = of or about the past
+imply = to suggest (the speaker does this) ; infer = to conclude (the listener does this)
+incidence = the rate of occurrence ; incidents = events
+ingenious = clever, inventive ; ingenuous = innocent, naive
+its = belonging to it ; it's = it is or it has
+lay = to put something down (takes an object) ; lie = to recline (no object)
+lead = to guide; a metal ; led = past tense of lead
+loath = reluctant (adjective) ; loathe = to hate (verb)
+loose = not tight ; lose = to misplace; to fail to win
+mantel = a shelf above a fireplace ; mantle = a cloak; a role taken on
+militate = to work against ; mitigate = to make less severe
+moral = a lesson; ethical ; morale = confidence and spirit
+naval = of a navy ; navel = the belly button
+nauseated = feeling sick ; nauseous = causing sickness
+palate = the roof of the mouth; taste ; palette = a board for paints ; pallet = a platform for goods
+passed = went past (verb) ; past = gone by; beyond
+peak = a top ; peek = a quick look ; pique = to provoke interest or resentment
+pedal = a foot lever ; peddle = to sell
+perquisite = a perk ; prerequisite = a requirement
+persecute = to harass or oppress ; prosecute = to take legal action against
+personal = private, individual ; personnel = staff
+pore = to study closely, as in pore over ; pour = to make liquid flow
+precede = to come before ; proceed = to go on
+prescribe = to recommend or order ; proscribe = to forbid
+principal = main; head of a school ; principle = a rule or belief
+rack = to strain, as in rack your brains ; wrack = wreckage, as in wrack and ruin
+reign = to rule ; rein = a strap to control a horse ; rain = water from clouds
+respectfully = with respect ; respectively = in the order given
+sensual = of physical pleasure ; sensuous = pleasing the senses
+stationary = not moving ; stationery = writing materials
+than = for comparisons ; then = at that time; next
+their = belonging to them ; there = in that place ; they're = they are
+tortuous = full of twists ; torturous = involving torture
+to = toward ; too = also; excessively ; two = the number 2
+vain = conceited; futile ; vane = a blade turned by wind ; vein = a blood vessel
+waive = to give up a right ; wave = to move the hand
+weather = the state of the atmosphere ; whether = if
+who's = who is or who has ; whose = belonging to whom
+your = belonging to you ; you're = you are
+enquire = to ask (British) ; inquire = to ask; to investigate
+anecdote = a short story ; antidote = a remedy for poison
+bear = to carry; an animal ; bare = uncovered
+brake = to slow down ; break = to separate into pieces
+cache = a hidden store ; cachet = prestige
+coarse = rough ; course = a route; a series of lessons
+deprecate = to disapprove of ; depreciate = to lose value
+discomfit = to embarrass ; discomfort = unease
+enormity = great wickedness ; enormousness = great size
+epitome = a perfect example ; epithet = a descriptive name
+evoke = to call up a feeling ; invoke = to call on for help or authority
+expatiate = to speak at length ; expiate = to atone for
+gamut = the full range ; gauntlet = a challenge, as in run the gauntlet
+heroin = a drug ; heroine = a female hero
+inflammable = easily set on fire ; inflammatory = provoking anger
+insidious = harmful in a hidden way ; invidious = unfair, causing resentment
+lightening = making lighter ; lightning = an electric flash in the sky
+literally = actually, exactly ; figuratively = not literally; as a metaphor
+ordinance = a law ; ordnance = military supplies
+populace = the people ; populous = densely populated
+reticent = reserved, quiet ; reluctant = unwilling
+right = correct; a privilege ; rite = a ceremony ; write = to form words
+simple = easy ; simplistic = oversimplified
+statue = a sculpture ; stature = height; reputation ; statute = a law
+taught = past tense of teach ; taut = pulled tight
+troop = a group of soldiers ; troupe = a group of performers
+venal = open to bribery ; venial = forgivable
+wreak = to cause damage, as in wreak havoc ; reek = to smell strongly
