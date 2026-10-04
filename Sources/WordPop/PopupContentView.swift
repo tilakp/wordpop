@@ -45,6 +45,7 @@ struct FlowLayout: Layout {
 
 struct PopupContentView: View {
     @ObservedObject var viewModel: PopupViewModel
+    @ObservedObject private var starred = StarredWords.shared
 
     static var popupWidth: CGFloat { 380 * Settings.textScale }
     private static let maxListHeight: CGFloat = 340
@@ -152,6 +153,16 @@ struct PopupContentView: View {
                 }
 
                 Spacer(minLength: 8)
+
+                if viewModel.entry.found {
+                    let isStarred = starred.contains(viewModel.entry.word)
+                    Button(action: viewModel.toggleStar) {
+                        Image(systemName: isStarred ? "star.fill" : "star")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(isStarred ? Color.yellow : Color.secondary)
+                    .help(isStarred ? "Remove from starred words (\u{2318}D)" : "Star this word (\u{2318}D)")
+                }
 
                 Button(action: viewModel.onTogglePin) {
                     Image(systemName: viewModel.isPinned ? "pin.fill" : "pin")

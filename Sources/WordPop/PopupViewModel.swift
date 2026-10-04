@@ -163,6 +163,11 @@ final class PopupViewModel: ObservableObject {
         onReplace(pills[focusedPill])
     }
 
+    func toggleStar() {
+        guard entry.found else { return }
+        StarredWords.shared.toggle(entry.word)
+    }
+
     func copyWord() {
         copy(entry.word)
     }

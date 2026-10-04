@@ -91,13 +91,14 @@ final class PopupController: NSObject, NSWindowDelegate {
 
     /// Keyboard map: Space speaks, ←/→/Tab move through the pills, Return
     /// follows the focused pill and ⌥Return puts it in place of the
-    /// selection, 1-9 switch part of speech, ⌘[ goes back, ⌘C copies the
-    /// word and ⌘⇧C the first definition.
+    /// selection, 1-9 switch part of speech, ⌘[ goes back, ⌘D stars the
+    /// word, ⌘C copies the word and ⌘⇧C the first definition.
     private func handleKey(_ event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags.contains(.command) {
             switch event.charactersIgnoringModifiers {
             case "[": viewModel.onGoBack()
+            case "d": viewModel.toggleStar()
             case "c": viewModel.copyWord()
             case "C": viewModel.copyDefinition()
             default: return false

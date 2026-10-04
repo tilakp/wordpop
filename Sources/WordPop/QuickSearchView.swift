@@ -8,6 +8,7 @@ final class QuickSearchModel: ObservableObject {
         query = ""
         selection = nil
     }
+
 }
 
 struct QuickSearchView: View {
@@ -17,21 +18,28 @@ struct QuickSearchView: View {
     private struct Row: Identifiable {
         let word: String
         let date: Date?
-        var id: String { word }
+        var isStarred = false
+        var id: String { word.lowercased() }
     }
 
     @ObservedObject var model: QuickSearchModel
     @ObservedObject private var history = LookupHistory.shared
+    @ObservedObject private var starred = StarredWords.shared
     @FocusState private var isFocused: Bool
     let onSubmit: (String) -> Void
     let onLayoutChange: () -> Void
 
-    /// Recent lookups matching the query come first, then dictionary
-    /// completions to fill the remaining rows.
+    /// Starred words matching the query come first, then recent lookups,
+    /// then dictionary completions to fill the remaining rows.
     private var rows: [Row] {
         let query = model.query.trimmingCharacters(in: .whitespaces)
-        var rows = history.recent(matching: query, limit: Self.maxRows).map { Row(word: $0.word, date: $0.date) }
-        let seen = Set(rows.map(\.word))
+        var rows = starred.matching(query).prefix(Self.maxRows).map { Row(word: $0, date: nil, isStarred: true) }
+        var seen = Set(rows.map(\.id))
+        for item in history.recent(matching: query, limit: Self.maxRows) where !seen.contains(item.word.lowercased()) {
+            guard rows.count < Self.maxRows else { break }
+            rows.append(Row(word: item.word, date: item.date))
+            seen.insert(item.word.lowercased())
+        }
         for word in WordList.suggestions(for: query, limit: Self.maxRows + seen.count) where !seen.contains(word) {
             guard rows.count < Self.maxRows else { break }
             rows.append(Row(word: word, date: nil))
@@ -89,7 +97,11 @@ struct QuickSearchView: View {
                             .font(.recentWord)
                             .foregroundStyle(.primary)
                         Spacer()
-                        if let date = row.date {
+                        if row.isStarred {
+                            Image(systemName: "star.fill")
+                                .font(.recentMeta)
+                                .foregroundStyle(.yellow)
+                        } else if let date = row.date {
                             Text(Self.relativeDate.localizedString(for: date, relativeTo: Date()))
                                 .font(.recentMeta)
                                 .foregroundStyle(.tertiary)
