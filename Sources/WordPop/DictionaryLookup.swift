@@ -134,14 +134,19 @@ enum DictionaryLookup {
         )
     }
 
-    /// The headword as the flat text spells it: everything before the first
-    /// pipe, minus the syllabified repeat and any homograph number
-    /// ("meticulous me·tic·u·lous |", "go 1 |").
+    /// The headword as the flat text spells it: the words before the first
+    /// pipe, up to the syllabified repeat, a homograph number, a part of
+    /// speech or an inflection group ("meticulous me·tic·u·lous |",
+    /// "go 1 |", "read verb (past ... | red |)", "use verb [with object] |").
     static func canonicalHeadword(in entryText: String) -> String {
         guard let pipe = entryText.range(of: "|") else { return headword(in: entryText) }
+        let partsOfSpeech = Set(partOfSpeechWords.split(separator: "|").map(String.init))
         let tokens = entryText[..<pipe.lowerBound].split(separator: " ").map(String.init)
-            .filter { !$0.contains("\u{B7}") && Int($0) == nil }
-        return tokens.joined(separator: " ")
+        let end = tokens.firstIndex {
+            $0.contains("\u{B7}") || Int($0) != nil || $0.hasPrefix("(") || $0.hasPrefix("[")
+                || partsOfSpeech.contains($0.lowercased())
+        } ?? tokens.endIndex
+        return tokens[..<end].joined(separator: " ")
     }
 
     private static func block(_ word: String, partOfSpeech: String?, items: [DefinitionItem], thesaurus: [ThesaurusBlock]) -> PartOfSpeechBlock {

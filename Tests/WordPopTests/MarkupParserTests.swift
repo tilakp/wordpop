@@ -119,4 +119,15 @@ final class MarkupParserTests: XCTestCase {
         XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "go 1 | ɡō | verb ..."), "go")
         XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "United Nations U·nit·ed Na·tions | yo͞o | ..."), "United Nations")
     }
+
+    /// Some entries put the part of speech or the inflections before the
+    /// first pipe; the headword ends where they start.
+    func testCanonicalHeadwordStopsBeforePartOfSpeechAndForms() {
+        XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "read verb (past and past participle read | red |) | rēd | ..."), "read")
+        XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "mouse noun (plural mice | mīs |) | mous | 1 a small rodent"), "mouse")
+        XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "use verb [with object] | yo͞oz | take, hold"), "use")
+        XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "transfer (transfers) (, transferring | ... |) | trans |"), "transfer")
+        XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "upset up·setverb (upsets, upsetting) [with object] | ˌəpˈset |"), "upset")
+        XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "far right (the far right) noun the extreme | x |"), "far right")
+    }
 }
