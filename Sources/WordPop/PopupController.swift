@@ -80,8 +80,12 @@ final class PopupController: NSObject, NSWindowDelegate {
     /// provided the popup still shows the same entry.
     private func rankSynonyms(of entry: WordEntry, for selection: TextCapture.Selection?) {
         guard let selection, let sentence = selection.sentence, WritingModel.isAvailable else { return }
+        // Only the part of speech the word has in the sentence: "will" in
+        // "I will go" must not get the noun's synonyms (determination).
+        let partOfSpeech = TextCapture.partOfSpeech(of: selection.trimmed, in: sentence)
+        let matching = entry.blocks.filter { $0.partOfSpeech == partOfSpeech }
         var candidates: [String] = []
-        for block in entry.blocks {
+        for block in matching.isEmpty ? entry.blocks : matching {
             for word in block.senses.flatMap(\.synonyms) + block.synonyms where !candidates.contains(word) {
                 candidates.append(word)
             }

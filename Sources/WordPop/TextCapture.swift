@@ -75,6 +75,20 @@ enum TextCapture {
         return sentence(in: text, containing: NSRange(location: selected.location - start, length: selected.length))
     }
 
+    /// The part of speech `word` has in `sentence`, as the dictionary
+    /// names it ("verb" for "ran" in "She ran across the road").
+    static func partOfSpeech(of word: String, in sentence: String) -> String? {
+        let tagger = NLTagger(tagSchemes: [.lexicalClass])
+        tagger.string = sentence
+        var found: String?
+        tagger.enumerateTags(in: sentence.startIndex..<sentence.endIndex, unit: .word, scheme: .lexicalClass, options: [.omitWhitespace, .omitPunctuation]) { tag, range in
+            guard sentence[range].caseInsensitiveCompare(word) == .orderedSame else { return true }
+            found = [NLTag.noun: "noun", .verb: "verb", .adjective: "adjective", .adverb: "adverb"][tag ?? .otherWord]
+            return false
+        }
+        return found
+    }
+
     /// The sentence of `text` that contains `range` (UTF-16 offsets).
     static func sentence(in text: String, containing range: NSRange) -> String? {
         guard let target = Range(range, in: text) else { return nil }
