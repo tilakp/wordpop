@@ -110,6 +110,22 @@ enum WritingModel {
         }
     }
 
+    /// Which of `definitions` (0-based) matches how `word` is used in
+    /// `sentence`: "She runs a small bakery" -> "be in charge of; manage".
+    static func senseIndex(of word: String, in sentence: String, definitions: [String]) async -> Int? {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), isAvailable, definitions.count > 1 {
+            let session = LanguageModelSession(instructions: "You pick which dictionary definition of a word matches its use in a sentence.")
+            let list = definitions.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+            let prompt = "Sentence: \(sentence)\nWord: \(word)\nDefinitions:\n\(list)"
+            guard let number = try? await session.respond(to: prompt, generating: SensePick.self).content.number,
+                  definitions.indices.contains(number - 1) else { return nil }
+            return number - 1
+        }
+        #endif
+        return nil
+    }
+
     private static func unique(_ words: [String]) -> [String] {
         var seen = Set<String>()
         return words.filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
@@ -122,6 +138,13 @@ enum WritingModel {
 private struct Fits {
     @Guide(description: "Candidates that can replace the word in this sentence with the same meaning, best first. Leave out any that change the meaning.")
     var words: [String]
+}
+
+@available(macOS 26, *)
+@Generable
+private struct SensePick {
+    @Guide(description: "The number of the definition that matches how the word is used in the sentence.")
+    var number: Int
 }
 
 @available(macOS 26, *)

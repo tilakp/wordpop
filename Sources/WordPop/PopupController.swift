@@ -26,6 +26,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         let contextBlock = contextBlockIndex(in: entry, for: selection)
         if let contextBlock { viewModel.selectedBlock = contextBlock }
         rankSynonyms(of: entry, for: selection, in: contextBlock)
+        findSense(of: entry, for: selection, in: contextBlock ?? 0)
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -111,6 +112,20 @@ final class PopupController: NSObject, NSWindowDelegate {
             // now point at another word.
             viewModel.focusedPill = nil
             viewModel.bestFits = Array(fits.prefix(8))
+        }
+    }
+
+    /// Asks the on-device model which numbered sense of the block matches
+    /// the selection's sentence, and moves that sense to the top.
+    private func findSense(of entry: WordEntry, for selection: TextCapture.Selection?, in blockIndex: Int) {
+        guard let selection, let sentence = selection.sentence, WritingModel.isAvailable,
+              entry.blocks.indices.contains(blockIndex) else { return }
+        let senses = entry.blocks[blockIndex].items.filter { $0.number != nil }
+        guard senses.count > 1 else { return }
+        Task { @MainActor in
+            guard let index = await WritingModel.senseIndex(of: selection.trimmed, in: sentence, definitions: senses.map(\.text)),
+                  viewModel.entry.word == entry.word, let number = senses[index].number else { return }
+            viewModel.contextSense = (blockIndex, number)
         }
     }
 
@@ -250,6 +265,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$showUsage.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$bestFits.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$comparison.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$contextSense.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$collocations.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isLoadingCollocations.map { _ in () }.eraseToAnyPublisher(),
         ]

@@ -43,6 +43,9 @@ final class PopupViewModel: ObservableObject {
     /// opened for (not when it came from Quick Search).
     @Published var canReplace = false
     @Published var comparison: Comparison?
+    /// The numbered sense the on-device model judged to match the
+    /// sentence the word was selected in, for the block it belongs to.
+    @Published var contextSense: (block: Int, number: Int)?
     /// Set when the selection was a passage: the popup shows its
     /// readability notes instead of a dictionary entry.
     @Published var textStats: TextStats?
@@ -85,6 +88,22 @@ final class PopupViewModel: ObservableObject {
 
     var block: PartOfSpeechBlock? {
         entry.blocks.indices.contains(selectedBlock) ? entry.blocks[selectedBlock] : nil
+    }
+
+    /// The selected block's definitions, with the sense used in the
+    /// selection's sentence (and its sub-senses) moved to the top.
+    var displayItems: [DefinitionItem] {
+        guard let block else { return [] }
+        guard let sense = contextSense, sense.block == selectedBlock,
+              let start = block.items.firstIndex(where: { $0.number == sense.number }), start > 0 else { return block.items }
+        var end = start + 1
+        while end < block.items.count, block.items[end].number == nil { end += 1 }
+        return Array(block.items[start..<end]) + Array(block.items[..<start]) + Array(block.items[end...])
+    }
+
+    func isContextSense(_ item: DefinitionItem) -> Bool {
+        guard let sense = contextSense, let number = item.number else { return false }
+        return sense.block == selectedBlock && sense.number == number
     }
 
     var hiddenSenseCount: Int {
@@ -257,6 +276,7 @@ final class PopupViewModel: ObservableObject {
         showUsage = false
         bestFits = []
         comparison = nil
+        contextSense = nil
         textStats = nil
         collocations = nil
         isLoadingCollocations = false

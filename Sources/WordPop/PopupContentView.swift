@@ -51,7 +51,7 @@ struct PopupContentView: View {
     private static let maxListHeight: CGFloat = 340
     private static let scrollFadeHeight: CGFloat = 28
 
-    private var items: [DefinitionItem] { viewModel.block?.items ?? [] }
+    private var items: [DefinitionItem] { viewModel.displayItems }
 
     private var hasScrollableContent: Bool {
         !items.isEmpty || viewModel.entry.origin != nil || !viewModel.entry.phrases.isEmpty || !viewModel.entry.usageNotes.isEmpty
@@ -358,7 +358,15 @@ struct PopupContentView: View {
     }
 
     private func itemRow(_ item: DefinitionItem) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        let inSentence = viewModel.isContextSense(item)
+        return VStack(alignment: .leading, spacing: 3) {
+            if inSentence {
+                Text("In your sentence")
+                    .font(.sectionLabel)
+                    .tracking(1.2)
+                    .foregroundStyle(Color.fitTint)
+                    .textCase(.uppercase)
+            }
             HStack(alignment: .top, spacing: 6) {
                 if let number = item.number {
                     Text("\(number)")
