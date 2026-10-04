@@ -42,7 +42,9 @@ final class HotkeyManager {
         var ref: EventHotKeyRef?
         let status = RegisterEventHotKey(
             newShortcut.keyCode, newShortcut.carbonModifiers, EventHotKeyID(signature: Self.signature, id: id),
-            GetEventDispatcherTarget(), 0, &ref
+            // Exclusive: fail, rather than silently share the key, when
+            // another app already registered it.
+            GetEventDispatcherTarget(), UInt32(kEventHotKeyExclusive), &ref
         )
         guard status == noErr, let ref else { return false }
         hotKey = ref

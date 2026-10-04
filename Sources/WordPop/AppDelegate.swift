@@ -25,12 +25,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager = HotkeyManager { [weak self] in
             self?.handleHotkey()
         }
-        hotkeyManager.register(shortcut: HotkeySettings.current)
-
         quickSearchHotkeyManager = HotkeyManager { [weak self] in
             self?.quickSearchController.show()
         }
-        quickSearchHotkeyManager.register(shortcut: HotkeySettings.quickSearch)
+        // A shortcut another app holds fails to register, and the lookup
+        // would otherwise do nothing with no hint why.
+        let failed = [
+            ("Lookup", HotkeySettings.current, hotkeyManager!),
+            ("Quick Search", HotkeySettings.quickSearch, quickSearchHotkeyManager!),
+        ].filter { !$0.2.register(shortcut: $0.1) }
+        if !failed.isEmpty {
+            DispatchQueue.main.async { [weak self] in
+                self?.reportUnregisteredShortcuts(failed.map { "\($0.0) shortcut (\($0.1.displayString))" })
+            }
+        }
 
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
@@ -93,6 +101,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    private func reportUnregisteredShortcuts(_ names: [String]) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "WordPop Couldn\u{2019}t Set Up Its Shortcut"
+        alert.informativeText = "The \(names.joined(separator: " and the ")) may be in use by another app. Choose a different one in Preferences."
+        alert.addButton(withTitle: "Open Preferences")
+        alert.addButton(withTitle: "Not Now")
+        if alert.runModal() == .alertFirstButtonReturn { showPreferences() }
     }
 
     private func showPreferences() {
