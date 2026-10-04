@@ -142,6 +142,12 @@ final class MarkupParserTests: XCTestCase {
         XCTAssertNil(parsed("child").blockPronunciations["noun"])
     }
 
+    func testCrossReferenceDefinitionIsKept() {
+        let selfWorth = parsed("self-worth")
+        XCTAssertEqual(selfWorth.blocks.first?.partOfSpeech, "noun")
+        XCTAssertEqual(selfWorth.blocks.first?.items.first?.text, "another term for self-esteem")
+    }
+
     func testInflectionPointerEntriesResolveToTheBaseForm() {
         XCTAssertEqual(DictionaryLookup.inflectionBase(in: "seen | sēn | verb past participle of see1 "), "see")
         XCTAssertEqual(DictionaryLookup.inflectionBase(in: "ate 1 | āt | verb [past] past of eat "), "eat")

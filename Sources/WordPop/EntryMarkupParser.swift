@@ -150,7 +150,12 @@ enum EntryMarkupParser {
 
     private static func item(from msDict: MarkupNode, number: Int?, isSubItem: Bool) -> DefinitionItem? {
         let direct = msDict.children
-        guard let definition = direct.first(where: { $0.has("df") })?.text, !definition.isEmpty else { return nil }
+        // A definition that is only a cross-reference ("another term for
+        // self-government (sense 1 of the noun)") is an xrg marked as the
+        // definition instead of a df; its sense label is glyph text.
+        let crossReference = direct.first { $0.has("xrg") && $0.attributes["d:def"] != nil }?.fullText
+            .trimmingCharacters(in: CharacterSet(charactersIn: ": "))
+        guard let definition = direct.first(where: { $0.has("df") })?.text ?? crossReference, !definition.isEmpty else { return nil }
         let form = direct.first { $0.has("fg") }?.first("f")?.text
         let text = form.map { "(\($0)) \(definition)" } ?? definition
         let label = direct.first { $0.has("lg") }?.text
