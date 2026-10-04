@@ -35,7 +35,14 @@ enum TextReplacer {
     /// the user has moved to another app since the lookup.
     @MainActor
     static func paste(_ text: String, into app: NSRunningApplication?) async {
-        guard let app, NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { return }
+        guard let app else { return }
+        // If WordPop took focus (a Preferences or Practice window was in
+        // front), hand it back to the app the selection came from.
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == NSRunningApplication.current.processIdentifier {
+            app.activate()
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { return }
         let pasteboard = NSPasteboard.general
         let saved = Clipboard.snapshot()
         pasteboard.clearContents()

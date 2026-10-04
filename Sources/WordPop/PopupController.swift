@@ -358,8 +358,12 @@ final class PopupController: NSObject, NSWindowDelegate {
         if let panel { return panel }
 
         let hostingController = NSHostingController(rootView: PopupContentView(viewModel: viewModel))
-        let newPanel = PopupPanel(contentViewController: hostingController)
-        newPanel.styleMask = [.nonactivatingPanel, .borderless]
+        // The non-activating style only takes effect when given at creation:
+        // set afterwards, a click in the popup activated WordPop, took
+        // focus from the user's document, and made mouse replace paste
+        // into WordPop instead.
+        let newPanel = PopupPanel(contentRect: .zero, styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: true)
+        newPanel.contentViewController = hostingController
         newPanel.isOpaque = false
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = true

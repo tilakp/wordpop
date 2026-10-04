@@ -58,8 +58,9 @@ final class QuickSearchController: NSObject, NSWindowDelegate {
             }
         )
         let hostingController = NSHostingController(rootView: view)
-        let newPanel = QuickSearchPanel(contentViewController: hostingController)
-        newPanel.styleMask = [.nonactivatingPanel, .borderless]
+        // Non-activating only when given at creation (see PopupController).
+        let newPanel = QuickSearchPanel(contentRect: .zero, styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: true)
+        newPanel.contentViewController = hostingController
         newPanel.isOpaque = false
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = true
