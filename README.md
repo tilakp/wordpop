@@ -13,17 +13,23 @@ WordPop lives in the menu bar and stays out of the Dock.
 ## Features
 
 - **Lookup from any app.** Select text in a browser, editor, PDF, chat window, or anywhere else, then press `⌃⌥⌘D`. The popup appears in the centre of the screen, or next to the mouse pointer if you choose that in Preferences.
-- **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first.
+- **Replace with a synonym.** `⌥`-click a pill, or focus it and press `⌥Return`, to put that word in place of your selection. Punctuation and capitalization are kept ("Quiet," becomes "Hushed,"); inflections are not changed.
+- **Fits your sentence.** With Apple Intelligence (macOS 26 or later), the on-device model reads the sentence you selected the word in and shows the synonyms that fit it first. It runs locally; nothing leaves your Mac.
+- **Usage notes and often-confused words.** The dictionary's usage notes (affect vs effect, fewer vs less) appear in a Usage section, and a hand-written list of 117 groups adds an "Often confused with" row (its/it's, principal/principle, lay/lie).
+- **Plain words first.** Synonyms that are rare in everyday English are dimmed, so the plainer choices stand out.
+- **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first. Start with `?` to describe a meaning instead ("?the smell of rain on dry earth" → petrichor); this uses the on-device model and checks every suggestion against the dictionary.
+- **Starred words.** Star a word in the popup (`⌘D`) to keep it in a personal word bank. Starred words come first in Quick Search, and **Copy Starred Words** in the menu bar menu copies the list.
+- **Services, Shortcuts and launchers.** Right-click selected text and choose **Services > Look Up in WordPop**, or open `wordpop://lookup?word=serendipity` (or `wordpop://search`) from Shortcuts, Raycast, Alfred or a script.
 - **Lookup history and type-ahead.** Quick Search lists your recent lookups (kept for 30 days) under the field, then completes what you type from a 69,000-word list. Arrow keys and Return open a row. Clear history from the menu bar menu.
-- **Keyboard-first.** Inside the popup: `←`/`→`/`Tab` move through the synonym, antonym, and rhyme pills, `Return` follows one, `1`-`9` switch part of speech, `Space` speaks, `⌘[` goes back, `⌘C` copies the word, `⌘⇧C` copies the first definition, `Esc` closes.
+- **Keyboard-first.** Inside the popup: `←`/`→`/`Tab` move through the pills, `Return` follows one, `⌥Return` replaces your selection with it, `1`-`9` switch part of speech, `Space` speaks, `⌘[` goes back, `⌘D` stars the word, `⌘C` copies the word, `⌘⇧C` copies the first definition, `Esc` closes.
 - **Definitions and examples** from the built-in macOS dictionary (the same data as Dictionary.app), parsed into numbered senses and sub-senses. Words with several parts of speech get a verb/noun/adjective switcher.
-- **Pronunciation** shown as IPA, plus a speaker button that reads the word aloud with the system voice. Syllable breaks ("me·tic·u·lous") and inflected forms ("runs, running, past ran") come along with it.
+- **Pronunciation** shown as IPA (per part of speech for words like "project" and "record"), plus a speaker button that reads the word aloud with the system voice. Syllable breaks ("me·tic·u·lous") and inflected forms ("runs, running, past ran") come along with it.
 - **Synonyms by sense** from the Oxford American Writer's Thesaurus that ships with macOS: each sense gets its example sentence and its own synonyms, with everyday words ahead of informal or archaic ones. Words the Thesaurus lacks fall back to a bundled WordNet and Moby dataset. Antonyms are grouped the same way.
 - **Other languages.** If a word is not in the English dictionary, WordPop tries the other dictionaries you have enabled in Dictionary.app (for example Spanish or German) and shows that entry.
 - **Rhymes**, ranked by how common the word is, plus near rhymes for words with few perfect ones ("orange" → storage, porridge).
 - **Phrases and phrasal verbs** ("on the quiet", "run out of") from the entry, in a collapsible section, along with **etymology**.
 - **Preferences** for the two shortcuts, text size, popup position (screen centre or next to the pointer), and Launch at Login.
-- **100% offline.** Every lookup runs against local data. Nothing you look up leaves your machine.
+- **100% offline.** Every lookup runs against local data, and the language model features use Apple's on-device model. Nothing you look up leaves your machine.
 
 ## Requirements
 
@@ -68,13 +74,15 @@ Both shortcuts can be changed from the menu bar icon under **Preferences**.
 | --- | --- |
 | `←` `→` `Tab` `⇧Tab` | Move through the pills |
 | `Return` | Look up the focused pill |
+| `⌥Return` or `⌥`-click | Replace your selection with the pill |
 | `1` … `9` | Switch part of speech |
 | `Space` | Pronounce |
 | `⌘[` | Back to the previous word |
+| `⌘D` | Star or unstar the word |
 | `⌘C` / `⌘⇧C` | Copy the word / the first definition |
 | `Esc` | Close |
 
-To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`. `swift test` runs the parser tests against captured dictionary text in `Tests/WordPopTests/Fixtures`.
+To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`. `--describe "a strong desire to travel"` runs the describe search. `swift test` runs the parser tests against captured dictionary text in `Tests/WordPopTests/Fixtures`.
 
 ## How it works
 
