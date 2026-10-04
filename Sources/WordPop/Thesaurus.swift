@@ -54,7 +54,9 @@ enum Thesaurus {
                 var labels: [String: String] = [:]
                 for group in body.descendants("synGroup") {
                     let label = group.children.first { $0.has("lg") }?.text
-                    let words = group.descendants("syn").map(\.text).filter { !$0.isEmpty }
+                    // "(cigarette) lighter", "beat a (hasty) retreat": the
+                    // parenthetical is a note, not part of the word.
+                    let words = group.descendants("syn").map(\.text).map(withoutParentheticals).filter { !$0.isEmpty }
                     if let label, !label.isEmpty {
                         labelled += words
                         for word in words where labels[word.lowercased()] == nil { labels[word.lowercased()] = label }
@@ -83,6 +85,12 @@ enum Thesaurus {
     private static func keepingLabelled(plain: [String], labelled: [String]) -> [String] {
         let kept = Array(labelled.prefix(3))
         return Array(plain.prefix(12 - kept.count)) + kept
+    }
+
+    static func withoutParentheticals(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\([^)]*\\)", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "\\s{2,}", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
     }
 
     private static func uniqued(_ values: [String]) -> [String] {

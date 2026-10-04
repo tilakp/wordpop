@@ -41,9 +41,19 @@ for table in ("synonyms", "antonyms"):
     )
     print(f"{table}: {len(data)} words")
 
+# CMUdict spells out letters and abbreviations (d, tv, hr, ok), which
+# surfaced as rhymes for day, see and me. Only real two-letter words stay.
+TWO_LETTER_WORDS = {"be", "he", "me", "we", "so", "no", "go", "do", "to", "on", "by", "hi", "at", "up", "as", "ox",
+                    "us", "my", "oh", "ah", "an", "in", "it", "is", "of", "or", "if", "ma", "pa"}
+
+
+def real_word(word):
+    return len(word) > 2 or word in TWO_LETTER_WORDS
+
+
 for table in ("rhymes", "near_rhymes"):
     with open(f"{table}.json", encoding="utf-8") as f:
-        rhymes = json.load(f)
+        rhymes = {w: kept for w, r in json.load(f).items() if (kept := [x for x in r if real_word(x)])}
     db.executemany(f"INSERT INTO {table} VALUES (?, ?)", ((w, SEPARATOR.join(r)) for w, r in rhymes.items()))
     print(f"{table}: {len(rhymes)} words")
 
