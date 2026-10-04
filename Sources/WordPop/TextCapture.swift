@@ -1,4 +1,5 @@
 import AppKit
+import NaturalLanguage
 
 /// Captures the currently selected text in whatever app is frontmost.
 ///
@@ -20,14 +21,17 @@ enum TextCapture {
     struct Selection {
         let text: String
         let app: NSRunningApplication?
+        /// The sentence the selection sits in, when the app exposes the
+        /// surrounding text through Accessibility.
+        var sentence: String? = nil
 
         var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
     static func captureSelection() async -> Selection? {
         let app = NSWorkspace.shared.frontmostApplication
-        if let selected = accessibilitySelectedText(), !selected.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return Selection(text: selected, app: app)
+        if let (selected, element) = accessibilitySelection(), !selected.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return Selection(text: selected, app: app, sentence: sentence(around: element))
         }
         guard let copied = await clipboardSelectedText() else { return nil }
         // Code editors (VS Code, JetBrains) copy the whole current line,
@@ -37,7 +41,7 @@ enum TextCapture {
         return Selection(text: copied, app: app)
     }
 
-    private static func accessibilitySelectedText() -> String? {
+    private static func accessibilitySelection() -> (String, AXUIElement)? {
         let system = AXUIElementCreateSystemWide()
         var focused: CFTypeRef?
         guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
@@ -47,7 +51,38 @@ enum TextCapture {
         guard AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value) == .success else {
             return nil
         }
-        return value as? String
+        return (value as? String).map { ($0, element) }
+    }
+
+    /// Reads up to 300 characters on each side of the selection and keeps
+    /// the sentence that contains it.
+    private static func sentence(around element: AXUIElement) -> String? {
+        var rangeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeValue) == .success,
+              let rangeValue, CFGetTypeID(rangeValue) == AXValueGetTypeID() else { return nil }
+        var selected = CFRange()
+        guard AXValueGetValue(rangeValue as! AXValue, .cfRange, &selected) else { return nil }
+        var countValue: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXNumberOfCharactersAttribute as CFString, &countValue)
+        let total = (countValue as? Int) ?? selected.location + selected.length
+        let start = max(0, selected.location - 300)
+        var window = CFRange(location: start, length: min(total, selected.location + selected.length + 300) - start)
+        guard let parameter = AXValueCreate(.cfRange, &window) else { return nil }
+        var text: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(
+            element, kAXStringForRangeParameterizedAttribute as CFString, parameter, &text
+        ) == .success, let text = text as? String else { return nil }
+        return sentence(in: text, containing: NSRange(location: selected.location - start, length: selected.length))
+    }
+
+    /// The sentence of `text` that contains `range` (UTF-16 offsets).
+    static func sentence(in text: String, containing range: NSRange) -> String? {
+        guard let target = Range(range, in: text) else { return nil }
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = text
+        let sentence = tokenizer.tokens(for: text.startIndex..<text.endIndex)
+            .first { $0.contains(target.lowerBound) || $0.upperBound == target.lowerBound && target.isEmpty }
+        return sentence.map { text[$0].trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
     private static func clipboardSelectedText() async -> String? {

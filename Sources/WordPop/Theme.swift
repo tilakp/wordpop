@@ -16,6 +16,7 @@ extension Color {
     static let antonymTint = Color.pink
     static let rhymeTint = Color.indigo
     static let confusedTint = Color.orange
+    static let fitTint = Color.green
 }
 
 /// Editorial type scale: the headword and quoted examples set in the system

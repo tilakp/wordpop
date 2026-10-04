@@ -25,6 +25,9 @@ final class PopupViewModel: ObservableObject {
     @Published var showOrigin: Bool = false
     @Published var showUsage: Bool = false
     @Published var focusedPill: Int?
+    /// Synonyms the on-device model judged to fit the sentence the word
+    /// was selected in, best first; empty until it answers.
+    @Published var bestFits: [String] = []
     /// Whether a chosen word can replace the selection the popup was
     /// opened for (not when it came from Quick Search).
     @Published var canReplace = false
@@ -77,6 +80,9 @@ final class PopupViewModel: ObservableObject {
             return PillRow(id: rowID, example: example, words: capped, firstPillIndex: pillIndex)
         }
 
+        if !bestFits.isEmpty {
+            sections.append(PillSection(id: "fits", title: "Fits your sentence", tint: .fitTint, rows: [row(nil, bestFits)]))
+        }
         if let block {
             if !block.senses.isEmpty {
                 let shown = showAllSenses ? block.senses : Array(block.senses.prefix(Self.collapsedSenseCount))
@@ -188,6 +194,7 @@ final class PopupViewModel: ObservableObject {
         showPhrases = false
         showOrigin = false
         showUsage = false
+        bestFits = []
         focusedPill = nil
         entry = newEntry
         let words = Array(Set(sections.flatMap { $0.rows.flatMap(\.words) } + entry.blocks.flatMap { block in

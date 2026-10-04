@@ -19,6 +19,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         replaceTarget = selection
         viewModel.reset(with: entry)
         viewModel.canReplace = selection != nil
+        rankSynonyms(of: entry, for: selection)
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -48,6 +49,30 @@ final class PopupController: NSObject, NSWindowDelegate {
             guard let panel, panel.alphaValue == 0 else { return }
             panel.orderOut(nil)
         })
+    }
+
+    /// Asks the on-device model which synonyms fit the sentence the word
+    /// was selected in, and shows them when it answers (about a second),
+    /// provided the popup still shows the same entry.
+    private func rankSynonyms(of entry: WordEntry, for selection: TextCapture.Selection?) {
+        guard let selection, let sentence = selection.sentence, WritingModel.isAvailable else { return }
+        var candidates: [String] = []
+        for block in entry.blocks {
+            for word in block.senses.flatMap(\.synonyms) + block.synonyms where !candidates.contains(word) {
+                candidates.append(word)
+            }
+        }
+        guard candidates.count > 1 else { return }
+        Task { @MainActor in
+            let fits = await WritingModel.bestFits(
+                for: selection.trimmed, in: sentence, candidates: Array(candidates.prefix(40))
+            )
+            guard viewModel.entry.word == entry.word, viewModel.bestFits.isEmpty else { return }
+            // The new section comes first, so a focused pill's index would
+            // now point at another word.
+            viewModel.focusedPill = nil
+            viewModel.bestFits = Array(fits.prefix(8))
+        }
     }
 
     private func remember(_ entry: WordEntry) {
@@ -141,8 +166,9 @@ final class PopupController: NSObject, NSWindowDelegate {
             .merge(with: viewModel.$showAllSenses.map { _ in () },
                    viewModel.$showPhrases.map { _ in () },
                    viewModel.$showOrigin.map { _ in () },
-                   viewModel.$showUsage.map { _ in () })
-            .dropFirst(5)
+                   viewModel.$showUsage.map { _ in () },
+                   viewModel.$bestFits.map { _ in () })
+            .dropFirst(6)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self, let panel = self.panel, panel.isVisible else { return }
