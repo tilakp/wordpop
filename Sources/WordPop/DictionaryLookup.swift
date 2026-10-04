@@ -116,9 +116,14 @@ enum DictionaryLookup {
         // An entry that only points at its base form ("seen": past
         // participle of see) is replaced by the base form's entry.
         // Letters and names are filed capitalized ("x" is under "X").
-        let exactMatch = [word, word.capitalized].first { candidate in
-            SystemDictionaries.english.map { !SystemDictionaries.entryMarkups(of: candidate, in: $0).isEmpty } ?? false
-        }
+        // The entry an exact record is filed under: its own when one is
+        // titled with the word ("must"), otherwise the entry it belongs to
+        // ("went" is filed under "go", "colour" under "color").
+        let exactMatch = [word, word.capitalized].lazy.compactMap { candidate -> String? in
+            guard let dictionary = SystemDictionaries.english else { return nil }
+            let titles = SystemDictionaries.titles(filedUnder: candidate, in: dictionary)
+            return titles.contains(candidate) ? candidate : titles.first
+        }.first
         let canonical = entryText.flatMap(inflectionBase(in:))
             ?? exactMatch ?? entryText.map(canonicalHeadword(in:)) ?? word
         let thesaurus = Thesaurus.blocks(for: canonical)

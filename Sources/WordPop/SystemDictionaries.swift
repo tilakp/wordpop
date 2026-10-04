@@ -64,6 +64,22 @@ enum SystemDictionaries {
         }
     }
 
+    /// The titles of the entries filed under `word`, which can differ
+    /// from it: "went" is filed under the entry titled "go", "colour"
+    /// under "color".
+    static func titles(filedUnder word: String, in dictionary: DCSDictionary) -> [String] {
+        guard let records = DCSCopyRecordsForSearchString(dictionary, word as CFString, 0, 8)?.takeRetainedValue() as? [AnyObject] else {
+            return []
+        }
+        return records.compactMap { record in
+            guard let headword = DCSRecordGetHeadword(record)?.takeUnretainedValue() as String?, headword == word,
+                  let markup = DCSRecordCopyData(record, 0)?.takeRetainedValue() as String?,
+                  let start = markup.range(of: "d:title=\""),
+                  let end = markup.range(of: "\"", range: start.upperBound..<markup.endIndex) else { return nil }
+            return String(markup[start.upperBound..<end.lowerBound])
+        }
+    }
+
     static func name(of dictionary: DCSDictionary) -> String {
         DCSDictionaryGetName(dictionary).takeUnretainedValue() as String
     }
