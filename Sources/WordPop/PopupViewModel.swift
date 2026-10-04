@@ -23,6 +23,7 @@ final class PopupViewModel: ObservableObject {
     @Published var showAllSenses: Bool = false
     @Published var showPhrases: Bool = false
     @Published var showOrigin: Bool = false
+    @Published var showUsage: Bool = false
     @Published var focusedPill: Int?
 
     private var history: [WordEntry] = []
@@ -162,6 +163,7 @@ final class PopupViewModel: ObservableObject {
         showAllSenses = false
         showPhrases = false
         showOrigin = false
+        showUsage = false
         focusedPill = nil
         entry = newEntry
     }

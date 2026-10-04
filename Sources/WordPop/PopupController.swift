@@ -121,8 +121,9 @@ final class PopupController: NSObject, NSWindowDelegate {
         blockSelection = viewModel.$selectedBlock.map { _ in () }
             .merge(with: viewModel.$showAllSenses.map { _ in () },
                    viewModel.$showPhrases.map { _ in () },
-                   viewModel.$showOrigin.map { _ in () })
-            .dropFirst(4)
+                   viewModel.$showOrigin.map { _ in () },
+                   viewModel.$showUsage.map { _ in () })
+            .dropFirst(5)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self, let panel = self.panel, panel.isVisible else { return }

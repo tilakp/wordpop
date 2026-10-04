@@ -53,7 +53,7 @@ struct PopupContentView: View {
     private var items: [DefinitionItem] { viewModel.block?.items ?? [] }
 
     private var hasScrollableContent: Bool {
-        !items.isEmpty || viewModel.entry.origin != nil || !viewModel.entry.phrases.isEmpty
+        !items.isEmpty || viewModel.entry.origin != nil || !viewModel.entry.phrases.isEmpty || !viewModel.entry.usageNotes.isEmpty
     }
 
     private var isEmpty: Bool {
@@ -114,6 +114,9 @@ struct PopupContentView: View {
         VStack(alignment: .leading, spacing: 14) {
             if !items.isEmpty {
                 itemsList
+            }
+            if !viewModel.entry.usageNotes.isEmpty {
+                usageDisclosure
             }
             if !viewModel.entry.phrases.isEmpty {
                 phrasesDisclosure
@@ -351,6 +354,25 @@ struct PopupContentView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    private var usageDisclosure: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button(action: { viewModel.showUsage.toggle() }) {
+                disclosureLabel("Usage", expanded: viewModel.showUsage)
+            }
+            .buttonStyle(.plain)
+
+            if viewModel.showUsage {
+                ForEach(viewModel.entry.usageNotes, id: \.self) { note in
+                    Text(note)
+                        .font(.definition)
+                        .foregroundStyle(.secondary)
+                        .lineSpacing(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

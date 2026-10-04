@@ -43,6 +43,8 @@ struct WordEntry {
     /// default English one (a bilingual dictionary the user enabled).
     let source: String?
     let found: Bool
+    /// USAGE notes on easily confused or disputed uses.
+    var usageNotes: [String] = []
 
     static let empty = WordEntry(
         word: "", syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], nearRhymes: [],
@@ -88,11 +90,13 @@ enum DictionaryLookup {
     /// Builds the entry from a parsed markup record.
     static func entry(from parsed: EntryMarkupParser.Parsed, thesaurus: [ThesaurusBlock]) -> WordEntry {
         let word = parsed.title
-        return assemble(
+        var entry = assemble(
             word: word, syllables: parsed.syllables, pronunciation: parsed.pronunciation, forms: parsed.forms,
             blocks: parsed.blocks, origin: parsed.origin, phrases: parsed.phrases, thesaurus: thesaurus,
             blockPronunciations: parsed.blockPronunciations
         )
+        entry.usageNotes = parsed.usageNotes
+        return entry
     }
 
     /// Builds the entry from the flat definition text (the fallback when no

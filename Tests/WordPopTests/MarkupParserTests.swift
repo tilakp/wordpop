@@ -142,6 +142,12 @@ final class MarkupParserTests: XCTestCase {
         XCTAssertNil(parsed("child").blockPronunciations["noun"])
     }
 
+    func testUsageNoteWithoutItsLabel() {
+        let notes = parsed("affect").usageNotes
+        XCTAssertEqual(notes.count, 1)
+        XCTAssertTrue(notes[0].hasPrefix("Affect and effect are both verbs and nouns"))
+    }
+
     func testCrossReferenceDefinitionIsKept() {
         let selfWorth = parsed("self-worth")
         XCTAssertEqual(selfWorth.blocks.first?.partOfSpeech, "noun")

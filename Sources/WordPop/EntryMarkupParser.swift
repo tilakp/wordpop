@@ -25,6 +25,8 @@ enum EntryMarkupParser {
         /// Pronunciations given per part of speech, for words whose stress
         /// moves ("project" the noun and the verb). Keyed by part of speech.
         var blockPronunciations: [String: String] = [:]
+        /// USAGE notes ("Affect and effect are both verbs and nouns ...").
+        var usageNotes: [String] = []
     }
 
     /// Homographs ("lead" the verb and "lead" the metal) are separate
@@ -52,7 +54,8 @@ enum EntryMarkupParser {
             blocks: blocks,
             origin: first.origin,
             phrases: entries.flatMap(\.phrases),
-            blockPronunciations: entries.reversed().reduce(into: [:]) { $0.merge($1.blockPronunciations) { _, new in new } }
+            blockPronunciations: entries.reversed().reduce(into: [:]) { $0.merge($1.blockPronunciations) { _, new in new } },
+            usageNotes: uniqued(entries.flatMap(\.usageNotes))
         )
     }
 
@@ -93,7 +96,8 @@ enum EntryMarkupParser {
             blocks: blocks,
             origin: entry.first("etym").map(\.text).flatMap { $0.isEmpty ? nil : $0 },
             phrases: phrases(in: entry),
-            blockPronunciations: blockPronunciations
+            blockPronunciations: blockPronunciations,
+            usageNotes: usageNotes(in: entry)
         )
     }
 
@@ -166,6 +170,19 @@ enum EntryMarkupParser {
             isSubItem: isSubItem,
             label: label.flatMap { $0.isEmpty ? nil : $0 }
         )
+    }
+
+    /// The text of each USAGE note, without its label. Notes that only
+    /// point at another homograph ("See affect 1") are left out.
+    private static func usageNotes(in entry: MarkupNode) -> [String] {
+        entry.descendants("note").compactMap { note in
+            guard note.children.first?.has("lbl") == true else { return nil }
+            var text = note.text
+            if let label = note.children.first?.text, text.hasPrefix(label) {
+                text = String(text.dropFirst(label.count)).trimmingCharacters(in: .whitespaces)
+            }
+            return text.isEmpty || text.hasPrefix("See ") ? nil : text
+        }
     }
 
     private static func phrases(in entry: MarkupNode) -> [Phrase] {
