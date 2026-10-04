@@ -131,6 +131,17 @@ final class PopupController: NSObject, NSWindowDelegate {
                 self.viewModel.comparison?.difference = difference
             }
         }
+        viewModel.onLoadCollocations = { [weak self] in
+            guard let self, !self.viewModel.isLoadingCollocations else { return }
+            let entry = self.viewModel.entry
+            self.viewModel.isLoadingCollocations = true
+            Task { @MainActor in
+                let phrases = await WritingModel.collocations(for: entry.word, partOfSpeech: self.viewModel.block?.partOfSpeech)
+                guard self.viewModel.entry.word == entry.word else { return }
+                self.viewModel.isLoadingCollocations = false
+                self.viewModel.collocations = phrases
+            }
+        }
         viewModel.onGoBack = { [weak self] in
             self?.viewModel.goBack()
             if let panel = self?.panel {
@@ -193,14 +204,21 @@ final class PopupController: NSObject, NSWindowDelegate {
         newPanel.onEscape = { [weak self] in self?.hide() }
         newPanel.onKey = { [weak self] event in self?.handleKey(event) ?? false }
 
-        blockSelection = viewModel.$selectedBlock.map { _ in () }
-            .merge(with: viewModel.$showAllSenses.map { _ in () },
-                   viewModel.$showPhrases.map { _ in () },
-                   viewModel.$showOrigin.map { _ in () },
-                   viewModel.$showUsage.map { _ in () },
-                   viewModel.$bestFits.map { _ in () },
-                   viewModel.$comparison.map { _ in () })
-            .dropFirst(7)
+        // Every published value that changes the popup's height; each emits
+        // its current value on subscription, hence the dropFirst.
+        let heightChanges: [AnyPublisher<Void, Never>] = [
+            viewModel.$selectedBlock.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$showAllSenses.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$showPhrases.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$showOrigin.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$showUsage.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$bestFits.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$comparison.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$collocations.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$isLoadingCollocations.map { _ in () }.eraseToAnyPublisher(),
+        ]
+        blockSelection = Publishers.MergeMany(heightChanges)
+            .dropFirst(heightChanges.count)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self, let panel = self.panel, panel.isVisible else { return }

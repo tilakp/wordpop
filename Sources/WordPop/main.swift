@@ -27,6 +27,15 @@ if let index = CommandLine.arguments.firstIndex(of: "--compare"), index + 2 < Co
     dispatchMain()
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--collocations"), index + 1 < CommandLine.arguments.count {
+    let word = CommandLine.arguments[index + 1]
+    Task {
+        print(await WritingModel.collocations(for: word, partOfSpeech: DictionaryLookup.firstDefinition(of: word)?.partOfSpeech).joined(separator: ", "))
+        exit(0)
+    }
+    dispatchMain()
+}
+
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()

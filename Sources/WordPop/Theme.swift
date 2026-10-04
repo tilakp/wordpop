@@ -21,6 +21,7 @@ extension Color {
     static let strongerTint = Color.purple
     static let inclusiveTint = Color.mint
     static let compareTint = Color.cyan
+    static let collocationTint = Color.brown
 }
 
 /// Editorial type scale: the headword and quoted examples set in the system

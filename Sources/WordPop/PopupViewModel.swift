@@ -42,6 +42,10 @@ final class PopupViewModel: ObservableObject {
     /// opened for (not when it came from Quick Search).
     @Published var canReplace = false
     @Published var comparison: Comparison?
+    /// Phrases with the word from the on-device model ("tough decision");
+    /// nil until asked for, as each request takes about a second.
+    @Published var collocations: [String]?
+    @Published var isLoadingCollocations = false
     /// Pill words that are rare in everyday English, shown dimmed so the
     /// plainer choices stand out.
     @Published private(set) var rareWords: Set<String> = []
@@ -67,6 +71,7 @@ final class PopupViewModel: ObservableObject {
     var onGoBack: () -> Void = {}
     var onReplace: (String) -> Void = { _ in }
     var onCompare: (String) -> Void = { _ in }
+    var onLoadCollocations: () -> Void = {}
 
     init() {
         entry = .empty
@@ -135,6 +140,9 @@ final class PopupViewModel: ObservableObject {
                     sections.append(PillSection(id: "antonyms", title: "Antonyms", tint: .antonymTint, rows: [row(nil, block.antonyms)]))
                 }
             }
+        }
+        if let collocations, !collocations.isEmpty {
+            sections.append(PillSection(id: "collocations", title: "Goes with", tint: .collocationTint, rows: [row(nil, collocations)]))
         }
         if !entry.confusedWith.isEmpty {
             let caption = entry.confusionSense.map { "\(entry.word): \($0)" }
@@ -243,6 +251,8 @@ final class PopupViewModel: ObservableObject {
         showUsage = false
         bestFits = []
         comparison = nil
+        collocations = nil
+        isLoadingCollocations = false
         focusedPill = nil
         rhymeSyllables = Database.syllables(of: newEntry.rhymes)
         entry = newEntry

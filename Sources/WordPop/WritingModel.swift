@@ -73,6 +73,43 @@ enum WritingModel {
         return nil
     }
 
+    /// Common phrases with `word` ("tough decision", "smile warmly"),
+    /// as in a collocations dictionary, most common first.
+    static func collocations(for word: String, partOfSpeech: String?) async -> [String] {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), isAvailable {
+            let session = LanguageModelSession(instructions: """
+                You list collocations for writers: the words that naturally go with a given word, as in a collocations \
+                dictionary. Prefer adjective and noun, verb and noun, or verb and adverb pairs; avoid prepositions.
+                """)
+            let prompt = "Word: \(word)" + (partOfSpeech.map { " (\($0))" } ?? "")
+            guard let response = try? await session.respond(to: prompt, generating: Collocations.self) else { return [] }
+            // The model sometimes splits a compound ("rain fall"): drop a
+            // phrase whose words, joined, are a word of their own.
+            let phrases = usefulCollocations(response.content.phrases, word: word)
+            let compounds = Database.ranks(of: phrases.map { $0.replacingOccurrences(of: " ", with: "") })
+            return phrases.filter { compounds[$0.replacingOccurrences(of: " ", with: "")] == nil }
+        }
+        #endif
+        return []
+    }
+
+    private static let functionWords: Set<String> = [
+        "a", "an", "the", "of", "for", "to", "in", "on", "at", "by", "from", "with", "about", "against", "into", "over",
+        "that", "this", "these", "those", "it", "its", "and", "or", "as", "is", "be",
+    ]
+
+    /// Keeps phrases that contain `word` as a word of its own and at least
+    /// one partner that is not a function word: drops "rainstorm" and
+    /// "evidence of", keeps "light rain" and "tough decision".
+    static func usefulCollocations(_ phrases: [String], word: String) -> [String] {
+        unique(phrases.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }).filter { phrase in
+            let words = phrase.split(separator: " ").map(String.init)
+            guard words.count >= 2, words.count <= 4, words.contains(word.lowercased()) else { return false }
+            return words.contains { $0 != word.lowercased() && !functionWords.contains($0) }
+        }
+    }
+
     private static func unique(_ words: [String]) -> [String] {
         var seen = Set<String>()
         return words.filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
@@ -85,6 +122,13 @@ enum WritingModel {
 private struct Fits {
     @Guide(description: "Candidates that can replace the word in this sentence with the same meaning, best first. Leave out any that change the meaning.")
     var words: [String]
+}
+
+@available(macOS 26, *)
+@Generable
+private struct Collocations {
+    @Guide(description: "Short phrases of two or three words that native writers commonly use with the word, most common first. Each phrase contains the word.", .count(10))
+    var phrases: [String]
 }
 
 @available(macOS 26, *)
