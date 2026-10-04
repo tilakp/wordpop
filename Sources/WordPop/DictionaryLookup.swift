@@ -21,6 +21,9 @@ struct PartOfSpeechBlock {
     /// Flat fallback lists (WordNet + Moby) used when `senses` is empty.
     let synonyms: [String]
     let antonyms: [String]
+    /// Set when this part of speech is pronounced differently from the
+    /// others ("project": noun ˈpräˌjek(t), verb prəˈjek(t)).
+    var pronunciation: String? = nil
 }
 
 struct WordEntry {
@@ -84,7 +87,8 @@ enum DictionaryLookup {
         let word = parsed.title
         return assemble(
             word: word, syllables: parsed.syllables, pronunciation: parsed.pronunciation, forms: parsed.forms,
-            blocks: parsed.blocks, origin: parsed.origin, phrases: parsed.phrases, thesaurus: thesaurus
+            blocks: parsed.blocks, origin: parsed.origin, phrases: parsed.phrases, thesaurus: thesaurus,
+            blockPronunciations: parsed.blockPronunciations
         )
     }
 
@@ -121,9 +125,13 @@ enum DictionaryLookup {
     private static func assemble(
         word: String, syllables: String?, pronunciation: String?, forms: [String],
         blocks parsedBlocks: [(partOfSpeech: String?, items: [DefinitionItem])],
-        origin: String?, phrases: [Phrase], thesaurus: [ThesaurusBlock]
+        origin: String?, phrases: [Phrase], thesaurus: [ThesaurusBlock], blockPronunciations: [String: String] = [:]
     ) -> WordEntry {
-        var blocks = parsedBlocks.map { block(word, partOfSpeech: $0.partOfSpeech, items: $0.items, thesaurus: thesaurus) }
+        var blocks = parsedBlocks.map { parsed in
+            var block = block(word, partOfSpeech: parsed.partOfSpeech, items: parsed.items, thesaurus: thesaurus)
+            block.pronunciation = blockPronunciations[parsed.partOfSpeech ?? ""]
+            return block
+        }
         for extra in thesaurus where !blocks.contains(where: { $0.partOfSpeech == extra.partOfSpeech }) {
             blocks.append(block(word, partOfSpeech: extra.partOfSpeech, items: [], thesaurus: thesaurus))
         }

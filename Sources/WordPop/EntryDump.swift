@@ -11,6 +11,7 @@ enum EntryDump {
         for block in entry.blocks {
             lines.append("")
             lines.append("[\(block.partOfSpeech ?? "-")]")
+            if let pronunciation = block.pronunciation { lines.append("pronunciation: \(pronunciation)") }
             for item in block.items {
                 let marker = item.number.map { "\($0)." } ?? (item.isSubItem ? "  •" : "-")
                 lines.append("\(marker) \(item.text)")

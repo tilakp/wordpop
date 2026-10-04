@@ -164,7 +164,7 @@ struct PopupContentView: View {
                 .foregroundStyle(.secondary)
             }
 
-            if let pronunciation = viewModel.entry.pronunciation {
+            if let pronunciation = viewModel.block?.pronunciation ?? viewModel.entry.pronunciation {
                 HStack(spacing: 6) {
                     Text(pronunciation)
                         .font(.pronunciation)

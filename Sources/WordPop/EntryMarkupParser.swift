@@ -22,6 +22,9 @@ enum EntryMarkupParser {
         let blocks: [(partOfSpeech: String?, items: [DefinitionItem])]
         let origin: String?
         let phrases: [Phrase]
+        /// Pronunciations given per part of speech, for words whose stress
+        /// moves ("project" the noun and the verb). Keyed by part of speech.
+        var blockPronunciations: [String: String] = [:]
     }
 
     /// Homographs ("lead" the verb and "lead" the metal) are separate
@@ -48,7 +51,8 @@ enum EntryMarkupParser {
             forms: first.forms,
             blocks: blocks,
             origin: first.origin,
-            phrases: entries.flatMap(\.phrases)
+            phrases: entries.flatMap(\.phrases),
+            blockPronunciations: entries.reversed().reduce(into: [:]) { $0.merge($1.blockPronunciations) { _, new in new } }
         )
     }
 
@@ -59,6 +63,7 @@ enum EntryMarkupParser {
 
         var blocks: [(partOfSpeech: String?, items: [DefinitionItem])] = []
         var forms: [String] = []
+        var blockPronunciations: [String: String] = [:]
         for senseGroup in entry.descendants("se1") {
             let posGroup = senseGroup.first("posg")
             let rawPartOfSpeech = posGroup?.first("pos")?.fullText.lowercased()
@@ -67,6 +72,12 @@ enum EntryMarkupParser {
             if blocks.isEmpty, let posGroup { forms = inflections(in: posGroup) }
             let items = senses(in: senseGroup)
             guard !items.isEmpty else { continue }
+            // Some entries ("use" the verb) give it on the first sense instead.
+            let blockPronunciation = uniqued(headerPronunciations(in: senseGroup, skipping: ["infg", "se2", "msDict", "subEntryBlock"]))
+                .nilIfEmpty ?? Array(headerPronunciations(in: senseGroup, skipping: ["infg", "subEntryBlock"]).prefix(1))
+            if !blockPronunciation.isEmpty, blockPronunciations[partOfSpeech ?? ""] == nil {
+                blockPronunciations[partOfSpeech ?? ""] = blockPronunciation.joined(separator: ", ")
+            }
             if let index = blocks.firstIndex(where: { $0.partOfSpeech == partOfSpeech }) {
                 blocks[index].items += items
             } else {
@@ -81,8 +92,20 @@ enum EntryMarkupParser {
             forms: forms,
             blocks: blocks,
             origin: entry.first("etym").map(\.text).flatMap { $0.isEmpty ? nil : $0 },
-            phrases: phrases(in: entry)
+            phrases: phrases(in: entry),
+            blockPronunciations: blockPronunciations
         )
+    }
+
+    /// The pronunciations in a part-of-speech header, next to its label.
+    /// Inflection groups ("running"), senses and sub-entries are skipped:
+    /// their pronunciations belong to other forms.
+    private static func headerPronunciations(in node: MarkupNode, skipping skipped: [String]) -> [String] {
+        node.children.flatMap { child -> [String] in
+            if child.has("ph") { return child.text.isEmpty ? [] : [child.text] }
+            if skipped.contains(where: child.has) { return [] }
+            return headerPronunciations(in: child, skipping: skipped)
+        }
     }
 
     /// "(runs)", "(, running | ˈrəniNG |)", "(past; ran)", "(third
@@ -156,4 +179,8 @@ enum EntryMarkupParser {
         var seen = Set<String>()
         return values.filter { seen.insert($0).inserted }
     }
+}
+
+private extension Array {
+    var nilIfEmpty: Self? { isEmpty ? nil : self }
 }

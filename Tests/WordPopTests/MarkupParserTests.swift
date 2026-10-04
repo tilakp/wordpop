@@ -131,6 +131,17 @@ final class MarkupParserTests: XCTestCase {
         XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "far right (the far right) noun the extreme | x |"), "far right")
     }
 
+    func testStressShiftWordsGetAPronunciationPerPartOfSpeech() {
+        let project = parsed("project")
+        XCTAssertNil(project.pronunciation)
+        XCTAssertEqual(project.blockPronunciations["noun"], "ˈpräˌjek(t)")
+        XCTAssertEqual(project.blockPronunciations["verb"], "prəˈjek(t)")
+    }
+
+    func testInflectionPronunciationsAreNotTheBlockPronunciation() {
+        XCTAssertNil(parsed("child").blockPronunciations["noun"])
+    }
+
     func testInflectionPointerEntriesResolveToTheBaseForm() {
         XCTAssertEqual(DictionaryLookup.inflectionBase(in: "seen | sēn | verb past participle of see1 "), "see")
         XCTAssertEqual(DictionaryLookup.inflectionBase(in: "ate 1 | āt | verb [past] past of eat "), "eat")
