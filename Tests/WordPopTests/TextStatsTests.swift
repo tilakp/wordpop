@@ -24,6 +24,11 @@ final class TextStatsTests: XCTestCase {
         XCTAssertEqual(stats.repeated.first?.count, 4)
     }
 
+    func testFindsTheSentenceANoteRefersTo() {
+        let stats = TextStats.analyze(passage)
+        XCTAssertEqual(stats.sentence(containing: "was quickly approved"), "It was quickly approved.")
+    }
+
     func testPassageThreshold() {
         XCTAssertFalse(TextStats.isPassage("quiet"))
         XCTAssertFalse(TextStats.isPassage("ice cream"))

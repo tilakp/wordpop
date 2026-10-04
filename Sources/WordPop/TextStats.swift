@@ -17,6 +17,13 @@ struct TextStats: Equatable {
     let adverbs: [String]
     /// Content words used three times or more, most used first.
     let repeated: [(word: String, count: Int)]
+    /// The passage's sentences, for finding the one a note refers to.
+    var sentenceTexts: [String] = []
+
+    /// The sentence a passive phrase ("was written") occurs in.
+    func sentence(containing phrase: String) -> String? {
+        sentenceTexts.first { $0.lowercased().contains(phrase) }
+    }
 
     static let longSentenceWords = 25
     /// A selection of at least this many words is a passage, not a word
@@ -60,7 +67,8 @@ struct TextStats: Equatable {
             longSentences: longSentences,
             passives: passives(in: lowered),
             adverbs: adverbs(in: text),
-            repeated: repeatedWords(in: lowered)
+            repeated: repeatedWords(in: lowered),
+            sentenceTexts: sentenceTexts
         )
     }
 

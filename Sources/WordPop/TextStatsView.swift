@@ -4,7 +4,7 @@ import SwiftUI
 /// top, then the sentences and words worth a second look.
 struct TextStatsView: View {
     let stats: TextStats
-    let onClose: () -> Void
+    @ObservedObject var viewModel: PopupViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -13,7 +13,7 @@ struct TextStatsView: View {
                     .font(.headword)
                     .tracking(-0.3)
                 Spacer()
-                Button(action: onClose) { Image(systemName: "xmark.circle.fill") }
+                Button(action: viewModel.onClose) { Image(systemName: "xmark.circle.fill") }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
             }
@@ -35,15 +35,27 @@ struct TextStatsView: View {
             if !stats.longSentences.isEmpty {
                 section("Long sentences (over \(TextStats.longSentenceWords) words)", tint: .antonymTint) {
                     ForEach(Array(stats.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
-                        Text("\(sentence.words) words: \u{201C}\(sentence.text.prefix(90))\(sentence.text.count > 90 ? "\u{2026}" : "")\u{201D}")
-                            .font(.example)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(sentence.words) words: \u{201C}\(sentence.text.prefix(90))\(sentence.text.count > 90 ? "\u{2026}" : "")\u{201D}")
+                                .font(.example)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            rewriteControls(for: sentence.text, rewrite: .split, label: "Split it")
+                        }
                     }
                 }
             }
             if !stats.passives.isEmpty {
-                section("Possible passive voice", tint: .strongerTint) { wordList(stats.passives) }
+                section("Possible passive voice", tint: .strongerTint) {
+                    ForEach(stats.passives, id: \.self) { phrase in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(phrase).font(.pill)
+                            if let sentence = stats.sentence(containing: phrase) {
+                                rewriteControls(for: sentence, rewrite: .active, label: "Make it active")
+                            }
+                        }
+                    }
+                }
             }
             if !stats.adverbs.isEmpty {
                 section("Adverbs", tint: .rhymeTint) { wordList(stats.adverbs) }
@@ -95,6 +107,35 @@ struct TextStatsView: View {
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 12)
+        }
+    }
+
+    /// A link that asks for a rewrite of `sentence`, then the suggestion
+    /// with a button that puts it into the passage in place of the
+    /// original sentence.
+    @ViewBuilder
+    private func rewriteControls(for sentence: String, rewrite: WritingModel.Rewrite, label: String) -> some View {
+        if let suggestion = viewModel.rewrites[sentence] {
+            if suggestion.isEmpty {
+                Text("No rewrite came back.").font(.recentMeta).foregroundStyle(.tertiary)
+            } else {
+                Text(suggestion)
+                    .font(.definition)
+                    .fixedSize(horizontal: false, vertical: true)
+                if viewModel.canReplace {
+                    Button("Replace") { viewModel.onUseRewrite(sentence) }
+                        .font(.recentMeta)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+        } else if WritingModel.isAvailable {
+            Button(action: { viewModel.onRewrite(sentence, rewrite) }) {
+                Text(viewModel.rewriting.contains(sentence) ? "Rewriting\u{2026}" : label)
+                    .font(.recentMeta)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
         }
     }
 

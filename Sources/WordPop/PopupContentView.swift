@@ -66,7 +66,7 @@ struct PopupContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let stats = viewModel.textStats {
-                TextStatsView(stats: stats, onClose: viewModel.onClose)
+                TextStatsView(stats: stats, viewModel: viewModel)
             } else {
                 entryContent
             }

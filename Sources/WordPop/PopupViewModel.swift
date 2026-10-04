@@ -94,6 +94,12 @@ final class PopupViewModel: ObservableObject {
     /// Set when the selection was a passage: the popup shows its
     /// readability notes instead of a dictionary entry.
     @Published var textStats: TextStats?
+    /// Suggested rewrites of passage sentences, by original sentence, and
+    /// the sentences being rewritten.
+    @Published var rewrites: [String: String] = [:]
+    @Published var rewriting: Set<String> = []
+    var onRewrite: (String, WritingModel.Rewrite) -> Void = { _, _ in }
+    var onUseRewrite: (String) -> Void = { _ in }
     /// Phrases with the word from the on-device model ("tough decision");
     /// nil until asked for, as each request takes about a second.
     @Published var collocations: [String]?
@@ -351,6 +357,8 @@ final class PopupViewModel: ObservableObject {
         isLoadingExamples = false
         contextSense = nil
         textStats = nil
+        rewrites = [:]
+        rewriting = []
         collocations = nil
         isLoadingCollocations = false
         focusedPill = nil

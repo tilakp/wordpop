@@ -162,6 +162,29 @@ enum WritingModel {
         )
     }
 
+    /// What a passage-note rewrite should do to a sentence.
+    enum Rewrite {
+        case split, active
+
+        var instruction: String {
+            switch self {
+            case .split: "Split this long sentence into two or three shorter sentences."
+            case .active: "Rewrite this sentence in the active voice."
+            }
+        }
+    }
+
+    /// The sentence rewritten as asked, keeping its meaning and tone, or
+    /// nil when nothing new comes back.
+    static func rewrite(_ sentence: String, _ rewrite: Rewrite) async -> String? {
+        guard let answer = await ask(
+            "You are an editor. You change only what is asked, keep the writer's meaning, tone and wording where you can, and answer with the rewritten text only.",
+            "\(rewrite.instruction)\nSentence: \(sentence)"
+        ) else { return nil }
+        let text = answer.trimmingCharacters(in: CharacterSet(charactersIn: " \n\"\u{201C}\u{201D}"))
+        return text.isEmpty || text == sentence ? nil : text
+    }
+
     /// Which of `definitions` (0-based) matches how `word` is used in
     /// `sentence`: "She runs a small bakery" -> "be in charge of; manage".
     static func senseIndex(of word: String, in sentence: String, definitions: [String]) async -> Int? {

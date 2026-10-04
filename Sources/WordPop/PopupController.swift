@@ -46,10 +46,10 @@ final class PopupController: NSObject, NSWindowDelegate {
     }
 
     /// Shows readability notes for a selected passage.
-    func show(passage: String, near point: NSPoint) {
-        replaceTarget = nil
+    func show(passage: String, near point: NSPoint, replacing selection: TextCapture.Selection? = nil) {
+        replaceTarget = selection
         viewModel.reset(with: .empty)
-        viewModel.canReplace = false
+        viewModel.canReplace = selection != nil
         viewModel.textStats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) })
         wireViewModelActions()
 
@@ -256,6 +256,26 @@ final class PopupController: NSObject, NSWindowDelegate {
                 }
             }
         }
+        viewModel.onRewrite = { [weak self] sentence, rewrite in
+            guard let self, !self.viewModel.rewriting.contains(sentence) else { return }
+            self.viewModel.rewriting.insert(sentence)
+            Task { @MainActor in
+                let text = await WritingModel.rewrite(sentence, rewrite)
+                self.viewModel.rewriting.remove(sentence)
+                self.viewModel.rewrites[sentence] = text ?? ""
+            }
+        }
+        viewModel.onUseRewrite = { [weak self] sentence in
+            // The passage goes back with only that sentence changed.
+            guard let self, let target = self.replaceTarget, let rewrite = self.viewModel.rewrites[sentence], !rewrite.isEmpty,
+                  let range = target.text.range(of: sentence) else { return }
+            self.replaceTarget = nil
+            self.hide()
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                await TextReplacer.paste(target.text.replacingCharacters(in: range, with: rewrite), into: target.app)
+            }
+        }
         viewModel.onExplainPhrase = { [weak self] in
             guard let self, let phrase = self.viewModel.selectedPhrase, !self.viewModel.isExplainingPhrase else { return }
             let entry = self.viewModel.entry
@@ -366,6 +386,8 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$toneChoices.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$lineRhymes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$moreExamples.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$rewrites.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$rewriting.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$selectedPhrase.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseMatch.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseExplanation.map { _ in () }.eraseToAnyPublisher(),

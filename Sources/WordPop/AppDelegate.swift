@@ -78,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             guard let selection = await TextCapture.captureSelection() else { return }
             if TextStats.isPassage(selection.trimmed) {
-                popupController.show(passage: selection.trimmed, near: NSEvent.mouseLocation)
+                popupController.show(passage: selection.trimmed, near: NSEvent.mouseLocation, replacing: selection)
                 return
             }
             let entry = DictionaryLookup.lookup(selection.trimmed)

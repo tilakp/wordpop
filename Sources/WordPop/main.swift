@@ -55,6 +55,7 @@ if CommandLine.arguments.contains("--model-check") {
         print("examples:", await WritingModel.examples(of: "meticulous", partOfSpeech: "adjective",
                                                        definition: "showing great attention to detail; very careful and precise"))
         print("explain:", await WritingModel.explain(phrase: "touch base", in: "Let's touch base next week.") ?? "-")
+        print("rewrite:", await WritingModel.rewrite("The report was written by the committee.", .active) ?? "-")
         print("sensitive:", await WritingModel.senseIndex(of: "killed", in: "The frost killed the plants.",
                                                           definitions: ["cause the death of", "put an end to", "pass time"]) as Any)
         exit(0)
