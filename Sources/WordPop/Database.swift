@@ -94,6 +94,11 @@ enum Database {
         return counts
     }
 
+    /// Words matching a GLOB pattern ("con*", "b??t"), most common first.
+    static func words(matching glob: String, limit: Int) -> [String] {
+        query("SELECT word FROM words WHERE word GLOB ?1 ORDER BY rank LIMIT ?2", [glob, limit])
+    }
+
     static func warmUp() {
         _ = connection
     }

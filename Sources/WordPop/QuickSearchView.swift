@@ -18,12 +18,48 @@ final class QuickSearchModel: ObservableObject {
 
     func updateCorrections() {
         let word = query.trimmingCharacters(in: .whitespaces)
-        guard describedMeaning == nil, word.count >= 3, !word.contains(" "),
+        guard describedMeaning == nil, pattern == nil, word.count >= 3, !word.contains(" "),
               WordList.suggestions(for: word, limit: 1).isEmpty else {
             corrections = []
             return
         }
         corrections = Spelling.suggestions(for: word).map { ($0, DictionaryLookup.gloss(of: $0)) }
+    }
+
+    /// Words matching a pattern query, each with a one-line meaning.
+    @Published private(set) var patternMatches: [(word: String, gloss: String?)] = []
+
+    /// A query with * (any letters), ? or _ (one letter) is a pattern,
+    /// optionally narrowed by meaning: "con* : agree". A leading ? is the
+    /// describe mode instead.
+    var pattern: (glob: String, meaning: String?)? {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard describedMeaning == nil, trimmed.contains(where: { "*?_".contains($0) }) else { return nil }
+        let parts = trimmed.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        guard let glob = parts.first, !glob.isEmpty, !glob.contains(" "), glob.contains(where: \.isLetter) else { return nil }
+        let meaning = parts.count > 1 && !parts[1].isEmpty ? parts[1] : nil
+        return (glob.replacingOccurrences(of: "_", with: "?"), meaning)
+    }
+
+    func updatePatternMatches() {
+        guard let pattern else {
+            patternMatches = []
+            return
+        }
+        var matches = Database.words(matching: pattern.glob, limit: pattern.meaning == nil ? 8 : 5000)
+        if let meaning = pattern.meaning {
+            let related = Self.relatedWords(to: meaning)
+            matches = matches.filter(related.contains)
+        }
+        patternMatches = matches.prefix(8).map { ($0, DictionaryLookup.gloss(of: $0)) }
+    }
+
+    /// Synonyms of `word` from the system Thesaurus and the bundled
+    /// dataset, lowercased, for narrowing a pattern by meaning.
+    private static func relatedWords(to word: String) -> Set<String> {
+        let thesaurus = Thesaurus.blocks(for: word).flatMap(\.senses).flatMap(\.synonyms)
+        let bundled = Database.groups("synonyms", word: word).values.flatMap { $0 }
+        return Set((thesaurus + bundled).map { $0.lowercased() })
     }
 
     /// A query that starts with "?" describes a word instead of naming it.
@@ -40,6 +76,7 @@ final class QuickSearchModel: ObservableObject {
         isDescribing = false
         lastDescribed = nil
         corrections = []
+        patternMatches = []
     }
 
     @MainActor
@@ -81,6 +118,9 @@ struct QuickSearchView: View {
         if model.describedMeaning != nil {
             return model.described.map { Row(word: $0, date: nil) }
         }
+        if model.pattern != nil {
+            return model.patternMatches.map { Row(word: $0.word, date: nil, detail: $0.gloss) }
+        }
         let query = model.query.trimmingCharacters(in: .whitespaces)
         var rows = starred.matching(query).prefix(Self.maxRows).map { Row(word: $0, date: nil, isStarred: true) }
         var seen = Set(rows.map(\.id))
@@ -111,7 +151,7 @@ struct QuickSearchView: View {
                 rowList
                     .padding(.horizontal, 8)
                     .padding(.vertical, 8)
-            } else if let note = describeNote {
+            } else if let note = describeNote ?? patternNote {
                 Divider().padding(.horizontal, 18)
                 Text(note)
                     .font(.recentMeta)
@@ -134,11 +174,13 @@ struct QuickSearchView: View {
             model.described = []
             model.isDescribing = false
             model.updateCorrections()
+            model.updatePatternMatches()
         }
         // Any change to the rows can change the height, not only their
         // count: spelling corrections carry a second line.
         .onChange(of: rows.map(\.id)) { _, _ in onLayoutChange() }
         .onChange(of: describeNote) { _, _ in onLayoutChange() }
+        .onChange(of: patternNote) { _, _ in onLayoutChange() }
     }
 
     private var searchField: some View {
@@ -207,9 +249,18 @@ struct QuickSearchView: View {
         return "Press Return to find words for this meaning."
     }
 
+    private var patternNote: String? {
+        guard let pattern = model.pattern else { return nil }
+        return pattern.meaning.map { "No words match that pattern and mean \u{201C}\($0)\u{201D}." } ?? "No words match that pattern."
+    }
+
     private func submit() {
         if let selection = model.selection, rows.indices.contains(selection) {
             onSubmit(rows[selection].word)
+            return
+        }
+        if model.pattern != nil {
+            if let first = rows.first { onSubmit(first.word) }
             return
         }
         if model.describedMeaning != nil {
