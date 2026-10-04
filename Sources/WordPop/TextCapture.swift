@@ -121,16 +121,24 @@ enum TextCapture {
     }
 
     /// Posts Command plus the given key: 0x08 is C, 0x09 is V.
+    ///
+    /// The key is wrapped in its own Command down and up, posted from a
+    /// private event source. Posting only the flagged key from the HID
+    /// system source left Command held in the system's modifier state, so
+    /// the user's next keystrokes arrived as Command shortcuts and the
+    /// lookup shortcut stopped matching.
     static func simulateKey(_ keyCode: CGKeyCode) {
-        let source = CGEventSource(stateID: .hidSystemState)
-
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
-        keyDown?.flags = .maskCommand
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
-        keyUp?.flags = .maskCommand
-
-        keyDown?.post(tap: .cghidEventTap)
-        keyUp?.post(tap: .cghidEventTap)
+        let source = CGEventSource(stateID: .privateState)
+        let command: CGKeyCode = 0x37
+        let events: [(CGKeyCode, Bool, CGEventFlags)] = [
+            (command, true, .maskCommand), (keyCode, true, .maskCommand),
+            (keyCode, false, .maskCommand), (command, false, []),
+        ]
+        for (key, isDown, flags) in events {
+            let event = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: isDown)
+            event?.flags = flags
+            event?.post(tap: .cghidEventTap)
+        }
     }
 
     private static func waitForPasteboardChange(from priorChangeCount: Int, timeout: TimeInterval) async -> Bool {
