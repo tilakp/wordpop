@@ -27,6 +27,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         if let contextBlock { viewModel.selectedBlock = contextBlock }
         rankSynonyms(of: entry, for: selection, in: contextBlock)
         findSense(of: entry, for: selection, in: contextBlock ?? 0)
+        rankRhymes(of: entry, for: selection)
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -126,6 +127,19 @@ final class PopupController: NSObject, NSWindowDelegate {
             guard let index = await WritingModel.senseIndex(of: selection.trimmed, in: sentence, definitions: senses.map(\.text)),
                   viewModel.entry.word == entry.word, let number = senses[index].number else { return }
             viewModel.contextSense = (blockIndex, number)
+        }
+    }
+
+    /// When the selected word ends its line (a songwriter rhyming it),
+    /// asks the on-device model which rhymes suit the line's meaning.
+    private func rankRhymes(of entry: WordEntry, for selection: TextCapture.Selection?) {
+        guard let selection, selection.endsLine, let line = selection.line, WritingModel.isAvailable else { return }
+        let candidates = Array((entry.rhymes + entry.nearRhymes).prefix(30))
+        guard candidates.count > 1 else { return }
+        Task { @MainActor in
+            let rhymes = await WritingModel.rhymes(for: line, endingIn: selection.trimmed, candidates: candidates)
+            guard viewModel.entry.word == entry.word else { return }
+            viewModel.lineRhymes = Array(rhymes.prefix(8))
         }
     }
 
@@ -299,6 +313,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$bestFits.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$comparison.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$toneChoices.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$lineRhymes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$loadingTone.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$contextSense.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$collocations.map { _ in () }.eraseToAnyPublisher(),

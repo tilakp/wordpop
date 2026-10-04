@@ -16,3 +16,14 @@ final class PartOfSpeechInContextTests: XCTestCase {
         XCTAssertEqual(TextCapture.partOfSpeech(of: "quiet", in: "The room fell quiet after the verdict."), "adjective")
     }
 }
+
+final class LineContextTests: XCTestCase {
+    func testFindsTheLineAndWhetherTheSelectionEndsIt() {
+        let poem = "I walked alone beneath the fading light\nAnd wondered where the day had gone"
+        let range = (poem as NSString).range(of: "light")
+        XCTAssertEqual(TextCapture.line(in: poem, containing: range), "I walked alone beneath the fading light")
+        let selection = TextCapture.Selection(text: "light", app: nil, line: "I walked alone beneath the fading light,")
+        XCTAssertTrue(selection.endsLine)
+        XCTAssertFalse(TextCapture.Selection(text: "fading", app: nil, line: "I walked alone beneath the fading light").endsLine)
+    }
+}

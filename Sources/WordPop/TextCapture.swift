@@ -24,6 +24,18 @@ enum TextCapture {
         /// The sentence the selection sits in, when the app exposes the
         /// surrounding text through Accessibility.
         var sentence: String? = nil
+        /// The line (up to the line breaks) the selection sits in, for
+        /// poems and lyrics, whose lines often have no punctuation.
+        var line: String? = nil
+
+        /// Whether the selection is the last word of its line, the word a
+        /// songwriter rhymes.
+        var endsLine: Bool {
+            guard let line else { return false }
+            let words = line.split(whereSeparator: \.isWhitespace)
+                .map { $0.trimmingCharacters(in: .punctuationCharacters) }.filter { !$0.isEmpty }
+            return words.last?.caseInsensitiveCompare(trimmed.trimmingCharacters(in: .punctuationCharacters)) == .orderedSame
+        }
 
         var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
     }
@@ -31,7 +43,8 @@ enum TextCapture {
     static func captureSelection() async -> Selection? {
         let app = NSWorkspace.shared.frontmostApplication
         if let (selected, element) = accessibilitySelection(), !selected.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return Selection(text: selected, app: app, sentence: sentence(around: element))
+            let context = context(around: element)
+            return Selection(text: selected, app: app, sentence: context?.sentence, line: context?.line)
         }
         guard let copied = await clipboardSelectedText() else { return nil }
         // Code editors (VS Code, JetBrains) copy the whole current line,
@@ -55,8 +68,8 @@ enum TextCapture {
     }
 
     /// Reads up to 300 characters on each side of the selection and keeps
-    /// the sentence that contains it.
-    private static func sentence(around element: AXUIElement) -> String? {
+    /// the sentence and the line that contain it.
+    private static func context(around element: AXUIElement) -> (sentence: String?, line: String?)? {
         var rangeValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeValue) == .success,
               let rangeValue, CFGetTypeID(rangeValue) == AXValueGetTypeID() else { return nil }
@@ -72,7 +85,17 @@ enum TextCapture {
         guard AXUIElementCopyParameterizedAttributeValue(
             element, kAXStringForRangeParameterizedAttribute as CFString, parameter, &text
         ) == .success, let text = text as? String else { return nil }
-        return sentence(in: text, containing: NSRange(location: selected.location - start, length: selected.length))
+        let range = NSRange(location: selected.location - start, length: selected.length)
+        return (sentence(in: text, containing: range), line(in: text, containing: range))
+    }
+
+    /// The line of `text` (between line breaks) that contains `range`.
+    static func line(in text: String, containing range: NSRange) -> String? {
+        let ns = text as NSString
+        guard range.location <= ns.length else { return nil }
+        let lineRange = ns.lineRange(for: NSRange(location: range.location, length: 0))
+        let line = ns.substring(with: lineRange).trimmingCharacters(in: .whitespacesAndNewlines)
+        return line.isEmpty ? nil : line
     }
 
     /// The part of speech `word` has in `sentence`, as the dictionary

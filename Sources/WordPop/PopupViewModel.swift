@@ -65,6 +65,8 @@ final class PopupViewModel: ObservableObject {
     /// being worked out, if any.
     @Published var toneChoices: (tone: Tone, words: [String])?
     @Published var loadingTone: Tone?
+    /// Rhymes the on-device model picked for the line the word ends.
+    @Published var lineRhymes: [String] = []
     /// The numbered sense the on-device model judged to match the
     /// sentence the word was selected in, for the block it belongs to.
     @Published var contextSense: (block: Int, number: Int)?
@@ -197,6 +199,9 @@ final class PopupViewModel: ObservableObject {
             let caption = entry.confusionSense.map { "\(entry.word): \($0)" }
             sections.append(PillSection(id: "confused", title: "Often confused with", tint: .confusedTint, rows: [row(caption, entry.confusedWith)]))
         }
+        if !lineRhymes.isEmpty {
+            sections.append(PillSection(id: "lineRhymes", title: "Rhymes for your line", tint: .rhymeTint, rows: [row(nil, lineRhymes)]))
+        }
         var rhymeRows: [PillRow] = []
         // Grouped by syllables for meter: "1 syllable: diet, riot ...".
         let groups = Dictionary(grouping: entry.rhymes) { rhymeSyllables[$0.lowercased()] ?? 0 }
@@ -313,6 +318,7 @@ final class PopupViewModel: ObservableObject {
         comparison = nil
         toneChoices = nil
         loadingTone = nil
+        lineRhymes = []
         contextSense = nil
         textStats = nil
         collocations = nil

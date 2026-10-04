@@ -149,6 +149,21 @@ enum WritingModel {
         return []
     }
 
+    /// The rhymes that would make a strong, natural ending for the next
+    /// line of a poem or song, given the meaning and mood of `line`.
+    static func rhymes(for line: String, endingIn word: String, candidates: [String]) async -> [String] {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), isAvailable, candidates.count > 1 {
+            let session = LanguageModelSession(instructions: "You help a songwriter or poet choose a rhyme for the next line.")
+            let prompt = "Line: \(line)\nIt ends in: \(word)\nRhymes: \(candidates.joined(separator: ", "))"
+            guard let response = try? await session.respond(to: prompt, generating: LineRhymes.self) else { return [] }
+            let allowed = Dictionary(candidates.map { ($0.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
+            return unique(response.content.words.compactMap { allowed[$0.lowercased()] })
+        }
+        #endif
+        return []
+    }
+
     private static func unique(_ words: [String]) -> [String] {
         var seen = Set<String>()
         return words.filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
@@ -160,6 +175,13 @@ enum WritingModel {
 @Generable
 private struct Fits {
     @Guide(description: "Candidates that can replace the word in this sentence with the same meaning, best first. Leave out any that change the meaning.")
+    var words: [String]
+}
+
+@available(macOS 26, *)
+@Generable
+private struct LineRhymes {
+    @Guide(description: "Rhyming words from the list that would make a strong, natural ending for the next line, given the meaning and mood of this line. Best first. Leave out words that would sound forced.")
     var words: [String]
 }
 
