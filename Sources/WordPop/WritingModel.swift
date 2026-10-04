@@ -126,6 +126,29 @@ enum WritingModel {
         return nil
     }
 
+    /// Up to three of `candidates` that give the word the requested tone in
+    /// the sentence ("more vivid" for "walked": strode, marched). Words
+    /// outside the list are kept only if they are in the word list.
+    static func toneChoices(for word: String, in sentence: String?, tone: String, candidates: [String]) async -> [String] {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), isAvailable, !candidates.isEmpty {
+            let session = LanguageModelSession(instructions: """
+                You help a writer change the tone of one word. Prefer words from the candidate list; add another word \
+                only when none fits. Keep the meaning of the sentence.
+                """)
+            let prompt = (sentence.map { "Sentence: \($0)\n" } ?? "")
+                + "Word: \(word)\nTone: \(tone)\nCandidates: \(candidates.joined(separator: ", "))"
+            guard let response = try? await session.respond(to: prompt, generating: ToneChoices.self) else { return [] }
+            let allowed = Dictionary(candidates.map { ($0.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
+            let proposed = response.content.words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            let known = Database.ranks(of: proposed.filter { allowed[$0.lowercased()] == nil })
+            return unique(proposed.compactMap { allowed[$0.lowercased()] ?? (known[$0.lowercased()] != nil ? $0.lowercased() : nil) })
+                .filter { $0.lowercased() != word.lowercased() }
+        }
+        #endif
+        return []
+    }
+
     private static func unique(_ words: [String]) -> [String] {
         var seen = Set<String>()
         return words.filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
@@ -137,6 +160,13 @@ enum WritingModel {
 @Generable
 private struct Fits {
     @Guide(description: "Candidates that can replace the word in this sentence with the same meaning, best first. Leave out any that change the meaning.")
+    var words: [String]
+}
+
+@available(macOS 26, *)
+@Generable
+private struct ToneChoices {
+    @Guide(description: "Single words or short fixed phrases that can replace the word in the sentence with the requested tone, best first.", .count(3))
     var words: [String]
 }
 

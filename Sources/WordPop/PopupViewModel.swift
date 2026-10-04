@@ -9,6 +9,24 @@ struct PillRow: Identifiable {
     let firstPillIndex: Int
 }
 
+/// A tone a writer can shift a word toward.
+enum Tone: String, CaseIterable, Identifiable {
+    case formal, casual, vivid, simpler
+
+    var id: String { rawValue }
+    var button: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .formal: "More formal"
+        case .casual: "More casual"
+        case .vivid: "More vivid"
+        case .simpler: "Simpler"
+        }
+    }
+    /// How the request is put to the model.
+    var instruction: String { self == .simpler ? "simpler" : "more \(rawValue)" }
+}
+
 /// Two words side by side: their definitions at once, and the on-device
 /// model's one-sentence difference when it answers.
 struct Comparison: Equatable {
@@ -43,6 +61,10 @@ final class PopupViewModel: ObservableObject {
     /// opened for (not when it came from Quick Search).
     @Published var canReplace = false
     @Published var comparison: Comparison?
+    /// Words that shift the selected word toward a tone, and the tone
+    /// being worked out, if any.
+    @Published var toneChoices: (tone: Tone, words: [String])?
+    @Published var loadingTone: Tone?
     /// The numbered sense the on-device model judged to match the
     /// sentence the word was selected in, for the block it belongs to.
     @Published var contextSense: (block: Int, number: Int)?
@@ -78,6 +100,7 @@ final class PopupViewModel: ObservableObject {
     var onGoBack: () -> Void = {}
     var onReplace: (String) -> Void = { _ in }
     var onCompare: (String) -> Void = { _ in }
+    var onTone: (Tone) -> Void = { _ in }
     var onLoadCollocations: () -> Void = {}
 
     init() {
@@ -127,6 +150,9 @@ final class PopupViewModel: ObservableObject {
 
         if !entry.suggestions.isEmpty {
             sections.append(PillSection(id: "spelling", title: "Did you mean", tint: .spellingTint, rows: [row(nil, entry.suggestions)]))
+        }
+        if let toneChoices, !toneChoices.words.isEmpty {
+            sections.append(PillSection(id: "tone", title: toneChoices.tone.title, tint: .toneTint, rows: [row(nil, toneChoices.words)]))
         }
         if !bestFits.isEmpty {
             sections.append(PillSection(id: "fits", title: "Fits your sentence", tint: .fitTint, rows: [row(nil, bestFits)]))
@@ -238,6 +264,15 @@ final class PopupViewModel: ObservableObject {
         onSelectWord(pills[focusedPill])
     }
 
+    /// The synonyms a tone shift chooses from: the selected block's,
+    /// everyday ones first.
+    var toneCandidates: [String] {
+        guard let block else { return [] }
+        var words: [String] = []
+        for word in block.senses.flatMap(\.synonyms) + block.synonyms where !words.contains(word) { words.append(word) }
+        return Array(words.prefix(40))
+    }
+
     func compareWithFocusedPill() {
         guard let focusedPill, pills.indices.contains(focusedPill) else { return }
         onCompare(pills[focusedPill])
@@ -276,6 +311,8 @@ final class PopupViewModel: ObservableObject {
         showUsage = false
         bestFits = []
         comparison = nil
+        toneChoices = nil
+        loadingTone = nil
         contextSense = nil
         textStats = nil
         collocations = nil

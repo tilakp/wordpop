@@ -141,6 +141,13 @@ struct PopupContentView: View {
                     .padding(.vertical, 14)
             }
 
+            if !viewModel.toneCandidates.isEmpty {
+                Divider().padding(.horizontal, 22)
+                toneButtons
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+            }
+
             if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable {
                 Divider().padding(.horizontal, 22)
                 Button(action: viewModel.onLoadCollocations) {
@@ -193,6 +200,27 @@ struct PopupContentView: View {
                 Text("Comparing\u{2026}")
                     .font(.recentMeta)
                     .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    /// Formal, Casual, Vivid and Simpler: each lists up to three synonyms
+    /// in that tone as a pill row. Simpler needs no model; the others
+    /// appear only with Apple Intelligence.
+    private var toneButtons: some View {
+        HStack(spacing: 10) {
+            Text("Tone")
+                .font(.sectionLabel)
+                .tracking(1.2)
+                .foregroundStyle(Color.toneTint)
+                .textCase(.uppercase)
+            ForEach(Tone.allCases.filter { $0 == .simpler || WritingModel.isAvailable }) { tone in
+                Button(action: { viewModel.onTone(tone) }) {
+                    Text(viewModel.loadingTone == tone ? "\(tone.button)\u{2026}" : tone.button)
+                        .font(.recentMeta)
+                        .foregroundStyle(viewModel.toneChoices?.tone == tone ? Color.toneTint : Color.secondary)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

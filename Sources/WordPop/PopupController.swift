@@ -181,6 +181,39 @@ final class PopupController: NSObject, NSWindowDelegate {
                 self.viewModel.comparison?.difference = difference
             }
         }
+        viewModel.onTone = { [weak self] tone in
+            guard let self else { return }
+            let entry = self.viewModel.entry
+            let candidates = self.viewModel.toneCandidates
+            let labels = self.viewModel.registerLabels
+            let isInformal = { (word: String) in labels[word.lowercased()].map { $0.contains("informal") || $0.contains("slang") } ?? false }
+            switch tone {
+            case .simpler:
+                // Plainer means more common: the synonyms that rank above
+                // the word in the frequency list, most common first.
+                let ranks = Database.ranks(of: candidates + [entry.word])
+                let ceiling = ranks[entry.word.lowercased()] ?? Int.max
+                let words = candidates.filter { (ranks[$0.lowercased()] ?? Int.max) < ceiling && !isInformal($0) }
+                    .sorted { ranks[$0.lowercased()]! < ranks[$1.lowercased()]! }
+                self.viewModel.toneChoices = (tone, Array(words.prefix(3)))
+            case .formal, .casual, .vivid:
+                self.viewModel.loadingTone = tone
+                // Casual starts from the thesaurus's informal words; formal
+                // never offers them.
+                let informal = candidates.filter(isInformal)
+                let pool = tone == .formal ? candidates.filter { !isInformal($0) } : candidates
+                Task { @MainActor in
+                    let chosen = await WritingModel.toneChoices(
+                        for: entry.word, in: self.replaceTarget?.sentence, tone: tone.instruction, candidates: pool
+                    )
+                    guard self.viewModel.entry.word == entry.word, self.viewModel.loadingTone == tone else { return }
+                    var words = tone == .casual ? Array(informal.prefix(2)) : []
+                    for word in chosen where !words.contains(word) { words.append(word) }
+                    self.viewModel.loadingTone = nil
+                    self.viewModel.toneChoices = (tone, Array(words.prefix(3)))
+                }
+            }
+        }
         viewModel.onLoadCollocations = { [weak self] in
             guard let self, !self.viewModel.isLoadingCollocations else { return }
             let entry = self.viewModel.entry
@@ -265,6 +298,8 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$showUsage.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$bestFits.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$comparison.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$toneChoices.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$loadingTone.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$contextSense.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$collocations.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isLoadingCollocations.map { _ in () }.eraseToAnyPublisher(),
