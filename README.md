@@ -54,7 +54,13 @@ WordPop lives in the menu bar and stays out of the Dock.
 
 ### Download
 
-There is no published release yet. Every push to `main` builds `WordPop.zip` as an artifact of the [Build workflow](https://github.com/tilakp/wordpop/actions/workflows/build.yml) (sign in to GitHub to download it), or build from source below. The build is not notarized, so on first launch right-click the app and choose **Open**.
+1. Download `WordPop.zip` from the [latest release](https://github.com/tilakp/wordpop/releases/latest), unzip it, and move `WordPop.app` to your Applications folder.
+2. Open WordPop. Because the app is not signed with an Apple Developer ID, macOS says it cannot verify it. Click **Done**, open **System Settings > Privacy & Security**, scroll down to **Security**, click **Open Anyway** next to the message about WordPop, and confirm.
+3. When WordPop asks, grant Accessibility permission in **System Settings > Privacy & Security > Accessibility**. WordPop needs it to read your selected text.
+
+**After an update**, macOS treats the new build as a different app, so the old Accessibility permission stops working even though it still shows as on. Select WordPop in the Accessibility list, remove it with the **−** button, then open WordPop and grant permission again.
+
+The Apple Intelligence features need macOS 26 or later with Apple Intelligence turned on. On earlier versions they do not show, and everything else works.
 
 ### Build from source
 
