@@ -5,6 +5,7 @@ struct PreferencesView: View {
     @State private var launchAtLogin = LoginItemManager.isEnabled
     @AppStorage(Settings.textSizeKey) private var textSize = TextSize.medium
     @AppStorage(Settings.popupPlacementKey) private var popupPlacement = PopupPlacement.center
+    @State private var hiddenSections = Settings.hiddenSections
     let onLookupShortcutChanged: (HotkeyShortcut) -> String?
     let onQuickSearchShortcutChanged: (HotkeyShortcut) -> String?
 
@@ -54,6 +55,27 @@ struct PreferencesView: View {
                 }
                 .pickerStyle(.radioGroup)
                 .labelsHidden()
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Popup Sections").font(.headline)
+                Text("Hide the parts of the popup you don\u{2019}t use. Hidden sections that use Apple Intelligence also skip their work.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 4) {
+                    ForEach(PopupSection.allCases) { section in
+                        Toggle(section.label, isOn: Binding(
+                            get: { !hiddenSections.contains(section.rawValue) },
+                            set: { shown in
+                                if shown { hiddenSections.remove(section.rawValue) } else { hiddenSections.insert(section.rawValue) }
+                                Settings.hiddenSections = hiddenSections
+                            }
+                        ))
+                    }
+                }
             }
 
             Divider()

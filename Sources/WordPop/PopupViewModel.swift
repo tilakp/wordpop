@@ -216,7 +216,7 @@ final class PopupViewModel: ObservableObject {
         if !rhymeRows.isEmpty {
             sections.append(PillSection(id: "rhymes", title: "Rhymes", tint: .rhymeTint, rows: rhymeRows))
         }
-        return sections
+        return sections.filter { section in PopupSection(pillSectionID: section.id).map(Settings.shows) ?? true }
     }
 
     var pills: [String] {

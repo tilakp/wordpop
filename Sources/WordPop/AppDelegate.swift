@@ -127,9 +127,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindowController?.show()
     }
 
-    /// `wordpop://lookup?word=serendipity` shows the popup for a word and
-    /// `wordpop://search` opens Quick Search, for Shortcuts, launchers and
-    /// scripts.
+    /// `wordpop://lookup?word=serendipity` shows the popup for a word,
+    /// `wordpop://search` opens Quick Search and `wordpop://preferences`
+    /// the Preferences window, for Shortcuts, launchers and scripts.
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls where url.scheme == "wordpop" {
             switch url.host {
@@ -140,6 +140,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if !word.isEmpty { showLookup(word) }
             case "search":
                 quickSearchController.show()
+            case "preferences":
+                showPreferences()
             default:
                 break
             }

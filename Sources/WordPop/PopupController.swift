@@ -25,9 +25,9 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.canReplace = selection != nil
         let contextBlock = contextBlockIndex(in: entry, for: selection)
         if let contextBlock { viewModel.selectedBlock = contextBlock }
-        rankSynonyms(of: entry, for: selection, in: contextBlock)
-        findSense(of: entry, for: selection, in: contextBlock ?? 0)
-        rankRhymes(of: entry, for: selection)
+        if Settings.shows(.fits) { rankSynonyms(of: entry, for: selection, in: contextBlock) }
+        if Settings.shows(.fits) { findSense(of: entry, for: selection, in: contextBlock ?? 0) }
+        if Settings.shows(.rhymes) { rankRhymes(of: entry, for: selection) }
         wireViewModelActions()
 
         let panel = ensurePanel()

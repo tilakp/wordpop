@@ -54,7 +54,9 @@ struct PopupContentView: View {
     private var items: [DefinitionItem] { viewModel.displayItems }
 
     private var hasScrollableContent: Bool {
-        !items.isEmpty || viewModel.entry.origin != nil || !viewModel.entry.phrases.isEmpty || !viewModel.entry.usageNotes.isEmpty
+        !items.isEmpty || (viewModel.entry.origin != nil && Settings.shows(.origin))
+            || (!viewModel.entry.phrases.isEmpty && Settings.shows(.phrases))
+            || (!viewModel.entry.usageNotes.isEmpty && Settings.shows(.usage))
     }
 
     private var isEmpty: Bool {
@@ -141,14 +143,14 @@ struct PopupContentView: View {
                     .padding(.vertical, 14)
             }
 
-            if !viewModel.toneCandidates.isEmpty {
+            if !viewModel.toneCandidates.isEmpty, Settings.shows(.tone) {
                 Divider().padding(.horizontal, 22)
                 toneButtons
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
             }
 
-            if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable {
+            if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable, Settings.shows(.collocations) {
                 Divider().padding(.horizontal, 22)
                 Button(action: viewModel.onLoadCollocations) {
                     Text(viewModel.isLoadingCollocations
@@ -256,13 +258,13 @@ struct PopupContentView: View {
                 }
                 .buttonStyle(.plain)
             }
-            if !viewModel.entry.usageNotes.isEmpty {
+            if !viewModel.entry.usageNotes.isEmpty, Settings.shows(.usage) {
                 usageDisclosure
             }
-            if !viewModel.entry.phrases.isEmpty {
+            if !viewModel.entry.phrases.isEmpty, Settings.shows(.phrases) {
                 phrasesDisclosure
             }
-            if let origin = viewModel.entry.origin {
+            if let origin = viewModel.entry.origin, Settings.shows(.origin) {
                 originDisclosure(origin)
             }
         }
