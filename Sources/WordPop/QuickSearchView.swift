@@ -10,6 +10,22 @@ final class QuickSearchModel: ObservableObject {
     /// from "not asked yet".
     @Published var lastDescribed: String?
 
+    /// Spelling corrections for the query, each with a one-line meaning so
+    /// the right word can be picked by sense. Set only when the query is
+    /// misspelled and no known word starts with it, so type-ahead still
+    /// wins while a word is half typed.
+    @Published private(set) var corrections: [(word: String, gloss: String?)] = []
+
+    func updateCorrections() {
+        let word = query.trimmingCharacters(in: .whitespaces)
+        guard describedMeaning == nil, word.count >= 3, !word.contains(" "),
+              WordList.suggestions(for: word, limit: 1).isEmpty else {
+            corrections = []
+            return
+        }
+        corrections = Spelling.suggestions(for: word).map { ($0, DictionaryLookup.gloss(of: $0)) }
+    }
+
     /// A query that starts with "?" describes a word instead of naming it.
     var describedMeaning: String? {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
@@ -23,6 +39,7 @@ final class QuickSearchModel: ObservableObject {
         described = []
         isDescribing = false
         lastDescribed = nil
+        corrections = []
     }
 
     @MainActor
@@ -46,6 +63,8 @@ struct QuickSearchView: View {
         let word: String
         let date: Date?
         var isStarred = false
+        /// A one-line meaning, shown under spelling corrections.
+        var detail: String? = nil
         var id: String { word.lowercased() }
     }
 
@@ -73,6 +92,10 @@ struct QuickSearchView: View {
         for word in WordList.suggestions(for: query, limit: Self.maxRows + seen.count) where !seen.contains(word) {
             guard rows.count < Self.maxRows else { break }
             rows.append(Row(word: word, date: nil))
+        }
+        for correction in model.corrections where !seen.contains(correction.word.lowercased()) {
+            guard rows.count < Self.maxRows else { break }
+            rows.append(Row(word: correction.word, date: nil, detail: correction.gloss ?? "spelling suggestion"))
         }
         return rows
     }
@@ -110,6 +133,7 @@ struct QuickSearchView: View {
             model.selection = nil
             model.described = []
             model.isDescribing = false
+            model.updateCorrections()
         }
         // Any change to the rows can change the height, not only their
         // count: spelling corrections carry a second line.
@@ -138,9 +162,17 @@ struct QuickSearchView: View {
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 Button(action: { onSubmit(row.word) }) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(row.word)
-                            .font(.recentWord)
-                            .foregroundStyle(.primary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(row.word)
+                                .font(.recentWord)
+                                .foregroundStyle(.primary)
+                            if let detail = row.detail {
+                                Text(detail)
+                                    .font(.recentMeta)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                        }
                         Spacer()
                         if row.isStarred {
                             Image(systemName: "star.fill")

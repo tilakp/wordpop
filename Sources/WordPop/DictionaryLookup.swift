@@ -49,6 +49,8 @@ struct WordEntry {
     /// and the short sense that tells this word apart.
     var confusedWith: [String] = []
     var confusionSense: String? = nil
+    /// Spelling suggestions, set when the word has no definition.
+    var suggestions: [String] = []
 
     static let empty = WordEntry(
         word: "", syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], nearRhymes: [],
@@ -63,6 +65,24 @@ struct WordEntry {
 /// since Dictionary Services has no public API for its separate Thesaurus.
 enum DictionaryLookup {
     static func lookup(_ rawText: String) -> WordEntry {
+        var entry = entry(forSelection: rawText)
+        // Without a definition, the word may be misspelled even when a
+        // dataset knows it (CMUdict lists "liason" for rhymes).
+        if entry.blocks.allSatisfy({ $0.items.isEmpty }) { entry.suggestions = Spelling.suggestions(for: entry.word) }
+        return entry
+    }
+
+    /// The part of speech and first definition, for showing a word's
+    /// meaning in one line ("verb · become aware of"). Parsed from the flat
+    /// text without touching the bundled database, so it is cheap enough
+    /// to run while the user types.
+    static func gloss(of word: String) -> String? {
+        guard let text = rawEntryText(for: word), let block = partOfSpeechBlocks(text).first,
+              let definition = block.items.first?.text else { return nil }
+        return [block.partOfSpeech, definition].compactMap { $0 }.joined(separator: " \u{B7} ")
+    }
+
+    private static func entry(forSelection rawText: String) -> WordEntry {
         let word = headword(in: rawText)
         let entryText = rawEntryText(for: word)
         // An exact record for the selection wins: the flat-text lookup can

@@ -42,6 +42,7 @@ enum EntryDump {
         if let origin = entry.origin { lines.append("\norigin: \(origin)") }
         if let source = entry.source { lines.append("\nsource: \(source)") }
         if !entry.found { lines.append("(not found)") }
+        if !entry.suggestions.isEmpty { lines.append("did you mean: \(entry.suggestions.joined(separator: ", "))") }
         return lines.joined(separator: "\n")
     }
 }

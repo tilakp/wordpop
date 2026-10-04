@@ -80,6 +80,9 @@ final class PopupViewModel: ObservableObject {
             return PillRow(id: rowID, example: example, words: capped, firstPillIndex: pillIndex)
         }
 
+        if !entry.suggestions.isEmpty {
+            sections.append(PillSection(id: "spelling", title: "Did you mean", tint: .spellingTint, rows: [row(nil, entry.suggestions)]))
+        }
         if !bestFits.isEmpty {
             sections.append(PillSection(id: "fits", title: "Fits your sentence", tint: .fitTint, rows: [row(nil, bestFits)]))
         }
