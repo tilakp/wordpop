@@ -12,7 +12,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 
 ## Features
 
-- **Lookup from any app.** Select text in a browser, editor, PDF, chat window, or anywhere else, then press `⌃⌥⌘D`. The popup appears next to your mouse.
+- **Lookup from any app.** Select text in a browser, editor, PDF, chat window, or anywhere else, then press `⌃⌥⌘D`. The popup appears in the centre of the screen, or next to the mouse pointer if you choose that in Preferences.
 - **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first.
 - **Lookup history and type-ahead.** Quick Search lists your recent lookups (kept for 30 days) under the field, then completes what you type from a 69,000-word list. Arrow keys and Return open a row. Clear history from the menu bar menu.
 - **Keyboard-first.** Inside the popup: `←`/`→`/`Tab` move through the synonym, antonym, and rhyme pills, `Return` follows one, `1`-`9` switch part of speech, `Space` speaks, `⌘[` goes back, `⌘C` copies the word, `⌘⇧C` copies the first definition, `Esc` closes.
@@ -28,14 +28,14 @@ WordPop lives in the menu bar and stays out of the Dock.
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Xcode Command Line Tools (for `swift build`)
+- Xcode, to build from source. On macOS 27 the Command Line Tools alone cannot build the SwiftUI views: if `swift build` reports that the plugin for `SwiftUIMacros` is not found, run `export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` first, or switch with `sudo xcode-select -s /Applications/Xcode.app`.
 - Accessibility permission (WordPop needs it to capture your selected text)
 
 ## Install
 
 ### Download
 
-Grab `WordPop.zip` from the [latest release](https://github.com/tilakp/wordpop/releases/latest), unzip it, and move `WordPop.app` to your Applications folder. The build is not notarized, so on first launch right-click the app and choose **Open**.
+There is no published release yet. Every push to `main` builds `WordPop.zip` as an artifact of the [Build workflow](https://github.com/tilakp/wordpop/actions/workflows/build.yml) (sign in to GitHub to download it), or build from source below. The build is not notarized, so on first launch right-click the app and choose **Open**.
 
 ### Build from source
 
