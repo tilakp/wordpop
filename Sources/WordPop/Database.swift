@@ -62,6 +62,18 @@ enum Database {
         return (sense, words)
     }
 
+    /// Frequency ranks (0 is the most common word) for the words that are
+    /// in the word list; phrases and rare inflections are not.
+    static func ranks(of words: [String]) -> [String: Int] {
+        guard !words.isEmpty else { return [:] }
+        let placeholders = words.indices.map { "?\($0 + 1)" }.joined(separator: ",")
+        var ranks: [String: Int] = [:]
+        for row in rows("SELECT word, rank FROM words WHERE word IN (\(placeholders))", words.map { $0.lowercased() }) {
+            ranks[row[0]] = Int(row[1])
+        }
+        return ranks
+    }
+
     static func warmUp() {
         _ = connection
     }

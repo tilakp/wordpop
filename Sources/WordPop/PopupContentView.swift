@@ -305,10 +305,11 @@ struct PopupContentView: View {
     }
 
     private func pill(_ word: String, tint: Color, focused: Bool) -> some View {
-        Button(action: { viewModel.onSelectWord(word) }) {
+        let isRare = viewModel.rareWords.contains(word.lowercased())
+        return Button(action: { viewModel.onSelectWord(word) }) {
             Text(word)
                 .font(.pill)
-                .foregroundStyle(.primary)
+                .foregroundStyle(isRare ? .secondary : .primary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(tint.opacity(focused ? 0.28 : 0.12))
@@ -316,6 +317,7 @@ struct PopupContentView: View {
                 .overlay(Capsule().strokeBorder(focused ? tint : tint.opacity(0.25), lineWidth: focused ? 1.5 : 1))
         }
         .buttonStyle(.plain)
+        .help(isRare ? "Less common word" : "")
     }
 
     private func disclosureLabel(_ title: String, expanded: Bool) -> some View {

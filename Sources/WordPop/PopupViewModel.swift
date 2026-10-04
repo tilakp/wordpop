@@ -25,12 +25,18 @@ final class PopupViewModel: ObservableObject {
     @Published var showOrigin: Bool = false
     @Published var showUsage: Bool = false
     @Published var focusedPill: Int?
+    /// Pill words that are rare in everyday English, shown dimmed so the
+    /// plainer choices stand out.
+    @Published private(set) var rareWords: Set<String> = []
 
     private var history: [WordEntry] = []
 
     private static let collapsedSenseCount = 3
     private static let pillsPerRow = 10
     private static let pillsPerSense = 8
+    /// Rank in the frequency-ordered word list from which a word counts as
+    /// rare: "meticulous" (16,000) is not, "punctilious" (41,000) is.
+    private static let rareRank = 25_000
 
     var onClose: () -> Void = {}
     var onTogglePin: () -> Void = {}
@@ -170,5 +176,9 @@ final class PopupViewModel: ObservableObject {
         showUsage = false
         focusedPill = nil
         entry = newEntry
+        let words = Array(Set(sections.flatMap { $0.rows.flatMap(\.words) } + entry.blocks.flatMap { block in
+            block.senses.flatMap(\.synonyms) + block.synonyms
+        }))
+        rareWords = Set(Database.ranks(of: words).filter { $0.value >= Self.rareRank }.keys)
     }
 }
