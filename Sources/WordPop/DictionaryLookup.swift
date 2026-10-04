@@ -65,9 +65,12 @@ enum DictionaryLookup {
         // selection ("went") resolves to its entry ("go").
         // An entry that only points at its base form ("seen": past
         // participle of see) is replaced by the base form's entry.
-        let hasExactRecord = SystemDictionaries.english.map { !SystemDictionaries.entryMarkups(of: word, in: $0).isEmpty } ?? false
+        // Letters and names are filed capitalized ("x" is under "X").
+        let exactMatch = [word, word.capitalized].first { candidate in
+            SystemDictionaries.english.map { !SystemDictionaries.entryMarkups(of: candidate, in: $0).isEmpty } ?? false
+        }
         let canonical = entryText.flatMap(inflectionBase(in:))
-            ?? (hasExactRecord ? word : entryText.map(canonicalHeadword(in:)) ?? word)
+            ?? exactMatch ?? entryText.map(canonicalHeadword(in:)) ?? word
         let thesaurus = Thesaurus.blocks(for: canonical)
 
         // Records are indexed by headword, which can differ from the
@@ -218,8 +221,13 @@ enum DictionaryLookup {
         let collapsed = rawText
             .split(whereSeparator: \.isWhitespace)
             .joined(separator: " ")
-        let trimmed = collapsed.trimmingCharacters(in: CharacterSet.letters.union(.decimalDigits).inverted)
-        guard !trimmed.isEmpty else { return trimmed }
+        // A trailing period stays for Dictionary Services to judge: it is
+        // part of "e.g." and "etc." but not of "running." at a sentence end.
+        let wordCharacters = CharacterSet.letters.union(.decimalDigits)
+        let trimmed = collapsed
+            .trimmingCharacters(in: wordCharacters.inverted)
+            .appending(collapsed.trimmingCharacters(in: wordCharacters.inverted.subtracting(CharacterSet(charactersIn: "."))).hasSuffix(".") ? "." : "")
+        guard trimmed != "." else { return "" }
 
         let cfText = trimmed as CFString
         let termRange = DCSGetTermRangeInString(nil, cfText, 0)

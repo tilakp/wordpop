@@ -28,6 +28,13 @@ final class ParserTests: XCTestCase {
         XCTAssertEqual(DictionaryLookup.headword(in: "  (meticulous)\n"), "meticulous")
     }
 
+    func testHeadwordKeepsAbbreviationPeriods() {
+        XCTAssertEqual(DictionaryLookup.headword(in: "e.g."), "e.g.")
+        XCTAssertEqual(DictionaryLookup.headword(in: "(etc.)"), "etc.")
+        XCTAssertEqual(DictionaryLookup.headword(in: "running."), "running")
+        XCTAssertEqual(DictionaryLookup.headword(in: "..."), "")
+    }
+
     func testHeadwordKeepsKnownPhrases() {
         XCTAssertEqual(DictionaryLookup.headword(in: "ice cream"), "ice cream")
     }
