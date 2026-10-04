@@ -10,10 +10,15 @@ final class PopupController: NSObject, NSWindowDelegate {
     private var panel: PopupPanel?
     private var hostingController: NSHostingController<PopupContentView>?
     private var blockSelection: AnyCancellable?
+    /// The selection the popup was opened for, which a chosen synonym can
+    /// replace; nil for Quick Search lookups.
+    private var replaceTarget: TextCapture.Selection?
 
-    func show(entry: WordEntry, near point: NSPoint) {
+    func show(entry: WordEntry, near point: NSPoint, replacing selection: TextCapture.Selection? = nil) {
         remember(entry)
+        replaceTarget = selection
         viewModel.reset(with: entry)
+        viewModel.canReplace = selection != nil
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -65,6 +70,17 @@ final class PopupController: NSObject, NSWindowDelegate {
                 self?.relayout(panel: panel)
             }
         }
+        viewModel.onReplace = { [weak self] word in
+            guard let self, let target = self.replaceTarget else { return }
+            self.replaceTarget = nil
+            self.hide()
+            Task { @MainActor in
+                // Let the panel give up key status so the paste lands in
+                // the app the selection came from.
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                await TextReplacer.paste(TextReplacer.replacement(in: target.text, with: word), into: target.app)
+            }
+        }
         viewModel.onGoBack = { [weak self] in
             self?.viewModel.goBack()
             if let panel = self?.panel {
@@ -74,8 +90,9 @@ final class PopupController: NSObject, NSWindowDelegate {
     }
 
     /// Keyboard map: Space speaks, ←/→/Tab move through the pills, Return
-    /// follows the focused pill, 1-9 switch part of speech, ⌘[ goes back,
-    /// ⌘C copies the word and ⌘⇧C the first definition.
+    /// follows the focused pill and ⌥Return puts it in place of the
+    /// selection, 1-9 switch part of speech, ⌘[ goes back, ⌘C copies the
+    /// word and ⌘⇧C the first definition.
     private func handleKey(_ event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags.contains(.command) {
@@ -92,7 +109,8 @@ final class PopupController: NSObject, NSWindowDelegate {
         case 124: viewModel.moveFocus(by: 1) // →
         case 123: viewModel.moveFocus(by: -1) // ←
         case 48: viewModel.moveFocus(by: flags.contains(.shift) ? -1 : 1) // Tab
-        case 36, 76: viewModel.followFocusedPill() // Return, Enter
+        case 36, 76: // Return, Enter; with ⌥, replace the selection
+            if flags.contains(.option) { viewModel.replaceWithFocusedPill() } else { viewModel.followFocusedPill() }
         default:
             guard let digit = event.charactersIgnoringModifiers.flatMap(Int.init), (1...9).contains(digit) else { return false }
             viewModel.selectBlock(digit - 1)

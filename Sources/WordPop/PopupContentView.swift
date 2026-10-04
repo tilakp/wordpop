@@ -306,7 +306,13 @@ struct PopupContentView: View {
 
     private func pill(_ word: String, tint: Color, focused: Bool) -> some View {
         let isRare = viewModel.rareWords.contains(word.lowercased())
-        return Button(action: { viewModel.onSelectWord(word) }) {
+        return Button(action: {
+            if viewModel.canReplace, NSEvent.modifierFlags.contains(.option) {
+                viewModel.onReplace(word)
+            } else {
+                viewModel.onSelectWord(word)
+            }
+        }) {
             Text(word)
                 .font(.pill)
                 .foregroundStyle(isRare ? .secondary : .primary)
@@ -317,7 +323,8 @@ struct PopupContentView: View {
                 .overlay(Capsule().strokeBorder(focused ? tint : tint.opacity(0.25), lineWidth: focused ? 1.5 : 1))
         }
         .buttonStyle(.plain)
-        .help(isRare ? "Less common word" : "")
+        .help([isRare ? "Less common word." : nil, viewModel.canReplace ? "\u{2325}-click to replace your selection." : nil]
+            .compactMap { $0 }.joined(separator: " "))
     }
 
     private func disclosureLabel(_ title: String, expanded: Bool) -> some View {

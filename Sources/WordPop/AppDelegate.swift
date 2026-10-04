@@ -60,10 +60,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // by popupController.show) must only ever be touched from the main
         // thread — without this, that call can crash.
         Task { @MainActor in
-            guard let word = await TextCapture.captureSelectedText(), !word.isEmpty else { return }
-            let entry = DictionaryLookup.lookup(word)
+            guard let selection = await TextCapture.captureSelection() else { return }
+            let entry = DictionaryLookup.lookup(selection.trimmed)
             let location = NSEvent.mouseLocation
-            popupController.show(entry: entry, near: location)
+            popupController.show(entry: entry, near: location, replacing: selection)
         }
     }
 

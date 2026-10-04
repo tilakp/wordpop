@@ -25,6 +25,9 @@ final class PopupViewModel: ObservableObject {
     @Published var showOrigin: Bool = false
     @Published var showUsage: Bool = false
     @Published var focusedPill: Int?
+    /// Whether a chosen word can replace the selection the popup was
+    /// opened for (not when it came from Quick Search).
+    @Published var canReplace = false
     /// Pill words that are rare in everyday English, shown dimmed so the
     /// plainer choices stand out.
     @Published private(set) var rareWords: Set<String> = []
@@ -43,6 +46,7 @@ final class PopupViewModel: ObservableObject {
     var onSpeak: () -> Void = {}
     var onSelectWord: (String) -> Void = { _ in }
     var onGoBack: () -> Void = {}
+    var onReplace: (String) -> Void = { _ in }
 
     init() {
         entry = .empty
@@ -152,6 +156,11 @@ final class PopupViewModel: ObservableObject {
     func followFocusedPill() {
         guard let focusedPill, pills.indices.contains(focusedPill) else { return }
         onSelectWord(pills[focusedPill])
+    }
+
+    func replaceWithFocusedPill() {
+        guard canReplace, let focusedPill, pills.indices.contains(focusedPill) else { return }
+        onReplace(pills[focusedPill])
     }
 
     func copyWord() {

@@ -15,16 +15,26 @@ import AppKit
 /// overwrite the user's clipboard with stale content. The brief extra wait
 /// below narrows that window but can't eliminate it.
 enum TextCapture {
-    static func captureSelectedText() async -> String? {
-        if let selected = accessibilitySelectedText(), !selected.isEmpty {
-            return selected
+    /// The selection as the app holds it (untrimmed, so a replacement can
+    /// keep its spacing) and the app it came from.
+    struct Selection {
+        let text: String
+        let app: NSRunningApplication?
+
+        var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
+
+    static func captureSelection() async -> Selection? {
+        let app = NSWorkspace.shared.frontmostApplication
+        if let selected = accessibilitySelectedText(), !selected.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return Selection(text: selected, app: app)
         }
         guard let copied = await clipboardSelectedText() else { return nil }
         // Code editors (VS Code, JetBrains) copy the whole current line,
         // with its line break, when nothing is selected. A selected word
         // never ends in a line break, so such a copy is not a lookup.
-        if copied.hasSuffix("\n") { return nil }
-        return copied.trimmingCharacters(in: .whitespacesAndNewlines)
+        if copied.hasSuffix("\n") || copied.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
+        return Selection(text: copied, app: app)
     }
 
     private static func accessibilitySelectedText() -> String? {
@@ -37,19 +47,15 @@ enum TextCapture {
         guard AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value) == .success else {
             return nil
         }
-        return (value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value as? String
     }
 
     private static func clipboardSelectedText() async -> String? {
         let pasteboard = NSPasteboard.general
-        // Every item and every type is saved, so an image, a file or rich
-        // text on the clipboard comes back intact, not only plain text.
-        let savedItems = pasteboard.pasteboardItems?.map { item in
-            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-        } ?? []
+        let saved = Clipboard.snapshot()
         let priorChangeCount = pasteboard.changeCount
 
-        simulateCommandC()
+        simulateKey(0x08) // 'C'
 
         guard await waitForPasteboardChange(from: priorChangeCount, timeout: 0.3) else { return nil }
         let result = pasteboard.string(forType: .string)
@@ -59,24 +65,19 @@ enum TextCapture {
         // restoring, so we don't clobber it (see doc comment above).
         try? await Task.sleep(nanoseconds: 60_000_000)
         if pasteboard.changeCount == changeCountAfterRead {
-            pasteboard.clearContents()
-            pasteboard.writeObjects(savedItems.map { types in
-                let item = NSPasteboardItem()
-                for (type, data) in types { item.setData(data, forType: type) }
-                return item
-            })
+            Clipboard.restore(saved)
         }
 
         return result
     }
 
-    private static func simulateCommandC() {
+    /// Posts Command plus the given key: 0x08 is C, 0x09 is V.
+    static func simulateKey(_ keyCode: CGKeyCode) {
         let source = CGEventSource(stateID: .hidSystemState)
-        let cKeyCode: CGKeyCode = 0x08 // 'C'
 
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: cKeyCode, keyDown: true)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
         keyDown?.flags = .maskCommand
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: cKeyCode, keyDown: false)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
         keyUp?.flags = .maskCommand
 
         keyDown?.post(tap: .cghidEventTap)
@@ -93,5 +94,26 @@ enum TextCapture {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
         return false
+    }
+}
+
+/// Saves and restores every item and type on the general pasteboard, so an
+/// image, a file or rich text comes back intact, not only plain text.
+enum Clipboard {
+    typealias Snapshot = [[(NSPasteboard.PasteboardType, Data)]]
+
+    static func snapshot() -> Snapshot {
+        NSPasteboard.general.pasteboardItems?.map { item in
+            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+        } ?? []
+    }
+
+    static func restore(_ snapshot: Snapshot) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects(snapshot.map { types in
+            let item = NSPasteboardItem()
+            for (type, data) in types { item.setData(data, forType: type) }
+            return item
+        })
     }
 }
