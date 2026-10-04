@@ -130,4 +130,12 @@ final class MarkupParserTests: XCTestCase {
         XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "upset up·setverb (upsets, upsetting) [with object] | ˌəpˈset |"), "upset")
         XCTAssertEqual(DictionaryLookup.canonicalHeadword(in: "far right (the far right) noun the extreme | x |"), "far right")
     }
+
+    func testInflectionPointerEntriesResolveToTheBaseForm() {
+        XCTAssertEqual(DictionaryLookup.inflectionBase(in: "seen | sēn | verb past participle of see1 "), "see")
+        XCTAssertEqual(DictionaryLookup.inflectionBase(in: "ate 1 | āt | verb [past] past of eat "), "eat")
+        XCTAssertEqual(DictionaryLookup.inflectionBase(in: "are 1 | är, ər | verb second person singular present and first, second, third person plural present of be "), "be")
+        XCTAssertNil(DictionaryLookup.inflectionBase(in: "better bet·ter | ˈbedər | adjective (comparative of good) 1 of a more excellent or effective type or quality"))
+        XCTAssertNil(DictionaryLookup.inflectionBase(in: "saw 1 | sô | noun a hand tool for cutting wood"))
+    }
 }

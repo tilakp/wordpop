@@ -56,15 +56,23 @@ enum DictionaryLookup {
     static func lookup(_ rawText: String) -> WordEntry {
         let word = headword(in: rawText)
         let entryText = rawEntryText(for: word)
-        // The flat text always starts with the canonical headword, so an
-        // inflected selection ("running") resolves to its entry ("run")
-        // before the structured record is fetched by exact match.
-        let canonical = entryText.map(canonicalHeadword(in:)) ?? word
+        // An exact record for the selection wins: the flat-text lookup can
+        // pick a neighbouring entry ("must" -> "must-"). Otherwise the flat
+        // text starts with the canonical headword, so an inflected
+        // selection ("went") resolves to its entry ("go").
+        // An entry that only points at its base form ("seen": past
+        // participle of see) is replaced by the base form's entry.
+        let hasExactRecord = SystemDictionaries.english.map { !SystemDictionaries.entryMarkups(of: word, in: $0).isEmpty } ?? false
+        let canonical = entryText.flatMap(inflectionBase(in:))
+            ?? (hasExactRecord ? word : entryText.map(canonicalHeadword(in:)) ?? word)
         let thesaurus = Thesaurus.blocks(for: canonical)
 
+        // Records are indexed by headword, which can differ from the
+        // entry's title: "saw" (past of see) is filed under "see".
         if let dictionary = SystemDictionaries.english,
            let parsed = EntryMarkupParser.merge(
                SystemDictionaries.entryMarkups(of: canonical, in: dictionary).compactMap(EntryMarkupParser.parse)
+                   .filter { $0.title == canonical }
            ) {
             return entry(from: parsed, thesaurus: thesaurus)
         }
@@ -147,6 +155,19 @@ enum DictionaryLookup {
                 || partsOfSpeech.contains($0.lowercased())
         } ?? tokens.endIndex
         return tokens[..<end].joined(separator: " ")
+    }
+
+    /// The base form when the whole entry is an inflection pointer:
+    /// "seen | sēn | verb past participle of see1" -> "see". Entries that
+    /// only mention a base form in their header ("better ... (comparative
+    /// of good) 1 of a more excellent ...") have more text and return nil.
+    static func inflectionBase(in entryText: String) -> String? {
+        let pattern = try! NSRegularExpression(
+            pattern: "^[^|]*\\|[^|]*\\|\\s*verb\\s+(?:\\[[^\\]]*\\]\\s*)?[a-z ,]*\\bof ([a-z]+)\\d*\\s*$"
+        )
+        let ns = entryText as NSString
+        guard let match = pattern.firstMatch(in: entryText, range: NSRange(location: 0, length: ns.length)) else { return nil }
+        return ns.substring(with: match.range(at: 1))
     }
 
     private static func block(_ word: String, partOfSpeech: String?, items: [DefinitionItem], thesaurus: [ThesaurusBlock]) -> PartOfSpeechBlock {
