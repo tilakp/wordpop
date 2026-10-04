@@ -17,6 +17,16 @@ enum WritingModel {
         return false
     }
 
+    /// Starts loading the model, called when the lookup shortcut is pressed
+    /// so it is ready by the time the popup asks its first question.
+    static func prewarm() {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), isAvailable {
+            LanguageModelSession().prewarm()
+        }
+        #endif
+    }
+
     /// The candidates that can replace `word` in `sentence` without
     /// changing its meaning, best first. Only words from `candidates` come
     /// back: the model sometimes adds the word itself or new words.

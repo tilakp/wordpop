@@ -66,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // background thread after its `await`s, but AppKit (NSPanel, used
         // by popupController.show) must only ever be touched from the main
         // thread — without this, that call can crash.
+        WritingModel.prewarm()
         Task { @MainActor in
             guard let selection = await TextCapture.captureSelection() else { return }
             if TextStats.isPassage(selection.trimmed) {
