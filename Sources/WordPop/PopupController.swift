@@ -242,6 +242,18 @@ final class PopupController: NSObject, NSWindowDelegate {
                 }
             }
         }
+        viewModel.onLoadExamples = { [weak self] in
+            guard let self, !self.viewModel.isLoadingExamples, let sense = self.viewModel.exampleSense else { return }
+            let entry = self.viewModel.entry
+            let partOfSpeech = self.viewModel.block?.partOfSpeech
+            self.viewModel.isLoadingExamples = true
+            Task { @MainActor in
+                let sentences = await WritingModel.examples(of: entry.word, partOfSpeech: partOfSpeech, definition: sense.text)
+                guard self.viewModel.entry.word == entry.word else { return }
+                self.viewModel.isLoadingExamples = false
+                self.viewModel.moreExamples = sentences
+            }
+        }
         viewModel.onLoadCollocations = { [weak self] in
             guard let self, !self.viewModel.isLoadingCollocations else { return }
             let entry = self.viewModel.entry
@@ -328,6 +340,8 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$comparison.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$toneChoices.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$lineRhymes.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$moreExamples.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$isLoadingExamples.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$loadingTone.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$contextSense.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$collocations.map { _ in () }.eraseToAnyPublisher(),

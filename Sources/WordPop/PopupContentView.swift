@@ -263,6 +263,9 @@ struct PopupContentView: View {
                 }
                 .buttonStyle(.plain)
             }
+            if WritingModel.isAvailable, Settings.shows(.examples), viewModel.exampleSense != nil {
+                moreExamplesView
+            }
             if !viewModel.entry.usageNotes.isEmpty, Settings.shows(.usage) {
                 usageDisclosure
             }
@@ -550,6 +553,36 @@ struct PopupContentView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// "More examples" asks the on-device model for three sentences in the
+    /// sense shown first; they replace the link when they arrive.
+    @ViewBuilder private var moreExamplesView: some View {
+        if let examples = viewModel.moreExamples {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("More examples")
+                    .font(.sectionLabel)
+                    .tracking(1.2)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                if examples.isEmpty {
+                    Text("No examples came back.").font(.recentMeta).foregroundStyle(.tertiary)
+                }
+                ForEach(examples, id: \.self) { sentence in
+                    Text("\u{201C}\(sentence)\u{201D}")
+                        .font(.example)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        } else {
+            Button(action: viewModel.onLoadExamples) {
+                Text(viewModel.isLoadingExamples ? "Writing examples\u{2026}" : "More examples")
+                    .font(.recentMeta)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
         }
     }
 

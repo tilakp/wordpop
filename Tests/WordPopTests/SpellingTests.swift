@@ -42,3 +42,15 @@ final class ModelAnswerParsingTests: XCTestCase {
         XCTAssertEqual(WritingModel.numbers("The answer is 2."), [2])
     }
 }
+
+final class ExampleSentenceTests: XCTestCase {
+    func testKeepsSentencesThatUseTheWordOrAForm() {
+        XCTAssertTrue(WritingModel.usesWord("meticulous", in: "She did a meticulous job."))
+        XCTAssertTrue(WritingModel.usesWord("plan", in: "They planned the trip for weeks."))
+        XCTAssertFalse(WritingModel.usesWord("meticulous", in: "She was very careful."))
+    }
+
+    func testLinesDropNumberingAndQuotes() {
+        XCTAssertEqual(WritingModel.lines("1. \u{201C}She ran, then stopped.\u{201D}\n2. He ran home."), ["She ran, then stopped.", "He ran home."])
+    }
+}

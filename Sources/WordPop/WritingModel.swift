@@ -133,6 +133,26 @@ enum WritingModel {
         }
     }
 
+    /// Three natural sentences that use `word` in the sense `definition`,
+    /// keeping only those that contain the word or a form of it.
+    static func examples(of word: String, partOfSpeech: String?, definition: String) async -> [String] {
+        let sentences = await list(
+            .examples,
+            "You write example sentences for a dictionary: short, natural, everyday sentences that show how a word is used.",
+            "Word: \(word)" + (partOfSpeech.map { " (\($0))" } ?? "") + "\nMeaning: \(definition)",
+            format: "Answer with three sentences, one per line, and nothing else."
+        )
+        return sentences.filter { usesWord(word, in: $0) }.prefix(3).map { $0 }
+    }
+
+    /// Whether `sentence` contains `word` or an inflection of it: a token
+    /// that starts with the word's stem ("ran" is listed separately by
+    /// callers that need irregular forms).
+    static func usesWord(_ word: String, in sentence: String) -> Bool {
+        let stem = String(word.lowercased().prefix(max(3, word.count - 2)))
+        return sentence.lowercased().split(whereSeparator: { !$0.isLetter }).contains { $0.hasPrefix(stem) }
+    }
+
     /// Which of `definitions` (0-based) matches how `word` is used in
     /// `sentence`: "She runs a small bakery" -> "be in charge of; manage".
     static func senseIndex(of word: String, in sentence: String, definitions: [String]) async -> Int? {
@@ -190,7 +210,7 @@ enum WritingModel {
 
     /// The kinds of word list the model is asked for, each with its own
     /// structured answer type.
-    private enum ListKind { case fits, described, collocations, tone, lineRhymes }
+    private enum ListKind { case fits, described, collocations, tone, lineRhymes, examples }
 
     /// A list answer: structured first, plain text under permissive
     /// guardrails if the structured request fails.
@@ -204,11 +224,13 @@ enum WritingModel {
             case .collocations: await structured(Collocations.self, instructions, prompt)?.phrases
             case .tone: await structured(ToneChoices.self, instructions, prompt)?.words
             case .lineRhymes: await structured(LineRhymes.self, instructions, prompt)?.words
+            case .examples: await structured(ExampleSentences.self, instructions, prompt)?.sentences
             }
             if let words, !words.isEmpty { return words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } }
         }
         #endif
-        return await ask(instructions, prompt + "\n" + format).map(listItems) ?? []
+        let answer = await ask(instructions, prompt + "\n" + format)
+        return kind == .examples ? (answer.map(lines) ?? []) : (answer.map(listItems) ?? [])
     }
 
     #if canImport(FoundationModels)
@@ -242,6 +264,15 @@ enum WritingModel {
                 return item.trimmingCharacters(in: CharacterSet(charactersIn: " .\"'*_\u{201C}\u{201D}\u{2018}\u{2019}"))
             }
             .filter { !$0.isEmpty }
+    }
+
+    /// The lines of an answer, without numbering or bullets.
+    static func lines(_ answer: String) -> [String] {
+        answer.components(separatedBy: "\n").map { line in
+            var line = line.trimmingCharacters(in: .whitespaces)
+            if let range = line.range(of: "^(\\d+[.)]|[-•*])\\s*", options: .regularExpression) { line.removeSubrange(range) }
+            return line.trimmingCharacters(in: CharacterSet(charactersIn: " \"\u{201C}\u{201D}"))
+        }.filter { !$0.isEmpty }
     }
 
     /// The numbers in an answer, in order: "4, 5" -> [4, 5].
@@ -296,6 +327,13 @@ private struct SensePick {
 private struct Collocations {
     @Guide(description: "Short phrases of two or three words that native writers commonly use with the word, most common first. Each phrase contains the word.", .count(10))
     var phrases: [String]
+}
+
+@available(macOS 26, *)
+@Generable
+private struct ExampleSentences {
+    @Guide(description: "Short, natural sentences that use the word in the given meaning.", .count(3))
+    var sentences: [String]
 }
 
 @available(macOS 26, *)

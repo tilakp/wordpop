@@ -70,6 +70,16 @@ final class PopupViewModel: ObservableObject {
     @Published var loadingTone: Tone?
     /// Rhymes the on-device model picked for the line the word ends.
     @Published var lineRhymes: [String] = []
+    /// Fresh example sentences from the on-device model, for `exampleSense`.
+    @Published var moreExamples: [String]?
+    @Published var isLoadingExamples = false
+    var onLoadExamples: () -> Void = {}
+
+    /// The sense examples are written for: the one used in the selection's
+    /// sentence when known, otherwise the selected block's first.
+    var exampleSense: DefinitionItem? {
+        displayItems.first { $0.number != nil } ?? displayItems.first
+    }
     /// The numbered sense the on-device model judged to match the
     /// sentence the word was selected in, for the block it belongs to.
     @Published var contextSense: (block: Int, number: Int)?
@@ -249,6 +259,7 @@ final class PopupViewModel: ObservableObject {
             selectedBlock = index
             showAllSenses = false
             showAllDefinitions = false
+            moreExamples = nil
             focusedPill = nil
         }
     }
@@ -324,6 +335,8 @@ final class PopupViewModel: ObservableObject {
         toneChoices = nil
         loadingTone = nil
         lineRhymes = []
+        moreExamples = nil
+        isLoadingExamples = false
         contextSense = nil
         textStats = nil
         collocations = nil
