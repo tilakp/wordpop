@@ -99,6 +99,15 @@ enum DictionaryLookup {
     /// The first definition of `word`, from the block for `partOfSpeech`
     /// when it has one, so a comparison sets like against like.
     static func firstDefinition(of word: String, partOfSpeech: String? = nil) -> (partOfSpeech: String?, text: String)? {
+        // The structured entry first: the flat text runs some headers
+        // together ("con·sortnoun | ˈkänsôrt | a wife ...").
+        if let dictionary = SystemDictionaries.english,
+           let parsed = EntryMarkupParser.merge(
+               SystemDictionaries.entryMarkups(of: word, in: dictionary).compactMap(EntryMarkupParser.parse).filter { $0.title == word }
+           ) {
+            let block = parsed.blocks.first { $0.partOfSpeech == partOfSpeech && partOfSpeech != nil } ?? parsed.blocks.first
+            if let block, let item = block.items.first { return (block.partOfSpeech, item.text) }
+        }
         guard let text = rawEntryText(for: word) else { return nil }
         let blocks = partOfSpeechBlocks(text)
         guard let block = blocks.first(where: { $0.partOfSpeech == partOfSpeech && partOfSpeech != nil }) ?? blocks.first,
