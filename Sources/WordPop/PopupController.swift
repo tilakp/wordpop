@@ -23,7 +23,9 @@ final class PopupController: NSObject, NSWindowDelegate {
         replaceEntry = entry
         viewModel.reset(with: entry)
         viewModel.canReplace = selection != nil
-        rankSynonyms(of: entry, for: selection)
+        let contextBlock = contextBlockIndex(in: entry, for: selection)
+        if let contextBlock { viewModel.selectedBlock = contextBlock }
+        rankSynonyms(of: entry, for: selection, in: contextBlock)
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -78,12 +80,21 @@ final class PopupController: NSObject, NSWindowDelegate {
     /// Asks the on-device model which synonyms fit the sentence the word
     /// was selected in, and shows them when it answers (about a second),
     /// provided the popup still shows the same entry.
-    private func rankSynonyms(of entry: WordEntry, for selection: TextCapture.Selection?) {
+    /// The block for the part of speech the selected word has in its
+    /// sentence ("raced" in "She raced home" is a verb). A first block
+    /// that already covers it ("modal verb" for "will") is kept.
+    private func contextBlockIndex(in entry: WordEntry, for selection: TextCapture.Selection?) -> Int? {
+        guard let selection, let sentence = selection.sentence,
+              let partOfSpeech = TextCapture.partOfSpeech(of: selection.trimmed, in: sentence) else { return nil }
+        if entry.blocks.first?.partOfSpeech?.contains(partOfSpeech) == true { return 0 }
+        return entry.blocks.firstIndex { $0.partOfSpeech == partOfSpeech }
+    }
+
+    private func rankSynonyms(of entry: WordEntry, for selection: TextCapture.Selection?, in contextBlock: Int?) {
         guard let selection, let sentence = selection.sentence, WritingModel.isAvailable else { return }
         // Only the part of speech the word has in the sentence: "will" in
         // "I will go" must not get the noun's synonyms (determination).
-        let partOfSpeech = TextCapture.partOfSpeech(of: selection.trimmed, in: sentence)
-        let matching = entry.blocks.filter { $0.partOfSpeech == partOfSpeech }
+        let matching = contextBlock.map { [entry.blocks[$0]] } ?? []
         var candidates: [String] = []
         for block in matching.isEmpty ? entry.blocks : matching {
             for word in block.senses.flatMap(\.synonyms) + block.synonyms where !candidates.contains(word) {
