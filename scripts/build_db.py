@@ -1,5 +1,5 @@
 """
-Packs synonyms.json, antonyms.json, rhymes.json and words.txt (the outputs
+Packs synonyms.json, antonyms.json, rhymes.json, syllables.json and words.txt (the outputs
 of the other build scripts) and the hand-written confusables.txt,
 stronger.txt and inclusive.txt into Sources/WordPop/Resources/wordpop.sqlite.
 
@@ -27,6 +27,7 @@ db.executescript("""
     CREATE TABLE words (word TEXT PRIMARY KEY NOT NULL, rank INTEGER NOT NULL) WITHOUT ROWID;
     CREATE TABLE confusables (grp INTEGER NOT NULL, word TEXT NOT NULL, sense TEXT NOT NULL, PRIMARY KEY (word, grp)) WITHOUT ROWID;
     CREATE INDEX confusables_grp ON confusables (grp);
+    CREATE TABLE syllables (word TEXT PRIMARY KEY NOT NULL, count INTEGER NOT NULL) WITHOUT ROWID;
     CREATE TABLE hints (word TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT, words TEXT NOT NULL,
                         PRIMARY KEY (word, kind, position)) WITHOUT ROWID;
 """)
@@ -45,6 +46,11 @@ for table in ("rhymes", "near_rhymes"):
         rhymes = json.load(f)
     db.executemany(f"INSERT INTO {table} VALUES (?, ?)", ((w, SEPARATOR.join(r)) for w, r in rhymes.items()))
     print(f"{table}: {len(rhymes)} words")
+
+with open("syllables.json", encoding="utf-8") as f:
+    syllables = json.load(f)
+db.executemany("INSERT INTO syllables VALUES (?, ?)", syllables.items())
+print(f"syllables: {len(syllables)} words")
 
 with open("words.txt", encoding="utf-8") as f:
     words = [line.strip() for line in f if line.strip()]

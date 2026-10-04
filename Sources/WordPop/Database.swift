@@ -82,6 +82,18 @@ enum Database {
         }
     }
 
+    /// Syllable counts from the CMU Pronouncing Dictionary, for the words
+    /// in the rhyme lists.
+    static func syllables(of words: [String]) -> [String: Int] {
+        guard !words.isEmpty else { return [:] }
+        let placeholders = words.indices.map { "?\($0 + 1)" }.joined(separator: ",")
+        var counts: [String: Int] = [:]
+        for row in rows("SELECT word, count FROM syllables WHERE word IN (\(placeholders))", words.map { $0.lowercased() }) {
+            counts[row[0]] = Int(row[1])
+        }
+        return counts
+    }
+
     static func warmUp() {
         _ = connection
     }

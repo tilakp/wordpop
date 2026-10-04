@@ -37,6 +37,8 @@ final class PopupViewModel: ObservableObject {
     /// Register or region labels for synonyms ("informal", "archaic",
     /// "British"), keyed by lowercased word, shown as a tag on the pill.
     @Published private(set) var registerLabels: [String: String] = [:]
+    /// Syllable counts of the entry's rhymes, for grouping them.
+    private var rhymeSyllables: [String: Int] = [:]
 
     private var history: [WordEntry] = []
 
@@ -127,7 +129,12 @@ final class PopupViewModel: ObservableObject {
             sections.append(PillSection(id: "confused", title: "Often confused with", tint: .confusedTint, rows: [row(caption, entry.confusedWith)]))
         }
         var rhymeRows: [PillRow] = []
-        if !entry.rhymes.isEmpty { rhymeRows.append(row(nil, entry.rhymes)) }
+        // Grouped by syllables for meter: "1 syllable: diet, riot ...".
+        let groups = Dictionary(grouping: entry.rhymes) { rhymeSyllables[$0.lowercased()] ?? 0 }
+        for count in groups.keys.sorted() {
+            let caption = groups.count > 1 ? (count == 0 ? "other" : "\(count) syllable\(count == 1 ? "" : "s")") : nil
+            rhymeRows.append(row(caption, groups[count]!))
+        }
         if !entry.nearRhymes.isEmpty { rhymeRows.append(row("near rhymes", entry.nearRhymes)) }
         if !rhymeRows.isEmpty {
             sections.append(PillSection(id: "rhymes", title: "Rhymes", tint: .rhymeTint, rows: rhymeRows))
@@ -219,6 +226,7 @@ final class PopupViewModel: ObservableObject {
         showUsage = false
         bestFits = []
         focusedPill = nil
+        rhymeSyllables = Database.syllables(of: newEntry.rhymes)
         entry = newEntry
         let words = Array(Set(sections.flatMap { $0.rows.flatMap(\.words) } + entry.blocks.flatMap { block in
             block.senses.flatMap(\.synonyms) + block.synonyms

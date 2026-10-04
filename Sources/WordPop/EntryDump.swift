@@ -40,7 +40,11 @@ enum EntryDump {
             lines.append("\(hint.kind): " + (hint.caption.map { "\($0) -> " } ?? "") + hint.words.joined(separator: ", "))
         }
         for note in entry.usageNotes { lines.append("\nusage: \(note)") }
-        if !entry.rhymes.isEmpty { lines.append("\nrhymes: \(entry.rhymes.joined(separator: ", "))") }
+        if !entry.rhymes.isEmpty {
+            let syllables = Database.syllables(of: entry.rhymes)
+            let groups = Dictionary(grouping: entry.rhymes) { syllables[$0.lowercased()] ?? 0 }
+            lines.append("\nrhymes: " + groups.keys.sorted().map { "[\($0)] \(groups[$0]!.joined(separator: ", "))" }.joined(separator: "  "))
+        }
         if !entry.nearRhymes.isEmpty { lines.append("near rhymes: \(entry.nearRhymes.joined(separator: ", "))") }
         if let origin = entry.origin { lines.append("\norigin: \(origin)") }
         if let source = entry.source { lines.append("\nsource: \(source)") }
