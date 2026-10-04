@@ -5,7 +5,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-swift build -c release
+# Universal: Apple silicon and Intel. The Apple Intelligence features
+# need Apple silicon; everything else runs on Intel Macs too.
+swift build -c release --arch arm64 --arch x86_64
 
 APP="WordPop.app"
 rm -rf "$APP"
