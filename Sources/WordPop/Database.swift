@@ -99,6 +99,13 @@ enum Database {
         query("SELECT word FROM words WHERE word GLOB ?1 ORDER BY rank LIMIT ?2", [glob, limit])
     }
 
+    /// Random words from the frequency list around `rank`, for wrong
+    /// choices in practice questions.
+    static func randomWords(nearRank rank: Int, count: Int) -> [String] {
+        query("SELECT word FROM words WHERE rank BETWEEN ?1 AND ?2 AND word NOT LIKE '% %' AND word NOT LIKE '%-%' ORDER BY random() LIMIT ?3",
+              [max(0, rank - 3000), rank + 3000, count])
+    }
+
     static func warmUp() {
         _ = connection
     }

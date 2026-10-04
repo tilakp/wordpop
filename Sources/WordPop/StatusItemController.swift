@@ -5,10 +5,12 @@ import AppKit
 final class StatusItemController: NSObject {
     private var statusItem: NSStatusItem?
     private let onPreferences: () -> Void
+    private let onPractice: () -> Void
     private let onQuit: () -> Void
 
-    init(onPreferences: @escaping () -> Void, onQuit: @escaping () -> Void) {
+    init(onPreferences: @escaping () -> Void, onPractice: @escaping () -> Void, onQuit: @escaping () -> Void) {
         self.onPreferences = onPreferences
+        self.onPractice = onPractice
         self.onQuit = onQuit
         super.init()
         setUp()
@@ -22,6 +24,9 @@ final class StatusItemController: NSObject {
         let preferencesItem = NSMenuItem(title: "Preferences\u{2026}", action: #selector(preferencesClicked), keyEquivalent: ",")
         preferencesItem.target = self
         menu.addItem(preferencesItem)
+        let practiceItem = NSMenuItem(title: "Practice Starred Words\u{2026}", action: #selector(practiceClicked), keyEquivalent: "")
+        practiceItem.target = self
+        menu.addItem(practiceItem)
         let copyStarredItem = NSMenuItem(title: "Copy Starred Words", action: #selector(copyStarredClicked), keyEquivalent: "")
         copyStarredItem.target = self
         menu.addItem(copyStarredItem)
@@ -38,6 +43,7 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func preferencesClicked() { onPreferences() }
+    @objc private func practiceClicked() { onPractice() }
     @objc private func copyStarredClicked() { StarredWords.shared.copyToClipboard() }
     @objc private func clearHistoryClicked() { LookupHistory.shared.clear() }
     @objc private func quitClicked() { onQuit() }

@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var quickSearchController: QuickSearchController!
     private var statusItemController: StatusItemController!
     private var preferencesWindowController: PreferencesWindowController?
+    private var practiceWindowController: PracticeWindowController?
 
     /// The controllers exist before launch finishes: a wordpop:// URL that
     /// launches the app is delivered before applicationDidFinishLaunching.
@@ -45,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItemController = StatusItemController(
             onPreferences: { [weak self] in self?.showPreferences() },
+            onPractice: { [weak self] in self?.showPractice() },
             onQuit: { NSApp.terminate(nil) }
         )
     }
@@ -113,6 +115,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if alert.runModal() == .alertFirstButtonReturn { showPreferences() }
     }
 
+    private func showPractice() {
+        if practiceWindowController == nil { practiceWindowController = PracticeWindowController() }
+        practiceWindowController?.show()
+    }
+
     private func showPreferences() {
         if preferencesWindowController == nil {
             preferencesWindowController = PreferencesWindowController(
@@ -142,6 +149,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 quickSearchController.show()
             case "preferences":
                 showPreferences()
+            case "practice":
+                showPractice()
             default:
                 break
             }
