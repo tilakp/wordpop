@@ -19,7 +19,12 @@ enum TextCapture {
         if let selected = accessibilitySelectedText(), !selected.isEmpty {
             return selected
         }
-        return await clipboardSelectedText()
+        guard let copied = await clipboardSelectedText() else { return nil }
+        // Code editors (VS Code, JetBrains) copy the whole current line,
+        // with its line break, when nothing is selected. A selected word
+        // never ends in a line break, so such a copy is not a lookup.
+        if copied.hasSuffix("\n") { return nil }
+        return copied.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func accessibilitySelectedText() -> String? {
@@ -37,28 +42,32 @@ enum TextCapture {
 
     private static func clipboardSelectedText() async -> String? {
         let pasteboard = NSPasteboard.general
-        // Only the plain-text representation is saved/restored (not a full
-        // multi-type item copy) — cheap, and covers the case that matters;
-        // a non-text item (e.g. an image) already on the clipboard is left
-        // alone below rather than destroyed by an incomplete restore.
-        let savedString = pasteboard.string(forType: .string)
+        // Every item and every type is saved, so an image, a file or rich
+        // text on the clipboard comes back intact, not only plain text.
+        let savedItems = pasteboard.pasteboardItems?.map { item in
+            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+        } ?? []
         let priorChangeCount = pasteboard.changeCount
 
         simulateCommandC()
 
-        let didChange = await waitForPasteboardChange(from: priorChangeCount, timeout: 0.3)
-        let result = didChange ? pasteboard.string(forType: .string) : nil
+        guard await waitForPasteboardChange(from: priorChangeCount, timeout: 0.3) else { return nil }
+        let result = pasteboard.string(forType: .string)
         let changeCountAfterRead = pasteboard.changeCount
 
         // Give a slow app's own copy a brief extra moment to land before
         // restoring, so we don't clobber it (see doc comment above).
         try? await Task.sleep(nanoseconds: 60_000_000)
-        if pasteboard.changeCount == changeCountAfterRead, let savedString {
+        if pasteboard.changeCount == changeCountAfterRead {
             pasteboard.clearContents()
-            pasteboard.setString(savedString, forType: .string)
+            pasteboard.writeObjects(savedItems.map { types in
+                let item = NSPasteboardItem()
+                for (type, data) in types { item.setData(data, forType: type) }
+                return item
+            })
         }
 
-        return result?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return result
     }
 
     private static func simulateCommandC() {
