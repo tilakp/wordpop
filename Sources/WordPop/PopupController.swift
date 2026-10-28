@@ -27,6 +27,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             let uses = TextStats.uses(of: entry.word, forms: entry.forms, in: paragraph)
             if uses >= 3 { viewModel.paragraphUses = uses }
         }
+        if selection != nil, entry.found { viewModel.replacedCount = ReplacedWords.shared.crutchCount(of: entry.word) }
         let contextBlock = contextBlockIndex(in: entry, for: selection)
         if let contextBlock { viewModel.selectedBlock = contextBlock }
         if Settings.shows(.fits) { rankSynonyms(of: entry, for: selection, in: contextBlock) }
@@ -60,6 +61,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.typos = Spelling.typos(in: passage)
         viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
         viewModel.consistency = Consistency.check(passage)
+        viewModel.crutches = ReplacedWords.shared.crutches(in: passage)
         viewModel.grammar = Spelling.grammarIssues(in: passage)
         viewModel.grammarFixes = Dictionary(uniqueKeysWithValues: viewModel.grammar.enumerated().map { ($0.offset, $0.element.corrections[0]) })
         // Wordy phrases start chosen; cliches are a matter of taste.
@@ -208,6 +210,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             guard let self, let target = self.replaceTarget else { return }
             self.replaceTarget = nil
             self.hide()
+            if let replaced = self.replaceEntry?.word { ReplacedWords.shared.record(replaced) }
             Task { @MainActor in
                 // Let the panel give up key status so the paste lands in
                 // the app the selection came from.

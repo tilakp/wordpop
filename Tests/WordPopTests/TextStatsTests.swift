@@ -57,6 +57,11 @@ final class TextStatsTests: XCTestCase {
         XCTAssertEqual(TextStats.uses(of: "about", forms: [], in: "about about about"), 0, "common words are skipped")
     }
 
+    func testCountsShortAndCommonWordsToo() {
+        XCTAssertEqual(TextStats.occurrences(of: "very", in: "It was very, very cold. Very."), 3)
+        XCTAssertEqual(TextStats.occurrences(of: "plan", in: "We planned the plans."), 2)
+    }
+
     func testFindsARunOfSentencesOfTheSameLength() {
         let even = TextStats.analyze("I went home. I made some tea. I sat down there. Then, after a long and tiring day at work, I finally fell asleep on the sofa.")
         XCTAssertEqual(even.sentenceLengths, [3, 4, 4, 16])

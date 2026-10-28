@@ -53,6 +53,15 @@ struct PopupContentView: View {
 
     private var items: [DefinitionItem] { viewModel.displayItems }
 
+    /// Why the word is worth varying: used often in its paragraph, or
+    /// one the user has replaced often before.
+    private var usageNote: String {
+        var notes: [String] = []
+        if let uses = viewModel.paragraphUses { notes.append("Used \(uses) times in this paragraph.") }
+        if let count = viewModel.replacedCount { notes.append("You have replaced \u{201C}\(viewModel.entry.word)\u{201D} \(count) times before.") }
+        return (notes + ["A synonym below can vary it."]).joined(separator: " ")
+    }
+
     private var hasScrollableContent: Bool {
         !items.isEmpty || (viewModel.entry.origin != nil && Settings.shows(.origin))
             || (!viewModel.entry.phrases.isEmpty && Settings.shows(.phrases))
@@ -126,9 +135,9 @@ struct PopupContentView: View {
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
-            if let uses = viewModel.paragraphUses {
+            if viewModel.paragraphUses != nil || viewModel.replacedCount != nil {
                 Divider().padding(.horizontal, 22)
-                Text("Used \(uses) times in this paragraph. A synonym below can vary it.")
+                Text(usageNote)
                     .font(.recentMeta)
                     .foregroundStyle(Color.confusedTint)
                     .fixedSize(horizontal: false, vertical: true)

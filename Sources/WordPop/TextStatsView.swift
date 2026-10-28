@@ -93,6 +93,14 @@ struct TextStatsView: View {
                     }
                 }
             }
+            if !viewModel.crutches.isEmpty {
+                section("Your crutch words", tint: .confusedTint) {
+                    wordList(viewModel.crutches.map { "\($0.word) (replaced \($0.count)\u{D7})" })
+                    Text("Words you often replace with a synonym. Select one to vary it.")
+                        .font(.recentMeta)
+                        .foregroundStyle(.secondary)
+                }
+            }
             if !stats.adverbs.isEmpty {
                 section("Adverbs", tint: .rhymeTint) { wordList(stats.adverbs) }
             }

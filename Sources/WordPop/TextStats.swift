@@ -80,8 +80,15 @@ struct TextStats: Equatable {
     static func uses(of lemma: String, forms: [String], in paragraph: String) -> Int {
         let lemma = lemma.lowercased()
         guard lemma.count >= 4, !lemma.contains(" "), !stopWords.contains(lemma) else { return 0 }
-        return tokens(of: paragraph, unit: .word).filter { range in
-            let token = paragraph[range].lowercased()
+        return occurrences(of: lemma, forms: forms, in: paragraph)
+    }
+
+    /// How many times `lemma` or one of its forms is used in `text`, for
+    /// any word, short and common ones included.
+    static func occurrences(of lemma: String, forms: [String] = [], in text: String) -> Int {
+        let lemma = lemma.lowercased()
+        return tokens(of: text, unit: .word).filter { range in
+            let token = text[range].lowercased()
             return token == lemma || Inflection.form(of: token, lemma: lemma, forms: forms) != .plain
         }.count
     }

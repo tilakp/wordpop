@@ -170,6 +170,12 @@ final class PopupViewModel: ObservableObject {
     /// How many times the looked-up word is used in its paragraph, when
     /// that is often enough to be worth varying.
     @Published var paragraphUses: Int?
+    /// How many times the user has replaced the looked-up word before,
+    /// when that makes it a crutch.
+    @Published var replacedCount: Int?
+    /// The user's crutch words in a passage, with how often each was
+    /// replaced.
+    @Published var crutches: [(word: String, count: Int)] = []
     /// Phrases with the word from the on-device model ("tough decision");
     /// nil until asked for, as each request takes about a second.
     @Published var collocations: [String]?
@@ -443,6 +449,8 @@ final class PopupViewModel: ObservableObject {
         variantChoices = [:]
         spellingSystem = nil
         paragraphUses = nil
+        replacedCount = nil
+        crutches = []
         collocations = nil
         isLoadingCollocations = false
         focusedPill = nil

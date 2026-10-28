@@ -30,7 +30,7 @@ final class StatusItemController: NSObject {
         let copyStarredItem = NSMenuItem(title: "Copy Starred Words", action: #selector(copyStarredClicked), keyEquivalent: "")
         copyStarredItem.target = self
         menu.addItem(copyStarredItem)
-        let clearHistoryItem = NSMenuItem(title: "Clear Lookup History", action: #selector(clearHistoryClicked), keyEquivalent: "")
+        let clearHistoryItem = NSMenuItem(title: "Clear History", action: #selector(clearHistoryClicked), keyEquivalent: "")
         clearHistoryItem.target = self
         menu.addItem(clearHistoryItem)
         menu.addItem(.separator())
@@ -45,6 +45,10 @@ final class StatusItemController: NSObject {
     @objc private func preferencesClicked() { onPreferences() }
     @objc private func practiceClicked() { onPractice() }
     @objc private func copyStarredClicked() { StarredWords.shared.copyToClipboard() }
-    @objc private func clearHistoryClicked() { LookupHistory.shared.clear() }
+    /// Clears recent lookups and the counts of replaced words.
+    @objc private func clearHistoryClicked() {
+        LookupHistory.shared.clear()
+        ReplacedWords.shared.clear()
+    }
     @objc private func quitClicked() { onQuit() }
 }
