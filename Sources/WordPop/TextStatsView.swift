@@ -27,6 +27,12 @@ struct TextStatsView: View {
                 .padding(.horizontal, 22)
                 .padding(.bottom, 14)
 
+            if let sentence = reframeSentence, WritingModel.isAvailable {
+                section("Reframe", tint: .fitTint) { reframeControls(for: sentence) }
+            }
+            if !viewModel.typos.isEmpty {
+                section("Spelling", tint: .spellingTint) { typoControls }
+            }
             section("Reading grade", tint: .synonymTint) {
                 Text(gradeLabel)
                     .font(.definition)
@@ -65,9 +71,9 @@ struct TextStatsView: View {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
             }
-            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty {
+            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, viewModel.typos.isEmpty {
                 section("Notes", tint: .fitTint) {
-                    Text("No long sentences, passive voice, -ly adverbs or repeated words.")
+                    Text("No typos, long sentences, passive voice, -ly adverbs or repeated words.")
                         .font(.definition)
                         .foregroundStyle(.secondary)
                 }
@@ -110,12 +116,32 @@ struct TextStatsView: View {
         }
     }
 
+    /// The selection when it is one sentence, which can be reframed.
+    private var reframeSentence: String? {
+        stats.sentenceTexts.count == 1 ? stats.sentenceTexts[0] : nil
+    }
+
     /// A link that asks for a rewrite of `sentence`, then the suggestion
     /// with a button that puts it into the passage in place of the
     /// original sentence.
     @ViewBuilder
     private func rewriteControls(for sentence: String, rewrite: WritingModel.Rewrite, label: String) -> some View {
-        if let suggestion = viewModel.rewrites[sentence] {
+        let key = RewriteKey(sentence: sentence, rewrite: rewrite)
+        if viewModel.rewrites[key] != nil {
+            rewriteResult(key)
+        } else if WritingModel.isAvailable {
+            Button(action: { viewModel.onRewrite(key) }) {
+                Text(viewModel.rewriting.contains(key) ? "Rewriting\u{2026}" : label)
+                    .font(.recentMeta)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func rewriteResult(_ key: RewriteKey) -> some View {
+        if let suggestion = viewModel.rewrites[key] {
             if suggestion.isEmpty {
                 Text("No rewrite came back.").font(.recentMeta).foregroundStyle(.tertiary)
             } else {
@@ -123,19 +149,79 @@ struct TextStatsView: View {
                     .font(.definition)
                     .fixedSize(horizontal: false, vertical: true)
                 if viewModel.canReplace {
-                    Button("Replace") { viewModel.onUseRewrite(sentence) }
+                    Button("Replace") { viewModel.onUseRewrite(key) }
                         .font(.recentMeta)
                         .buttonStyle(.plain)
                         .foregroundStyle(Color.accentColor)
                 }
             }
-        } else if WritingModel.isAvailable {
-            Button(action: { viewModel.onRewrite(sentence, rewrite) }) {
-                Text(viewModel.rewriting.contains(sentence) ? "Rewriting\u{2026}" : label)
-                    .font(.recentMeta)
-                    .foregroundStyle(Color.accentColor)
+        }
+    }
+
+    /// A button for each way to reframe the sentence, then the answers
+    /// in the order of the buttons.
+    @ViewBuilder
+    private func reframeControls(for sentence: String) -> some View {
+        let kinds = WritingModel.Rewrite.reframes
+        FlowLayout(spacing: 6) {
+            ForEach(kinds, id: \.self) { rewrite in
+                let key = RewriteKey(sentence: sentence, rewrite: rewrite)
+                Button(action: { viewModel.onRewrite(key) }) {
+                    Text(viewModel.rewriting.contains(key) ? "\(rewrite.title)\u{2026}" : rewrite.title)
+                        .font(.recentMeta)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(Color.fitTint.opacity(viewModel.rewrites[key] != nil ? 0.28 : 0.12))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+        }
+        ForEach(kinds.filter { viewModel.rewrites[RewriteKey(sentence: sentence, rewrite: $0)] != nil }, id: \.self) { rewrite in
+            VStack(alignment: .leading, spacing: 4) {
+                Text(rewrite.title)
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                rewriteResult(RewriteKey(sentence: sentence, rewrite: rewrite))
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    /// Each typo with its suggestions; the chosen fix is filled in, and a
+    /// click on it again keeps the word as it is.
+    @ViewBuilder
+    private var typoControls: some View {
+        ForEach(viewModel.typos, id: \.word) { typo in
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(typo.word)
+                    .font(.pill)
+                    .strikethrough(viewModel.typoFixes[typo.word] != nil)
+                    .foregroundStyle(.secondary)
+                Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                FlowLayout(spacing: 6) {
+                    ForEach(typo.suggestions, id: \.self) { suggestion in
+                        let chosen = viewModel.typoFixes[typo.word] == suggestion
+                        Button(action: { viewModel.typoFixes[typo.word] = chosen ? nil : suggestion }) {
+                            Text(suggestion)
+                                .font(.pill)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 2)
+                                .background(Color.spellingTint.opacity(chosen ? 0.28 : 0.08))
+                                .clipShape(Capsule())
+                                .overlay(Capsule().strokeBorder(chosen ? Color.spellingTint : Color.spellingTint.opacity(0.25)))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        if viewModel.canReplace, !viewModel.typoFixes.isEmpty {
+            Button("Fix \(viewModel.typoFixes.count) typo\(viewModel.typoFixes.count == 1 ? "" : "s")", action: viewModel.onFixTypos)
+                .font(.recentMeta)
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.spellingTint)
+                .padding(.top, 2)
         }
     }
 

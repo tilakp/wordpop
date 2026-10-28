@@ -23,6 +23,10 @@ final class PopupController: NSObject, NSWindowDelegate {
         replaceEntry = entry
         viewModel.reset(with: entry)
         viewModel.canReplace = selection != nil
+        if let paragraph = selection?.paragraph, entry.found {
+            let uses = TextStats.uses(of: entry.word, forms: entry.forms, in: paragraph)
+            if uses >= 3 { viewModel.paragraphUses = uses }
+        }
         let contextBlock = contextBlockIndex(in: entry, for: selection)
         if let contextBlock { viewModel.selectedBlock = contextBlock }
         if Settings.shows(.fits) { rankSynonyms(of: entry, for: selection, in: contextBlock) }
@@ -51,6 +55,9 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.reset(with: .empty)
         viewModel.canReplace = selection != nil
         viewModel.textStats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) })
+        viewModel.paragraph = selection?.paragraph
+        viewModel.typos = Spelling.typos(in: passage)
+        viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -256,24 +263,35 @@ final class PopupController: NSObject, NSWindowDelegate {
                 }
             }
         }
-        viewModel.onRewrite = { [weak self] sentence, rewrite in
-            guard let self, !self.viewModel.rewriting.contains(sentence) else { return }
-            self.viewModel.rewriting.insert(sentence)
+        viewModel.onRewrite = { [weak self] key in
+            guard let self, !self.viewModel.rewriting.contains(key) else { return }
+            self.viewModel.rewriting.insert(key)
+            let paragraph = self.viewModel.paragraph
             Task { @MainActor in
-                let text = await WritingModel.rewrite(sentence, rewrite)
-                self.viewModel.rewriting.remove(sentence)
-                self.viewModel.rewrites[sentence] = text ?? ""
+                let text = await WritingModel.rewrite(key.sentence, key.rewrite, in: paragraph)
+                self.viewModel.rewriting.remove(key)
+                self.viewModel.rewrites[key] = text ?? ""
             }
         }
-        viewModel.onUseRewrite = { [weak self] sentence in
+        viewModel.onUseRewrite = { [weak self] key in
             // The passage goes back with only that sentence changed.
-            guard let self, let target = self.replaceTarget, let rewrite = self.viewModel.rewrites[sentence], !rewrite.isEmpty,
-                  let range = target.text.range(of: sentence) else { return }
+            guard let self, let target = self.replaceTarget, let rewrite = self.viewModel.rewrites[key], !rewrite.isEmpty,
+                  let range = target.text.range(of: key.sentence) else { return }
             self.replaceTarget = nil
             self.hide()
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 150_000_000)
                 await TextReplacer.paste(target.text.replacingCharacters(in: range, with: rewrite), into: target.app)
+            }
+        }
+        viewModel.onFixTypos = { [weak self] in
+            guard let self, let target = self.replaceTarget, !self.viewModel.typoFixes.isEmpty else { return }
+            let text = Spelling.applying(self.viewModel.typoFixes, to: target.text)
+            self.replaceTarget = nil
+            self.hide()
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                await TextReplacer.paste(text, into: target.app)
             }
         }
         viewModel.onExplainPhrase = { [weak self] in

@@ -29,6 +29,10 @@ struct TextStats: Equatable {
     /// A selection of at least this many words is a passage, not a word
     /// to look up.
     static let passageWords = 8
+    /// A selection of at least this many words that ends like a sentence
+    /// is one too, so a short sentence can be reframed. Idioms are
+    /// shorter, or have no closing period.
+    static let sentenceWords = 5
 
     static func == (a: TextStats, b: TextStats) -> Bool {
         a.words == b.words && a.sentences == b.sentences && a.grade == b.grade && a.passives == b.passives
@@ -37,7 +41,21 @@ struct TextStats: Equatable {
     }
 
     static func isPassage(_ text: String) -> Bool {
-        text.split(whereSeparator: \.isWhitespace).count >= passageWords
+        let count = text.split(whereSeparator: \.isWhitespace).count
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"\u{201D}')\u{2019}")))
+        return count >= passageWords || count >= sentenceWords && [".", "!", "?"].contains(where: trimmed.hasSuffix)
+    }
+
+    /// How many times `lemma` or one of its forms is used in `paragraph`
+    /// ("run", "runs", "ran"); 0 for short and common words, which are
+    /// used again and again in any text.
+    static func uses(of lemma: String, forms: [String], in paragraph: String) -> Int {
+        let lemma = lemma.lowercased()
+        guard lemma.count >= 4, !lemma.contains(" "), !stopWords.contains(lemma) else { return 0 }
+        return tokens(of: paragraph, unit: .word).filter { range in
+            let token = paragraph[range].lowercased()
+            return token == lemma || Inflection.form(of: token, lemma: lemma, forms: forms) != .plain
+        }.count
     }
 
     /// `syllables` gives a word's syllable count when known (from the
@@ -121,7 +139,7 @@ struct TextStats: Equatable {
         return found
     }
 
-    private static let stopWords: Set<String> = [
+    static let stopWords: Set<String> = [
         "that", "this", "with", "from", "have", "were", "they", "their", "there", "what", "when", "which", "would",
         "could", "should", "about", "into", "than", "then", "them", "these", "those", "been", "will", "your", "just",
         "some", "more", "also", "only", "very", "over", "such", "like", "each", "other", "after", "before", "because",

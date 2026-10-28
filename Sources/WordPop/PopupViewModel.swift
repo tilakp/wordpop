@@ -37,6 +37,11 @@ struct Comparison: Equatable {
     var difference: String?
 }
 
+struct RewriteKey: Hashable {
+    let sentence: String
+    let rewrite: WritingModel.Rewrite
+}
+
 struct PillSection: Identifiable {
     let id: String
     let title: String
@@ -94,12 +99,22 @@ final class PopupViewModel: ObservableObject {
     /// Set when the selection was a passage: the popup shows its
     /// readability notes instead of a dictionary entry.
     @Published var textStats: TextStats?
-    /// Suggested rewrites of passage sentences, by original sentence, and
-    /// the sentences being rewritten.
-    @Published var rewrites: [String: String] = [:]
-    @Published var rewriting: Set<String> = []
-    var onRewrite: (String, WritingModel.Rewrite) -> Void = { _, _ in }
-    var onUseRewrite: (String) -> Void = { _ in }
+    /// Suggested rewrites of passage sentences, by original sentence and
+    /// kind of rewrite, and the ones being worked out.
+    @Published var rewrites: [RewriteKey: String] = [:]
+    @Published var rewriting: Set<RewriteKey> = []
+    var onRewrite: (RewriteKey) -> Void = { _ in }
+    var onUseRewrite: (RewriteKey) -> Void = { _ in }
+    /// The paragraph the selection sits in, when the app exposes it.
+    var paragraph: String?
+    /// Misspelled words of a passage with their suggestions, and the fix
+    /// chosen for each (by typo); typos without a fix are left as they are.
+    @Published var typos: [(word: String, suggestions: [String])] = []
+    @Published var typoFixes: [String: String] = [:]
+    var onFixTypos: () -> Void = {}
+    /// How many times the looked-up word is used in its paragraph, when
+    /// that is often enough to be worth varying.
+    @Published var paragraphUses: Int?
     /// Phrases with the word from the on-device model ("tough decision");
     /// nil until asked for, as each request takes about a second.
     @Published var collocations: [String]?
@@ -359,6 +374,10 @@ final class PopupViewModel: ObservableObject {
         textStats = nil
         rewrites = [:]
         rewriting = []
+        paragraph = nil
+        typos = []
+        typoFixes = [:]
+        paragraphUses = nil
         collocations = nil
         isLoadingCollocations = false
         focusedPill = nil

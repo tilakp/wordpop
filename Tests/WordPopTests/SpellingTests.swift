@@ -53,4 +53,15 @@ final class ExampleSentenceTests: XCTestCase {
     func testLinesDropNumberingAndQuotes() {
         XCTAssertEqual(WritingModel.lines("1. \u{201C}She ran, then stopped.\u{201D}\n2. He ran home."), ["She ran, then stopped.", "He ran home."])
     }
+
+    func testFindsEachTypoOnceWithSuggestions() {
+        let typos = Spelling.typos(in: "We have recieved your letter. It was recieved late, seperate from the rest.")
+        XCTAssertEqual(typos.map(\.word), ["recieved", "seperate"])
+        XCTAssertEqual(typos.first?.suggestions.first, "received")
+    }
+
+    func testAppliesFixesToWholeWordsInTheSameCase() {
+        let text = "Recieved today. We recieved it, not unrecieved."
+        XCTAssertEqual(Spelling.applying(["recieved": "received"], to: text), "Received today. We received it, not unrecieved.")
+    }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -162,27 +163,64 @@ enum WritingModel {
         )
     }
 
-    /// What a passage-note rewrite should do to a sentence.
+    /// What a rewrite should do to a sentence: the passage notes' fixes,
+    /// and the ways to reframe a selected sentence.
     enum Rewrite {
-        case split, active
+        case split, active, clearer, shorter, point, confident
+
+        /// The reframings offered for a selected sentence.
+        static let reframes: [Rewrite] = [.clearer, .shorter, .point, .confident]
+
+        var title: String {
+            switch self {
+            case .split: "Split"
+            case .active: "Active voice"
+            case .clearer: "Clearer"
+            case .shorter: "Shorter"
+            case .point: "Lead with the point"
+            case .confident: "More confident"
+            }
+        }
 
         var instruction: String {
             switch self {
             case .split: "Split this long sentence into two or three shorter sentences."
             case .active: "Rewrite this sentence in the active voice."
+            case .clearer: "Rewrite this sentence so it is clearer and easier to read."
+            case .shorter: "Rewrite this sentence with fewer words. Keep every point it makes."
+            case .point: "Rewrite this sentence so it starts with its main point."
+            case .confident: "Rewrite this sentence so it sounds more confident and direct. Remove hedging words."
             }
         }
     }
 
     /// The sentence rewritten as asked, keeping its meaning and tone, or
-    /// nil when nothing new comes back.
-    static func rewrite(_ sentence: String, _ rewrite: Rewrite) async -> String? {
+    /// nil when nothing new comes back. The sentences before and after it
+    /// in its paragraph, when known, keep tense, names and terms
+    /// consistent; the model sometimes copies them into its answer, so
+    /// they are taken out again.
+    static func rewrite(_ sentence: String, _ rewrite: Rewrite, in paragraph: String? = nil) async -> String? {
+        let (before, after) = paragraph.map { neighbors(of: sentence, in: $0) } ?? (nil, nil)
+        let context = (before.map { "\nSentence before it: \($0)" } ?? "") + (after.map { "\nSentence after it: \($0)" } ?? "")
+        let only = rewrite == .split ? "" : " Answer with the one rewritten sentence only."
         guard let answer = await ask(
-            "You are an editor. You change only what is asked, keep the writer's meaning, tone and wording where you can, and answer with the rewritten text only.",
-            "\(rewrite.instruction)\nSentence: \(sentence)"
+            "You are an editor. You change only what is asked, keep the writer's meaning, tone and wording where you can, and answer with the rewritten text only. The sentences around it are context; never copy them into your answer.",
+            "\(rewrite.instruction)\(only)\nSentence to rewrite: \(sentence)\(context)"
         ) else { return nil }
-        let text = answer.trimmingCharacters(in: CharacterSet(charactersIn: " \n\"\u{201C}\u{201D}"))
+        var text = answer
+        for neighbor in [before, after].compactMap({ $0 }) { text = text.replacingOccurrences(of: neighbor, with: "") }
+        text = text.trimmingCharacters(in: CharacterSet(charactersIn: " \n\"\u{201C}\u{201D}"))
         return text.isEmpty || text == sentence ? nil : text
+    }
+
+    /// The sentences just before and after `sentence` in `paragraph`.
+    static func neighbors(of sentence: String, in paragraph: String) -> (before: String?, after: String?) {
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = paragraph
+        let sentences = tokenizer.tokens(for: paragraph.startIndex..<paragraph.endIndex)
+            .map { paragraph[$0].trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard let index = sentences.firstIndex(of: sentence.trimmingCharacters(in: .whitespacesAndNewlines)) else { return (nil, nil) }
+        return (index > 0 ? sentences[index - 1] : nil, index + 1 < sentences.count ? sentences[index + 1] : nil)
     }
 
     /// Which of `definitions` (0-based) matches how `word` is used in

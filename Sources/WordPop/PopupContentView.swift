@@ -126,6 +126,15 @@ struct PopupContentView: View {
                     .padding(.horizontal, 22)
                     .padding(.vertical, 14)
             }
+            if let uses = viewModel.paragraphUses {
+                Divider().padding(.horizontal, 22)
+                Text("Used \(uses) times in this paragraph. A synonym below can vary it.")
+                    .font(.recentMeta)
+                    .foregroundStyle(Color.confusedTint)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 10)
+            }
 
             if hasScrollableContent {
                 Divider().padding(.horizontal, 22)

@@ -27,6 +27,9 @@ enum TextCapture {
         /// The line (up to the line breaks) the selection sits in, for
         /// poems and lyrics, whose lines often have no punctuation.
         var line: String? = nil
+        /// The paragraph the selection sits in, as context for rewrites
+        /// and for noticing a word used again and again.
+        var paragraph: String? = nil
 
         /// Whether the selection is the last word of its line, the word a
         /// songwriter rhymes.
@@ -44,7 +47,7 @@ enum TextCapture {
         let app = NSWorkspace.shared.frontmostApplication
         if let (selected, element) = accessibilitySelection(), !selected.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let context = context(around: element)
-            return Selection(text: selected, app: app, sentence: context?.sentence, line: context?.line)
+            return Selection(text: selected, app: app, sentence: context?.sentence, line: context?.line, paragraph: context?.paragraph)
         }
         guard let copied = await clipboardSelectedText() else { return nil }
         // Code editors (VS Code, JetBrains) copy the whole current line,
@@ -67,9 +70,9 @@ enum TextCapture {
         return (value as? String).map { ($0, element) }
     }
 
-    /// Reads up to 300 characters on each side of the selection and keeps
-    /// the sentence and the line that contain it.
-    private static func context(around element: AXUIElement) -> (sentence: String?, line: String?)? {
+    /// Reads up to 1500 characters on each side of the selection and keeps
+    /// the sentence, the line and the paragraph that contain it.
+    private static func context(around element: AXUIElement) -> (sentence: String?, line: String?, paragraph: String?)? {
         var rangeValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeValue) == .success,
               let rangeValue, CFGetTypeID(rangeValue) == AXValueGetTypeID() else { return nil }
@@ -78,15 +81,25 @@ enum TextCapture {
         var countValue: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXNumberOfCharactersAttribute as CFString, &countValue)
         let total = (countValue as? Int) ?? selected.location + selected.length
-        let start = max(0, selected.location - 300)
-        var window = CFRange(location: start, length: min(total, selected.location + selected.length + 300) - start)
+        let start = max(0, selected.location - 1500)
+        var window = CFRange(location: start, length: min(total, selected.location + selected.length + 1500) - start)
         guard let parameter = AXValueCreate(.cfRange, &window) else { return nil }
         var text: CFTypeRef?
         guard AXUIElementCopyParameterizedAttributeValue(
             element, kAXStringForRangeParameterizedAttribute as CFString, parameter, &text
         ) == .success, let text = text as? String else { return nil }
         let range = NSRange(location: selected.location - start, length: selected.length)
-        return (sentence(in: text, containing: range), line(in: text, containing: range))
+        return (sentence(in: text, containing: range), line(in: text, containing: range), paragraph(in: text, containing: range))
+    }
+
+    /// The paragraph of `text` that contains `range`, or nil when it is
+    /// no more than the selection itself.
+    static func paragraph(in text: String, containing range: NSRange) -> String? {
+        let ns = text as NSString
+        guard NSMaxRange(range) <= ns.length else { return nil }
+        let paragraph = ns.substring(with: ns.paragraphRange(for: range)).trimmingCharacters(in: .whitespacesAndNewlines)
+        let selection = ns.substring(with: range).trimmingCharacters(in: .whitespacesAndNewlines)
+        return paragraph.isEmpty || paragraph == selection ? nil : paragraph
     }
 
     /// The line of `text` (between line breaks) that contains `range`.

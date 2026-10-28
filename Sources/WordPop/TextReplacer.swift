@@ -24,7 +24,7 @@ enum TextReplacer {
         return selection.replacingCharacters(in: range, with: matchingCase(of: token, inflected))
     }
 
-    private static func matchingCase(of original: String, _ word: String) -> String {
+    static func matchingCase(of original: String, _ word: String) -> String {
         let letters = original.filter(\.isLetter)
         if letters.count > 1, letters == letters.uppercased() { return word.uppercased() }
         if letters.first?.isUppercase == true { return word.prefix(1).uppercased() + word.dropFirst() }

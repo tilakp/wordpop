@@ -7,6 +7,22 @@ final class SentenceContextTests: XCTestCase {
         let range = (text as NSString).range(of: "quiet")
         XCTAssertEqual(TextCapture.sentence(in: text, containing: range), "The room fell quiet after the verdict.")
     }
+
+    func testFindsTheSentencesAroundASentence() {
+        let paragraph = "The data came in late. I think we could send it sooner. The review starts Monday."
+        let around = WritingModel.neighbors(of: "I think we could send it sooner. ", in: paragraph)
+        XCTAssertEqual(around.before, "The data came in late.")
+        XCTAssertEqual(around.after, "The review starts Monday.")
+        XCTAssertNil(WritingModel.neighbors(of: "The data came in late.", in: paragraph).before)
+    }
+
+    func testPicksTheParagraphThatContainsTheSelection() {
+        let text = "First paragraph here.\n\nThe room fell quiet. Then the judge spoke.\nLast paragraph."
+        let range = (text as NSString).range(of: "quiet")
+        XCTAssertEqual(TextCapture.paragraph(in: text, containing: range), "The room fell quiet. Then the judge spoke.")
+        let whole = (text as NSString).range(of: "Last paragraph.")
+        XCTAssertNil(TextCapture.paragraph(in: text, containing: whole))
+    }
 }
 
 final class PartOfSpeechInContextTests: XCTestCase {
