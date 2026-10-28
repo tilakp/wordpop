@@ -258,6 +258,33 @@ enum WritingModel {
             .filter { $0.lowercased() != word.lowercased() }
     }
 
+    /// The tones a passage can be read as, for `tone(of:)`.
+    static let tones = [
+        "warm", "friendly", "neutral", "formal", "confident", "enthusiastic", "apologetic", "uncertain", "curt",
+        "defensive", "frustrated",
+    ]
+
+    /// How a reader would likely take the passage, as one of `tones`, and
+    /// a short reason that names the words that set it ("curt: short
+    /// commands and no greeting").
+    static func tone(of passage: String) async -> (tone: String, reason: String)? {
+        let instructions = "You tell a writer how a reader will most likely take the tone of their text, such as an email or message. Be honest and specific."
+        let prompt = "Text: \(passage)"
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), let reading = await structured(ToneReading.self, instructions, prompt),
+           tones.contains(reading.tone.lowercased()) {
+            return (reading.tone.lowercased(), reading.reason.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        #endif
+        guard let answer = await ask(
+            instructions,
+            prompt + "\nAnswer with one tone from this list: \(tones.joined(separator: ", ")). Then a colon and one short sentence on which words make it read that way. Nothing else."
+        ) else { return nil }
+        let parts = answer.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard parts.count == 2, tones.contains(parts[0].lowercased()) else { return nil }
+        return (parts[0].lowercased(), parts[1])
+    }
+
     /// The rhymes that would make a strong, natural ending for the next
     /// line of a poem or song, given the meaning and mood of `line`.
     static func rhymes(for line: String, endingIn word: String, candidates: [String]) async -> [String] {
@@ -383,6 +410,15 @@ private struct LineRhymes {
 private struct ToneChoices {
     @Guide(description: "Single words or short fixed phrases that can replace the word in the sentence with the requested tone, best first.", .count(3))
     var words: [String]
+}
+
+@available(macOS 26, *)
+@Generable
+private struct ToneReading {
+    @Guide(description: "How a reader will most likely take the text.", .anyOf(WritingModel.tones))
+    var tone: String
+    @Guide(description: "One short sentence on which words or phrases make the text read that way.")
+    var reason: String
 }
 
 @available(macOS 26, *)

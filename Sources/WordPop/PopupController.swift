@@ -283,6 +283,16 @@ final class PopupController: NSObject, NSWindowDelegate {
             guard let self, let rewrite = self.viewModel.rewrites[key], !rewrite.isEmpty else { return }
             self.viewModel.onReplaceSentence(key.sentence, rewrite)
         }
+        viewModel.onCheckTone = { [weak self] in
+            guard let self, !self.viewModel.isCheckingTone, let passage = self.viewModel.textStats?.sentenceTexts.joined(separator: " ") else { return }
+            self.viewModel.isCheckingTone = true
+            Task { @MainActor in
+                let reading = await WritingModel.tone(of: passage)
+                guard self.viewModel.isCheckingTone else { return }
+                self.viewModel.isCheckingTone = false
+                self.viewModel.toneReading = reading ?? ("", "No reading came back.")
+            }
+        }
         viewModel.onReplaceSentence = { [weak self] sentence, new in
             // The passage goes back with only that sentence changed.
             guard let self, let target = self.replaceTarget, let range = target.text.range(of: sentence) else { return }
@@ -429,6 +439,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$rewriting.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$transitionJob.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$transition.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$isCheckingTone.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$selectedPhrase.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseMatch.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseExplanation.map { _ in () }.eraseToAnyPublisher(),

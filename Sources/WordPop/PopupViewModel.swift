@@ -109,6 +109,11 @@ final class PopupViewModel: ObservableObject {
     /// transition picked, which is previewed before it goes in.
     @Published var transitionJob: String?
     @Published var transition: String?
+    /// How a reader would take the passage, from the on-device model; nil
+    /// until asked for.
+    @Published var toneReading: (tone: String, reason: String)?
+    @Published var isCheckingTone = false
+    var onCheckTone: () -> Void = {}
     /// Puts a new sentence in place of one in the passage.
     var onReplaceSentence: (_ sentence: String, _ with: String) -> Void = { _, _ in }
     /// The paragraph the selection sits in, when the app exposes it.
@@ -426,6 +431,8 @@ final class PopupViewModel: ObservableObject {
         rewriting = []
         transitionJob = nil
         transition = nil
+        toneReading = nil
+        isCheckingTone = false
         paragraph = nil
         typos = []
         typoFixes = [:]

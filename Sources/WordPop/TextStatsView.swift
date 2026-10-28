@@ -30,6 +30,9 @@ struct TextStatsView: View {
             if let sentence = reframeSentence, WritingModel.isAvailable {
                 section("Reframe", tint: .fitTint) { reframeControls(for: sentence) }
             }
+            if WritingModel.isAvailable {
+                section("Tone", tint: .toneTint) { toneControls }
+            }
             if let sentence = reframeSentence {
                 section("Transitions", tint: .collocationTint) { transitionControls(for: sentence) }
             }
@@ -241,6 +244,27 @@ struct TextStatsView: View {
                 rewriteResult(RewriteKey(sentence: sentence, rewrite: rewrite))
             }
             .padding(.top, 4)
+        }
+    }
+
+    /// A link that asks the on-device model how the passage reads, then
+    /// its answer: the tone, and the words that set it.
+    @ViewBuilder
+    private var toneControls: some View {
+        if let reading = viewModel.toneReading {
+            if reading.tone.isEmpty {
+                Text(reading.reason).font(.recentMeta).foregroundStyle(.tertiary)
+            } else {
+                (Text("Reads as \(reading.tone). ").font(.definition.weight(.semibold)) + Text(reading.reason).font(.definition))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            Button(action: viewModel.onCheckTone) {
+                Text(viewModel.isCheckingTone ? "Reading\u{2026}" : "How will this come across?")
+                    .font(.recentMeta)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
         }
     }
 

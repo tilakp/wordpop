@@ -36,6 +36,16 @@ if let index = CommandLine.arguments.firstIndex(of: "--collocations"), index + 1
     dispatchMain()
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--tone"), index + 1 < CommandLine.arguments.count {
+    let text = CommandLine.arguments[(index + 1)...].joined(separator: " ")
+    Task {
+        let reading = await WritingModel.tone(of: text)
+        print(reading.map { "\($0.tone): \($0.reason)" } ?? "-")
+        exit(0)
+    }
+    dispatchMain()
+}
+
 if CommandLine.arguments.contains("--model-check") {
     // Runs every on-device model feature on fixed inputs, for spotting
     // requests the model refuses or answers badly.
@@ -56,6 +66,7 @@ if CommandLine.arguments.contains("--model-check") {
                                                        definition: "showing great attention to detail; very careful and precise"))
         print("explain:", await WritingModel.explain(phrase: "touch base", in: "Let's touch base next week.") ?? "-")
         print("rewrite:", await WritingModel.rewrite("The report was written by the committee.", .active) ?? "-")
+        print("tone:", await WritingModel.tone(of: "Send me the file by noon. I asked twice already.").map { "\($0.tone): \($0.reason)" } ?? "-")
         print("sensitive:", await WritingModel.senseIndex(of: "killed", in: "The frost killed the plants.",
                                                           definitions: ["cause the death of", "put an end to", "pass time"]) as Any)
         exit(0)
