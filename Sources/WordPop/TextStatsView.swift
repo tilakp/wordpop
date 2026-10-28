@@ -33,12 +33,18 @@ struct TextStatsView: View {
             if !viewModel.typos.isEmpty {
                 section("Spelling", tint: .spellingTint) {
                     typoControls
-                    if viewModel.grammar.isEmpty, stats.wordy.isEmpty { applyFixesButton }
+                    if viewModel.grammar.isEmpty, viewModel.consistency.isEmpty, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !viewModel.grammar.isEmpty {
                 section("Grammar", tint: .spellingTint) {
                     grammarControls
+                    if viewModel.consistency.isEmpty, stats.wordy.isEmpty { applyFixesButton }
+                }
+            }
+            if !viewModel.consistency.isEmpty {
+                section("Consistency", tint: .confusedTint) {
+                    consistencyControls
                     if stats.wordy.isEmpty { applyFixesButton }
                 }
             }
@@ -87,9 +93,9 @@ struct TextStatsView: View {
                 }
             }
             if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, viewModel.typos.isEmpty,
-               stats.wordy.isEmpty, viewModel.grammar.isEmpty {
+               stats.wordy.isEmpty, viewModel.grammar.isEmpty, viewModel.consistency.isEmpty {
                 section("Notes", tint: .fitTint) {
-                    Text("No typos, grammar mistakes, wordy phrases, long sentences, passive voice, -ly adverbs or repeated words.")
+                    Text("No typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, passive voice, -ly adverbs or repeated words.")
                         .font(.definition)
                         .foregroundStyle(.secondary)
                 }
@@ -276,6 +282,63 @@ struct TextStatsView: View {
         let before = ns.substring(to: issue.range.location).split(separator: " ").suffix(2).joined(separator: " ")
         let after = ns.substring(from: NSMaxRange(issue.range)).split(separator: " ").prefix(2).joined(separator: " ")
         return [before, issue.flagged, after].filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    /// Words spelled two ways and British with American spelling, each
+    /// with the choice to make them the same; then mixed quotes, mixed
+    /// spacing and acronyms not spelled out, which only get a note.
+    @ViewBuilder
+    private var consistencyControls: some View {
+        let consistency = viewModel.consistency
+        ForEach(Array(consistency.variants.enumerated()), id: \.offset) { index, forms in
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("Spelled two ways:").font(.definition).foregroundStyle(.secondary)
+                ForEach(forms, id: \.self) { form in
+                    let chosen = viewModel.variantChoices[index] == form
+                    choicePill(form, chosen: chosen) { viewModel.variantChoices[index] = chosen ? nil : form }
+                }
+            }
+        }
+        if !consistency.british.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("British: \(consistency.british.joined(separator: ", "))\nAmerican: \(consistency.american.joined(separator: ", "))")
+                    .font(.definition)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    Text("Use").font(.definition).foregroundStyle(.secondary)
+                    ForEach([("British", PopupViewModel.SpellingSystem.british), ("American", .american)], id: \.0) { title, system in
+                        let chosen = viewModel.spellingSystem == system
+                        choicePill(title, chosen: chosen) { viewModel.spellingSystem = chosen ? nil : system }
+                    }
+                }
+            }
+        }
+        if consistency.mixedQuotes {
+            Text("Straight and curly quotes are mixed.").font(.definition).foregroundStyle(.secondary)
+        }
+        if consistency.mixedSpacing {
+            Text("Some sentences end with two spaces, some with one.").font(.definition).foregroundStyle(.secondary)
+        }
+        if !consistency.acronyms.isEmpty {
+            Text("Not spelled out before first use: \(consistency.acronyms.joined(separator: ", "))")
+                .font(.definition)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func choicePill(_ title: String, chosen: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.pill)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 2)
+                .background(Color.confusedTint.opacity(chosen ? 0.28 : 0.08))
+                .clipShape(Capsule())
+                .overlay(Capsule().strokeBorder(chosen ? Color.confusedTint : Color.confusedTint.opacity(0.25)))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Each wordy phrase or cliche with its fix ("remove" when it can go),

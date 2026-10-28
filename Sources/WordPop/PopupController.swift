@@ -59,6 +59,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.paragraph = selection?.paragraph
         viewModel.typos = Spelling.typos(in: passage)
         viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
+        viewModel.consistency = Consistency.check(passage)
         viewModel.grammar = Spelling.grammarIssues(in: passage)
         viewModel.grammarFixes = Dictionary(uniqueKeysWithValues: viewModel.grammar.enumerated().map { ($0.offset, $0.element.corrections[0]) })
         // Wordy phrases start chosen; cliches are a matter of taste.
@@ -294,7 +295,11 @@ final class PopupController: NSObject, NSWindowDelegate {
             // Grammar first: its fixes find their sentence as checked.
             let grammar = self.viewModel.grammarFixes.map { (self.viewModel.grammar[$0.key], $0.value) }
             let text = TextStats.tightened(
-                Spelling.applying(self.viewModel.typoFixes, to: Spelling.applying(grammar, to: target.text)), fixes: self.viewModel.phraseFixes
+                Spelling.applying(
+                    self.viewModel.consistencyFixes,
+                    to: Spelling.applying(self.viewModel.typoFixes, to: Spelling.applying(grammar, to: target.text))
+                ),
+                fixes: self.viewModel.phraseFixes
             )
             self.replaceTarget = nil
             self.hide()
@@ -428,6 +433,12 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$contextSense.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$collocations.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isLoadingCollocations.map { _ in () }.eraseToAnyPublisher(),
+            // The fix button shows only while a fix is chosen.
+            viewModel.$typoFixes.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$grammarFixes.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$phraseFixes.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$variantChoices.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$spellingSystem.map { _ in () }.eraseToAnyPublisher(),
         ]
         blockSelection = Publishers.MergeMany(heightChanges)
             .dropFirst(heightChanges.count)

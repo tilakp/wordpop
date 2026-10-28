@@ -118,18 +118,40 @@ final class PopupViewModel: ObservableObject {
     /// index in `grammar`).
     @Published var grammar: [GrammarIssue] = []
     @Published var grammarFixes: [Int: String] = [:]
+    /// What the passage does two ways, the spelling chosen for each
+    /// variant group (by index), and the spelling system chosen, if any.
+    @Published var consistency = Consistency()
+    @Published var variantChoices: [Int: String] = [:]
+    @Published var spellingSystem: SpellingSystem?
+
+    enum SpellingSystem { case british, american }
+
+    /// Each word to change for the chosen spellings, with its new form.
+    var consistencyFixes: [String: String] {
+        var fixes: [String: String] = [:]
+        for (index, chosen) in variantChoices {
+            for form in consistency.variants[index] where form != chosen { fixes[form] = chosen }
+        }
+        switch spellingSystem {
+        case .british: fixes.merge(consistency.toBritish) { first, _ in first }
+        case .american: fixes.merge(consistency.toAmerican) { first, _ in first }
+        case nil: break
+        }
+        return fixes
+    }
     /// Puts the chosen typo and phrase fixes into the passage at once.
     var onApplyFixes: () -> Void = {}
 
-    var hasFixes: Bool { !typoFixes.isEmpty || !phraseFixes.isEmpty || !grammarFixes.isEmpty }
+    var hasFixes: Bool { !typoFixes.isEmpty || !phraseFixes.isEmpty || !grammarFixes.isEmpty || !consistencyFixes.isEmpty }
 
     /// "Fix 2 typos, 1 grammar mistake and 3 phrases".
     var fixesLabel: String {
-        let typos = typoFixes.count, mistakes = grammarFixes.count, phrases = phraseFixes.count
-        if typos == 0, mistakes == 0 { return "Tighten \(phrases) phrase\(phrases == 1 ? "" : "s")" }
+        let typos = typoFixes.count, mistakes = grammarFixes.count, spellings = consistencyFixes.count, phrases = phraseFixes.count
+        if typos == 0, mistakes == 0, spellings == 0 { return "Tighten \(phrases) phrase\(phrases == 1 ? "" : "s")" }
         let parts = [
             typos > 0 ? "\(typos) typo\(typos == 1 ? "" : "s")" : nil,
             mistakes > 0 ? "\(mistakes) grammar mistake\(mistakes == 1 ? "" : "s")" : nil,
+            spellings > 0 ? "\(spellings) spelling\(spellings == 1 ? "" : "s")" : nil,
             phrases > 0 ? "\(phrases) phrase\(phrases == 1 ? "" : "s")" : nil,
         ].compactMap { $0 }
         return "Fix " + (parts.count > 1 ? parts.dropLast().joined(separator: ", ") + " and " + parts.last! : parts[0])
@@ -402,6 +424,9 @@ final class PopupViewModel: ObservableObject {
         phraseFixes = [:]
         grammar = []
         grammarFixes = [:]
+        consistency = Consistency()
+        variantChoices = [:]
+        spellingSystem = nil
         paragraphUses = nil
         collocations = nil
         isLoadingCollocations = false

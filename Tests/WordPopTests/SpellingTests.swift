@@ -58,6 +58,7 @@ final class ExampleSentenceTests: XCTestCase {
         let typos = Spelling.typos(in: "We have recieved your letter. It was recieved late, seperate from the rest.")
         XCTAssertEqual(typos.map(\.word), ["recieved", "seperate"])
         XCTAssertEqual(typos.first?.suggestions.first, "received")
+        XCTAssertTrue(Spelling.typos(in: "The colour and the color were organised.").isEmpty)
     }
 
     func testAppliesFixesToWholeWordsInTheSameCase() {

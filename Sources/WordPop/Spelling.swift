@@ -39,7 +39,8 @@ enum Spelling {
 
     /// The misspelled words of a passage, once each in order of use, with
     /// their suggestions; words the spell checker has no suggestion for
-    /// (often names) are left out.
+    /// (often names) are left out, and so are British or American
+    /// spellings ("colour", "color"), which the consistency notes cover.
     static func typos(in text: String, limit: Int = 8) -> [(word: String, suggestions: [String])] {
         let checker = NSSpellChecker.shared
         let ns = text as NSString
@@ -52,7 +53,11 @@ enum Spelling {
             guard range.location != NSNotFound, range.length > 0 else { break }
             start = NSMaxRange(range)
             let word = ns.substring(with: range)
-            guard !found.contains(where: { $0.word.lowercased() == word.lowercased() }) else { continue }
+            guard !found.contains(where: { $0.word.lowercased() == word.lowercased() }),
+                  !["en_GB", "en_US"].contains(where: { language in
+                      checker.checkSpelling(of: word, startingAt: 0, language: language, wrap: false, inSpellDocumentWithTag: 0, wordCount: nil)
+                          .location == NSNotFound
+                  }) else { continue }
             let suggestions = suggestions(for: word, limit: 3)
             if !suggestions.isEmpty { found.append((word, suggestions)) }
         }
