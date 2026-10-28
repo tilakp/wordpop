@@ -59,6 +59,8 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.paragraph = selection?.paragraph
         viewModel.typos = Spelling.typos(in: passage)
         viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
+        viewModel.grammar = Spelling.grammarIssues(in: passage)
+        viewModel.grammarFixes = Dictionary(uniqueKeysWithValues: viewModel.grammar.enumerated().map { ($0.offset, $0.element.corrections[0]) })
         // Wordy phrases start chosen; cliches are a matter of taste.
         viewModel.phraseFixes = Dictionary(stats.wordy.filter { !$0.isCliche }.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
         wireViewModelActions()
@@ -288,8 +290,12 @@ final class PopupController: NSObject, NSWindowDelegate {
             }
         }
         viewModel.onApplyFixes = { [weak self] in
-            guard let self, let target = self.replaceTarget, !self.viewModel.typoFixes.isEmpty || !self.viewModel.phraseFixes.isEmpty else { return }
-            let text = TextStats.tightened(Spelling.applying(self.viewModel.typoFixes, to: target.text), fixes: self.viewModel.phraseFixes)
+            guard let self, let target = self.replaceTarget, self.viewModel.hasFixes else { return }
+            // Grammar first: its fixes find their sentence as checked.
+            let grammar = self.viewModel.grammarFixes.map { (self.viewModel.grammar[$0.key], $0.value) }
+            let text = TextStats.tightened(
+                Spelling.applying(self.viewModel.typoFixes, to: Spelling.applying(grammar, to: target.text)), fixes: self.viewModel.phraseFixes
+            )
             self.replaceTarget = nil
             self.hide()
             Task { @MainActor in

@@ -58,12 +58,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Opening the bundled database and enumerating the system dictionaries
     /// each take a moment; doing it on a background queue at launch keeps
-    /// the first hotkey press instant.
+    /// the first hotkey press instant. The grammar checker's first check
+    /// in a process misses agreement mistakes ("They was"), so one is run
+    /// here.
     private func warmDatasetCachesInBackground() {
         DispatchQueue.global(qos: .utility).async {
             Database.warmUp()
             _ = SystemDictionaries.thesaurus
             _ = SystemDictionaries.english
+            _ = Spelling.grammarIssues(in: "They was right.")
         }
     }
 

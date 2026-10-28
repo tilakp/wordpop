@@ -1,5 +1,17 @@
 import AppKit
 
+/// A possible grammar mistake the macOS checker found: the words it
+/// flags in their sentence, why, and the corrections it offers.
+struct GrammarIssue: Equatable {
+    let sentence: String
+    /// The flagged words' range in `sentence`.
+    let range: NSRange
+    let message: String
+    let corrections: [String]
+
+    var flagged: String { (sentence as NSString).substring(with: range) }
+}
+
 /// Spelling suggestions from the macOS spell checker, which works offline.
 enum Spelling {
     /// Close words for a misspelled word, best first; empty when the word
@@ -61,6 +73,47 @@ enum Spelling {
                 let original = (result as NSString).substring(with: match.range)
                 result = (result as NSString).replacingCharacters(in: match.range, with: TextReplacer.matchingCase(of: original, fix))
             }
+        }
+        return result
+    }
+
+    /// Grammar mistakes in `text`, from the same checker as the red and
+    /// green underlines in Mail and TextEdit: "a apple" -> an, "could of"
+    /// -> have, "They was" -> were. Only mistakes with a correction are
+    /// kept. The checker finds nothing unless spelling is checked in the
+    /// same call.
+    static func grammarIssues(in text: String, limit: Int = 8) -> [GrammarIssue] {
+        let ns = text as NSString
+        let results = NSSpellChecker.shared.check(
+            text, range: NSRange(location: 0, length: ns.length),
+            types: NSTextCheckingResult.CheckingType([.grammar, .spelling]).rawValue,
+            options: [:], inSpellDocumentWithTag: 0, orthography: nil, wordCount: nil
+        )
+        var issues: [GrammarIssue] = []
+        for result in results where result.resultType == .grammar {
+            let sentence = ns.substring(with: result.range)
+            for detail in result.grammarDetails ?? [] {
+                guard let range = (detail[NSGrammarRange] as? NSValue)?.rangeValue,
+                      NSMaxRange(range) <= (sentence as NSString).length,
+                      let corrections = detail[NSGrammarCorrections] as? [String], !corrections.isEmpty else { continue }
+                let message = detail[NSGrammarUserDescription] as? String ?? ""
+                issues.append(GrammarIssue(sentence: sentence, range: range, message: message, corrections: corrections))
+            }
+        }
+        return Array(issues.prefix(limit))
+    }
+
+    /// `text` with the chosen correction for each issue put in its
+    /// sentence. Fixes in one sentence are applied from the end, so the
+    /// earlier ranges still hold.
+    static func applying(_ fixes: [(issue: GrammarIssue, correction: String)], to text: String) -> String {
+        var result = text
+        for sentence in Set(fixes.map(\.issue.sentence)) {
+            var fixed = sentence as NSString
+            for fix in fixes.filter({ $0.issue.sentence == sentence }).sorted(by: { $0.issue.range.location > $1.issue.range.location }) {
+                fixed = fixed.replacingCharacters(in: fix.issue.range, with: fix.correction) as NSString
+            }
+            if let range = result.range(of: sentence) { result.replaceSubrange(range, with: fixed as String) }
         }
         return result
     }

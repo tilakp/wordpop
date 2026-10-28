@@ -114,14 +114,25 @@ final class PopupViewModel: ObservableObject {
     /// The fix chosen for each wordy phrase or cliche, by its spelling in
     /// the passage; phrases without one are left as they are.
     @Published var phraseFixes: [String: String] = [:]
+    /// Possible grammar mistakes, and the correction chosen for each (by
+    /// index in `grammar`).
+    @Published var grammar: [GrammarIssue] = []
+    @Published var grammarFixes: [Int: String] = [:]
     /// Puts the chosen typo and phrase fixes into the passage at once.
     var onApplyFixes: () -> Void = {}
 
+    var hasFixes: Bool { !typoFixes.isEmpty || !phraseFixes.isEmpty || !grammarFixes.isEmpty }
+
+    /// "Fix 2 typos, 1 grammar mistake and 3 phrases".
     var fixesLabel: String {
-        let typos = typoFixes.count, phrases = phraseFixes.count
-        let typoText = "\(typos) typo\(typos == 1 ? "" : "s")", phraseText = "\(phrases) phrase\(phrases == 1 ? "" : "s")"
-        if typos > 0, phrases > 0 { return "Fix \(typoText) and \(phraseText)" }
-        return typos > 0 ? "Fix \(typoText)" : "Tighten \(phraseText)"
+        let typos = typoFixes.count, mistakes = grammarFixes.count, phrases = phraseFixes.count
+        if typos == 0, mistakes == 0 { return "Tighten \(phrases) phrase\(phrases == 1 ? "" : "s")" }
+        let parts = [
+            typos > 0 ? "\(typos) typo\(typos == 1 ? "" : "s")" : nil,
+            mistakes > 0 ? "\(mistakes) grammar mistake\(mistakes == 1 ? "" : "s")" : nil,
+            phrases > 0 ? "\(phrases) phrase\(phrases == 1 ? "" : "s")" : nil,
+        ].compactMap { $0 }
+        return "Fix " + (parts.count > 1 ? parts.dropLast().joined(separator: ", ") + " and " + parts.last! : parts[0])
     }
     /// How many times the looked-up word is used in its paragraph, when
     /// that is often enough to be worth varying.
@@ -389,6 +400,8 @@ final class PopupViewModel: ObservableObject {
         typos = []
         typoFixes = [:]
         phraseFixes = [:]
+        grammar = []
+        grammarFixes = [:]
         paragraphUses = nil
         collocations = nil
         isLoadingCollocations = false

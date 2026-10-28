@@ -33,6 +33,12 @@ struct TextStatsView: View {
             if !viewModel.typos.isEmpty {
                 section("Spelling", tint: .spellingTint) {
                     typoControls
+                    if viewModel.grammar.isEmpty, stats.wordy.isEmpty { applyFixesButton }
+                }
+            }
+            if !viewModel.grammar.isEmpty {
+                section("Grammar", tint: .spellingTint) {
+                    grammarControls
                     if stats.wordy.isEmpty { applyFixesButton }
                 }
             }
@@ -81,9 +87,9 @@ struct TextStatsView: View {
                 }
             }
             if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, viewModel.typos.isEmpty,
-               stats.wordy.isEmpty {
+               stats.wordy.isEmpty, viewModel.grammar.isEmpty {
                 section("Notes", tint: .fitTint) {
-                    Text("No typos, wordy phrases, long sentences, passive voice, -ly adverbs or repeated words.")
+                    Text("No typos, grammar mistakes, wordy phrases, long sentences, passive voice, -ly adverbs or repeated words.")
                         .font(.definition)
                         .foregroundStyle(.secondary)
                 }
@@ -228,6 +234,50 @@ struct TextStatsView: View {
         }
     }
 
+    /// Each grammar mistake in a few words of its sentence, with the
+    /// checker's corrections and its reason when that says more than
+    /// "Consider 'an' instead".
+    @ViewBuilder
+    private var grammarControls: some View {
+        ForEach(Array(viewModel.grammar.enumerated()), id: \.offset) { index, issue in
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(Self.excerpt(of: issue))
+                        .font(.pill)
+                        .foregroundStyle(.secondary)
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                    FlowLayout(spacing: 6) {
+                        ForEach(issue.corrections.prefix(3), id: \.self) { correction in
+                            let chosen = viewModel.grammarFixes[index] == correction
+                            Button(action: { viewModel.grammarFixes[index] = chosen ? nil : correction }) {
+                                Text(correction)
+                                    .font(.pill)
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 2)
+                                    .background(Color.spellingTint.opacity(chosen ? 0.28 : 0.08))
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().strokeBorder(chosen ? Color.spellingTint : Color.spellingTint.opacity(0.25)))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                if !issue.message.hasPrefix("Consider") {
+                    Text(issue.message).font(.recentMeta).foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
+    /// The flagged words with up to two words either side: "saw a apple
+    /// on".
+    static func excerpt(of issue: GrammarIssue) -> String {
+        let ns = issue.sentence as NSString
+        let before = ns.substring(to: issue.range.location).split(separator: " ").suffix(2).joined(separator: " ")
+        let after = ns.substring(from: NSMaxRange(issue.range)).split(separator: " ").prefix(2).joined(separator: " ")
+        return [before, issue.flagged, after].filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
     /// Each wordy phrase or cliche with its fix ("remove" when it can go),
     /// chosen or not like a typo's fix; a cliche with no plainer wording
     /// is only marked.
@@ -265,7 +315,7 @@ struct TextStatsView: View {
     /// paste closes the popup.
     @ViewBuilder
     private var applyFixesButton: some View {
-        if viewModel.canReplace, !viewModel.typoFixes.isEmpty || !viewModel.phraseFixes.isEmpty {
+        if viewModel.canReplace, viewModel.hasFixes {
             Button(viewModel.fixesLabel, action: viewModel.onApplyFixes)
                 .font(.recentMeta)
                 .buttonStyle(.plain)
