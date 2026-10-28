@@ -56,4 +56,31 @@ final class TextStatsTests: XCTestCase {
         XCTAssertEqual(TextStats.uses(of: "write", forms: ["past wrote", "past participle written"], in: "I wrote it, he writes, she has written."), 3)
         XCTAssertEqual(TextStats.uses(of: "about", forms: [], in: "about about about"), 0, "common words are skipped")
     }
+
+    private let flags = [
+        PhraseFlag(phrase: "the fact that", fix: "that", isCliche: false),
+        PhraseFlag(phrase: "due to the fact that", fix: "because", isCliche: false),
+        PhraseFlag(phrase: "in order to", fix: "to", isCliche: false),
+        PhraseFlag(phrase: "needless to say", fix: "", isCliche: false),
+        PhraseFlag(phrase: "low-hanging fruit", fix: "easy wins", isCliche: true),
+    ]
+
+    func testFlagsWordyPhrasesAndClichesLongestFirst() {
+        let text = "Due to the fact that we were late, we took the low-hanging fruit in order to finish. In order to win, we ran."
+        let found = TextStats.flagged(flags, in: text)
+        XCTAssertEqual(found.map(\.phrase), ["Due to the fact that", "low-hanging fruit", "in order to"])
+        XCTAssertEqual(found.map(\.isCliche), [false, true, false])
+        XCTAssertTrue(TextStats.flagged(flags, in: "Inorder to tonight").isEmpty)
+    }
+
+    func testTightensPhrasesKeepingCase() {
+        XCTAssertEqual(
+            TextStats.tightened("Due to the fact that it rained, we left in order to rest.", fixes: ["due to the fact that": "because", "in order to": "to"]),
+            "Because it rained, we left to rest."
+        )
+        XCTAssertEqual(TextStats.tightened("Needless to say, it failed.", fixes: ["needless to say": ""]), "It failed.")
+        XCTAssertEqual(TextStats.tightened("It failed, needless to say.", fixes: ["needless to say": ""]), "It failed.")
+        XCTAssertEqual(TextStats.tightened("We were, needless to say, late.", fixes: ["needless to say": ""]), "We were late.")
+        XCTAssertEqual(TextStats.tightened("We are in the process of moving.", fixes: ["in the process of": ""]), "We are moving.")
+    }
 }

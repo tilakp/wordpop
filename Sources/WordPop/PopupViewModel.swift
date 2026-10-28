@@ -111,7 +111,18 @@ final class PopupViewModel: ObservableObject {
     /// chosen for each (by typo); typos without a fix are left as they are.
     @Published var typos: [(word: String, suggestions: [String])] = []
     @Published var typoFixes: [String: String] = [:]
-    var onFixTypos: () -> Void = {}
+    /// The fix chosen for each wordy phrase or cliche, by its spelling in
+    /// the passage; phrases without one are left as they are.
+    @Published var phraseFixes: [String: String] = [:]
+    /// Puts the chosen typo and phrase fixes into the passage at once.
+    var onApplyFixes: () -> Void = {}
+
+    var fixesLabel: String {
+        let typos = typoFixes.count, phrases = phraseFixes.count
+        let typoText = "\(typos) typo\(typos == 1 ? "" : "s")", phraseText = "\(phrases) phrase\(phrases == 1 ? "" : "s")"
+        if typos > 0, phrases > 0 { return "Fix \(typoText) and \(phraseText)" }
+        return typos > 0 ? "Fix \(typoText)" : "Tighten \(phraseText)"
+    }
     /// How many times the looked-up word is used in its paragraph, when
     /// that is often enough to be worth varying.
     @Published var paragraphUses: Int?
@@ -377,6 +388,7 @@ final class PopupViewModel: ObservableObject {
         paragraph = nil
         typos = []
         typoFixes = [:]
+        phraseFixes = [:]
         paragraphUses = nil
         collocations = nil
         isLoadingCollocations = false

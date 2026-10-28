@@ -31,7 +31,16 @@ struct TextStatsView: View {
                 section("Reframe", tint: .fitTint) { reframeControls(for: sentence) }
             }
             if !viewModel.typos.isEmpty {
-                section("Spelling", tint: .spellingTint) { typoControls }
+                section("Spelling", tint: .spellingTint) {
+                    typoControls
+                    if stats.wordy.isEmpty { applyFixesButton }
+                }
+            }
+            if !stats.wordy.isEmpty {
+                section("Wordy phrases and clich\u{E9}s", tint: .strongerTint) {
+                    phraseControls
+                    applyFixesButton
+                }
             }
             section("Reading grade", tint: .synonymTint) {
                 Text(gradeLabel)
@@ -71,9 +80,10 @@ struct TextStatsView: View {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
             }
-            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, viewModel.typos.isEmpty {
+            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, viewModel.typos.isEmpty,
+               stats.wordy.isEmpty {
                 section("Notes", tint: .fitTint) {
-                    Text("No typos, long sentences, passive voice, -ly adverbs or repeated words.")
+                    Text("No typos, wordy phrases, long sentences, passive voice, -ly adverbs or repeated words.")
                         .font(.definition)
                         .foregroundStyle(.secondary)
                 }
@@ -216,11 +226,50 @@ struct TextStatsView: View {
                 }
             }
         }
-        if viewModel.canReplace, !viewModel.typoFixes.isEmpty {
-            Button("Fix \(viewModel.typoFixes.count) typo\(viewModel.typoFixes.count == 1 ? "" : "s")", action: viewModel.onFixTypos)
+    }
+
+    /// Each wordy phrase or cliche with its fix ("remove" when it can go),
+    /// chosen or not like a typo's fix; a cliche with no plainer wording
+    /// is only marked.
+    @ViewBuilder
+    private var phraseControls: some View {
+        ForEach(stats.wordy, id: \.phrase) { flag in
+            let chosen = viewModel.phraseFixes[flag.phrase] != nil
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(flag.phrase)
+                    .font(.pill)
+                    .strikethrough(chosen)
+                    .foregroundStyle(.secondary)
+                if flag.isCliche {
+                    Text("clich\u{E9}").font(.pillLabel).foregroundStyle(.tertiary)
+                }
+                if !flag.isCliche || !flag.fix.isEmpty {
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                    Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
+                        Text(flag.fix.isEmpty ? "remove" : flag.fix)
+                            .font(.pill)
+                            .italic(flag.fix.isEmpty)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 2)
+                            .background(Color.strongerTint.opacity(chosen ? 0.28 : 0.08))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(chosen ? Color.strongerTint : Color.strongerTint.opacity(0.25)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    /// One button for the typo and phrase fixes together, as the first
+    /// paste closes the popup.
+    @ViewBuilder
+    private var applyFixesButton: some View {
+        if viewModel.canReplace, !viewModel.typoFixes.isEmpty || !viewModel.phraseFixes.isEmpty {
+            Button(viewModel.fixesLabel, action: viewModel.onApplyFixes)
                 .font(.recentMeta)
                 .buttonStyle(.plain)
-                .foregroundStyle(Color.spellingTint)
+                .foregroundStyle(Color.accentColor)
                 .padding(.top, 2)
         }
     }

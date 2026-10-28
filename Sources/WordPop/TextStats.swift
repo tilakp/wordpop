@@ -1,6 +1,14 @@
 import Foundation
 import NaturalLanguage
 
+/// A wordy phrase ("in order to") or a cliche ("low-hanging fruit") and
+/// the plainer words for it; an empty fix means the phrase can go.
+struct PhraseFlag: Equatable {
+    let phrase: String
+    let fix: String
+    let isCliche: Bool
+}
+
 /// Readability notes for a selected passage, in the spirit of the
 /// Hemingway editor: length, reading grade, long sentences, possible
 /// passive voice, -ly adverbs and repeated words. All local.
@@ -17,6 +25,9 @@ struct TextStats: Equatable {
     let adverbs: [String]
     /// Content words used three times or more, most used first.
     let repeated: [(word: String, count: Int)]
+    /// Wordy phrases and cliches found in the passage, in its spelling
+    /// and in order of use.
+    var wordy: [PhraseFlag] = []
     /// The passage's sentences, for finding the one a note refers to.
     var sentenceTexts: [String] = []
 
@@ -37,7 +48,7 @@ struct TextStats: Equatable {
     static func == (a: TextStats, b: TextStats) -> Bool {
         a.words == b.words && a.sentences == b.sentences && a.grade == b.grade && a.passives == b.passives
             && a.adverbs == b.adverbs && a.longSentences.map(\.text) == b.longSentences.map(\.text)
-            && a.repeated.map(\.word) == b.repeated.map(\.word)
+            && a.repeated.map(\.word) == b.repeated.map(\.word) && a.wordy == b.wordy
     }
 
     static func isPassage(_ text: String) -> Bool {
@@ -59,8 +70,9 @@ struct TextStats: Equatable {
     }
 
     /// `syllables` gives a word's syllable count when known (from the
-    /// bundled CMU data); other words are counted by spelling.
-    static func analyze(_ text: String, syllables: ([String]) -> [String: Int] = { _ in [:] }) -> TextStats {
+    /// bundled CMU data); other words are counted by spelling. `flags` are
+    /// the wordy phrases and cliches to look for.
+    static func analyze(_ text: String, syllables: ([String]) -> [String: Int] = { _ in [:] }, flags: [PhraseFlag] = []) -> TextStats {
         let sentenceRanges = tokens(of: text, unit: .sentence)
         let sentenceTexts = sentenceRanges.map { text[$0].trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         let wordRanges = tokens(of: text, unit: .word)
@@ -86,8 +98,68 @@ struct TextStats: Equatable {
             passives: passives(in: lowered),
             adverbs: adverbs(in: text),
             repeated: repeatedWords(in: lowered),
+            wordy: flagged(flags, in: text),
             sentenceTexts: sentenceTexts
         )
+    }
+
+    /// The flagged phrases in `text`, matched as whole words in any case.
+    /// The longest match wins where two overlap: "due to the fact that",
+    /// not "the fact that" inside it.
+    static func flagged(_ flags: [PhraseFlag], in text: String) -> [PhraseFlag] {
+        let ns = text as NSString
+        var taken: [NSRange] = []
+        var found: [(location: Int, flag: PhraseFlag)] = []
+        for flag in flags.sorted(by: { $0.phrase.count > $1.phrase.count }) {
+            guard let pattern = try? NSRegularExpression(
+                pattern: "\\b\(NSRegularExpression.escapedPattern(for: flag.phrase))\\b", options: .caseInsensitive
+            ) else { continue }
+            for match in pattern.matches(in: text, range: NSRange(location: 0, length: ns.length))
+            where !taken.contains(where: { NSIntersectionRange($0, match.range).length > 0 }) {
+                taken.append(match.range)
+                let spelled = ns.substring(with: match.range)
+                if !found.contains(where: { $0.flag.phrase.lowercased() == spelled.lowercased() }) {
+                    found.append((match.range.location, PhraseFlag(phrase: spelled, fix: flag.fix, isCliche: flag.isCliche)))
+                }
+            }
+        }
+        return found.sorted { $0.location < $1.location }.map(\.flag)
+    }
+
+    /// `text` with each phrase (the keys, as whole words in any case)
+    /// changed to its fix in the same capitalization. An empty fix takes
+    /// the phrase out with the commas and space around it, and capitalizes
+    /// the next word when the phrase began the sentence: "Needless to
+    /// say, it failed." -> "It failed."; "We were, needless to say, late."
+    /// -> "We were late."
+    static func tightened(_ text: String, fixes: [String: String]) -> String {
+        var result = text
+        for (phrase, fix) in fixes {
+            let (head, tail) = fix.isEmpty ? (",?\\s*", ",?\\s*") : ("", "")
+            guard let pattern = try? NSRegularExpression(
+                pattern: "\(head)\\b\(NSRegularExpression.escapedPattern(for: phrase))\\b\(tail)", options: .caseInsensitive
+            ) else { continue }
+            for match in pattern.matches(in: result, range: NSRange(location: 0, length: (result as NSString).length)).reversed() {
+                let ns = result as NSString
+                let original = ns.substring(with: match.range)
+                if fix.isEmpty {
+                    // One space stays between the words on either side; a
+                    // capital moves on to the next word.
+                    let leading = original.prefix { $0 == "," || $0.isWhitespace }
+                    let after = NSMaxRange(match.range)
+                    var next = after < ns.length ? ns.substring(with: NSRange(location: after, length: 1)) : ""
+                    let endsSentence = next.isEmpty || next.first?.isPunctuation == true
+                    let gap = leading.isEmpty || endsSentence ? "" : " "
+                    if original.dropFirst(leading.count).first?.isUppercase == true { next = next.uppercased() }
+                    result = ns.replacingCharacters(
+                        in: NSRange(location: match.range.location, length: match.range.length + next.utf16.count), with: gap + next
+                    )
+                } else {
+                    result = ns.replacingCharacters(in: match.range, with: TextReplacer.matchingCase(of: original, fix))
+                }
+            }
+        }
+        return result
     }
 
     private static func tokens(of text: String, unit: NLTokenUnit) -> [Range<String.Index>] {

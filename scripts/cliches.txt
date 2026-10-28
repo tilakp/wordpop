@@ -1,0 +1,61 @@
+# Cliches and stock business phrases, with a plainer way to say each when
+# there is one. One phrase per line: "phrase | fix" or "phrase |".
+# build_db.py loads this into the flags table.
+think outside the box | think differently
+low-hanging fruit | easy wins
+move the needle | make a difference
+circle back | return to
+touch base | talk
+on the same page | in agreement
+at the end of the day | in the end
+going forward | from now on
+moving forward | from now on
+best of breed | best
+paradigm shift | major change
+game changer | big change
+win-win situation | good for both sides
+win-win | good for both sides
+synergy |
+leverage our | use our
+deep dive | close look
+take it to the next level | improve it
+hit the ground running | start fast
+the bottom line | the result
+when all is said and done | in the end
+in this day and age | today
+at the drop of a hat | at once
+avoid it like the plague | avoid it
+all walks of life | all kinds of people
+better late than never |
+by leaps and bounds | quickly
+crystal clear | clear
+easier said than done | hard
+few and far between | rare
+for all intents and purposes | in effect
+in the nick of time | just in time
+last but not least | finally
+leaps and bounds | quickly
+long story short | in short
+needle in a haystack | hard to find
+only time will tell |
+read between the lines |
+the ball is in your court | it is your decision
+think on your feet | adapt quickly
+tip of the iceberg | a small part
+up in the air | undecided
+when push comes to shove | if needed
+a perfect storm | a bad mix of events
+at your earliest convenience | soon
+it is what it is |
+the elephant in the room | the obvious problem
+pushing the envelope | testing limits
+push the envelope | test the limits
+reinvent the wheel | start from scratch
+back to square one | back to the start
+ahead of the curve | ahead
+cutting edge | newest
+state of the art | newest
+hit the nail on the head | be exactly right
+a level playing field | fair conditions
+par for the course | normal
+raise the bar | set a higher standard

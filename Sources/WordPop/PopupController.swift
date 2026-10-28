@@ -54,10 +54,13 @@ final class PopupController: NSObject, NSWindowDelegate {
         replaceTarget = selection
         viewModel.reset(with: .empty)
         viewModel.canReplace = selection != nil
-        viewModel.textStats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) })
+        let stats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) }, flags: Database.phraseFlags)
+        viewModel.textStats = stats
         viewModel.paragraph = selection?.paragraph
         viewModel.typos = Spelling.typos(in: passage)
         viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
+        // Wordy phrases start chosen; cliches are a matter of taste.
+        viewModel.phraseFixes = Dictionary(stats.wordy.filter { !$0.isCliche }.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -284,9 +287,9 @@ final class PopupController: NSObject, NSWindowDelegate {
                 await TextReplacer.paste(target.text.replacingCharacters(in: range, with: rewrite), into: target.app)
             }
         }
-        viewModel.onFixTypos = { [weak self] in
-            guard let self, let target = self.replaceTarget, !self.viewModel.typoFixes.isEmpty else { return }
-            let text = Spelling.applying(self.viewModel.typoFixes, to: target.text)
+        viewModel.onApplyFixes = { [weak self] in
+            guard let self, let target = self.replaceTarget, !self.viewModel.typoFixes.isEmpty || !self.viewModel.phraseFixes.isEmpty else { return }
+            let text = TextStats.tightened(Spelling.applying(self.viewModel.typoFixes, to: target.text), fixes: self.viewModel.phraseFixes)
             self.replaceTarget = nil
             self.hide()
             Task { @MainActor in

@@ -1,0 +1,119 @@
+# Wordy phrases and the shorter words that say the same. One phrase per
+# line: "phrase | fix". An empty fix means the phrase can go. build_db.py
+# loads this into the flags table; passage notes offer each fix.
+in order to | to
+in order for | for
+due to the fact that | because
+owing to the fact that | because
+in view of the fact that | because
+in light of the fact that | because
+on account of the fact that | because
+despite the fact that | although
+in spite of the fact that | although
+regardless of the fact that | although
+the fact that | that
+at this point in time | now
+at the present time | now
+at this moment in time | now
+at that point in time | then
+in the near future | soon
+in the event that | if
+in the event of | if there is
+on the occasion of | when
+for the purpose of | for
+with the purpose of | to
+with regard to | about
+with respect to | about
+in regard to | about
+in relation to | about
+in reference to | about
+in connection with | about
+on the subject of | about
+as regards | about
+in terms of | in
+a large number of | many
+a great number of | many
+a significant number of | many
+a majority of | most
+the majority of | most
+a small number of | a few
+a number of | some
+in the majority of cases | usually
+in most cases | usually
+on a daily basis | daily
+on a weekly basis | weekly
+on a monthly basis | monthly
+on a regular basis | regularly
+on a yearly basis | yearly
+is able to | can
+are able to | can
+was able to | could
+were able to | could
+has the ability to | can
+have the ability to | can
+is in a position to | can
+make a decision | decide
+made a decision | decided
+make a recommendation | recommend
+made a recommendation | recommended
+give consideration to | consider
+take into consideration | consider
+come to the conclusion | conclude
+came to the conclusion | concluded
+conduct an investigation | investigate
+conducted an investigation | investigated
+provide assistance | help
+provide assistance to | help
+make an attempt | try
+made an attempt | tried
+make use of | use
+made use of | used
+it is important to note that |
+it should be noted that |
+it is worth noting that |
+it goes without saying that |
+needless to say |
+each and every | each
+first and foremost | first
+any and all | all
+one and the same | the same
+basic fundamentals | fundamentals
+end result | result
+final outcome | outcome
+past history | history
+future plans | plans
+advance planning | planning
+close proximity | proximity
+completely eliminate | eliminate
+absolutely essential | essential
+totally unique | unique
+very unique | unique
+free gift | gift
+new innovation | innovation
+added bonus | bonus
+true fact | fact
+revert back | revert
+return back | return
+repeat again | repeat
+join together | join
+merge together | merge
+combine together | combine
+collaborate together | collaborate
+refer back | refer
+period of time | period
+until such time as | until
+prior to | before
+subsequent to | after
+in close proximity to | near
+in the vicinity of | near
+in excess of | more than
+in the amount of | for
+in the absence of | without
+at all times | always
+as a means of | to
+with the exception of | except
+whether or not | whether
+the reason why is that | because
+the reason is because | because
+in the process of |
+as a matter of fact | in fact

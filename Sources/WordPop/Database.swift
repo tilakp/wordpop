@@ -82,6 +82,12 @@ enum Database {
         }
     }
 
+    /// Every wordy phrase and cliche with its plainer fix
+    /// (scripts/wordy.txt and cliches.txt), read once.
+    static let phraseFlags: [PhraseFlag] = rows("SELECT phrase, kind, fix FROM flags", []).map {
+        PhraseFlag(phrase: $0[0], fix: $0[2], isCliche: $0[1] == "cliches")
+    }
+
     /// Syllable counts from the CMU Pronouncing Dictionary, for the words
     /// in the rhyme lists.
     static func syllables(of words: [String]) -> [String: Int] {

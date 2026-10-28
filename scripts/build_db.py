@@ -1,7 +1,7 @@
 """
 Packs synonyms.json, antonyms.json, rhymes.json, syllables.json and words.txt (the outputs
 of the other build scripts) and the hand-written confusables.txt,
-stronger.txt and inclusive.txt into Sources/WordPop/Resources/wordpop.sqlite.
+stronger.txt, inclusive.txt, wordy.txt and cliches.txt into Sources/WordPop/Resources/wordpop.sqlite.
 
 The app queries this database on demand instead of decoding the JSON at
 launch, which took about half a second of CPU and held ~100 MB resident.
@@ -30,6 +30,7 @@ db.executescript("""
     CREATE TABLE syllables (word TEXT PRIMARY KEY NOT NULL, count INTEGER NOT NULL) WITHOUT ROWID;
     CREATE TABLE hints (word TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT, words TEXT NOT NULL,
                         PRIMARY KEY (word, kind, position)) WITHOUT ROWID;
+    CREATE TABLE flags (phrase TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL, fix TEXT NOT NULL) WITHOUT ROWID;
 """)
 
 for table in ("synonyms", "antonyms"):
@@ -90,6 +91,14 @@ for kind in ("stronger", "inclusive"):
                              SEPARATOR.join(w.strip() for w in words.split(","))))
     db.executemany("INSERT INTO hints VALUES (?, ?, ?, ?, ?)", rows)
     print(f"hints {kind}: {len(rows)} rows")
+
+# "phrase | fix", where an empty fix means the phrase can go.
+for kind in ("wordy", "cliches"):
+    with open(f"{kind}.txt", encoding="utf-8") as f:
+        rows = [(phrase.strip().lower(), kind, fix.strip())
+                for phrase, _, fix in (line.rstrip("\n").partition("|") for line in f if line.strip() and not line.startswith("#"))]
+    db.executemany("INSERT INTO flags VALUES (?, ?, ?)", rows)
+    print(f"flags {kind}: {len(rows)} phrases")
 
 db.commit()
 db.execute("VACUUM")
