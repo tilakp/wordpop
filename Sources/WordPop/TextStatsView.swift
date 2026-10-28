@@ -30,6 +30,9 @@ struct TextStatsView: View {
             if let sentence = reframeSentence, WritingModel.isAvailable {
                 section("Reframe", tint: .fitTint) { reframeControls(for: sentence) }
             }
+            if let sentence = reframeSentence {
+                section("Transitions", tint: .collocationTint) { transitionControls(for: sentence) }
+            }
             if !viewModel.typos.isEmpty {
                 section("Spelling", tint: .spellingTint) {
                     typoControls
@@ -238,6 +241,65 @@ struct TextStatsView: View {
                 rewriteResult(RewriteKey(sentence: sentence, rewrite: rewrite))
             }
             .padding(.top, 4)
+        }
+    }
+
+    /// A chip for each job a transition can do; the chosen job's
+    /// transitions; and the sentence with the picked one, ready to go in.
+    @ViewBuilder
+    private func transitionControls(for sentence: String) -> some View {
+        if let current = Transitions.leading(in: sentence) {
+            Text("Starts with \u{201C}\(current)\u{201D}. Pick another to swap it.")
+                .font(.recentMeta)
+                .foregroundStyle(.secondary)
+        }
+        FlowLayout(spacing: 6) {
+            ForEach(Transitions.groups, id: \.job) { group in
+                let chosen = viewModel.transitionJob == group.job
+                Button(action: {
+                    viewModel.transitionJob = chosen ? nil : group.job
+                    viewModel.transition = nil
+                }) {
+                    Text(group.job)
+                        .font(.recentMeta)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(Color.collocationTint.opacity(chosen ? 0.3 : 0.12))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        if let job = viewModel.transitionJob, let phrases = Transitions.groups.first(where: { $0.job == job })?.phrases {
+            FlowLayout(spacing: 6) {
+                ForEach(phrases, id: \.self) { phrase in
+                    let chosen = viewModel.transition == phrase
+                    Button(action: { viewModel.transition = chosen ? nil : phrase }) {
+                        Text(phrase)
+                            .font(.pill)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 2)
+                            .background(Color.collocationTint.opacity(chosen ? 0.28 : 0.08))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(chosen ? Color.collocationTint : Color.collocationTint.opacity(0.25)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, 2)
+        }
+        if let transition = viewModel.transition {
+            let new = Transitions.applying(transition, to: sentence)
+            Text(new)
+                .font(.definition)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
+            if viewModel.canReplace {
+                Button("Replace") { viewModel.onReplaceSentence(sentence, new) }
+                    .font(.recentMeta)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+            }
         }
     }
 

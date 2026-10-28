@@ -280,14 +280,17 @@ final class PopupController: NSObject, NSWindowDelegate {
             }
         }
         viewModel.onUseRewrite = { [weak self] key in
+            guard let self, let rewrite = self.viewModel.rewrites[key], !rewrite.isEmpty else { return }
+            self.viewModel.onReplaceSentence(key.sentence, rewrite)
+        }
+        viewModel.onReplaceSentence = { [weak self] sentence, new in
             // The passage goes back with only that sentence changed.
-            guard let self, let target = self.replaceTarget, let rewrite = self.viewModel.rewrites[key], !rewrite.isEmpty,
-                  let range = target.text.range(of: key.sentence) else { return }
+            guard let self, let target = self.replaceTarget, let range = target.text.range(of: sentence) else { return }
             self.replaceTarget = nil
             self.hide()
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 150_000_000)
-                await TextReplacer.paste(target.text.replacingCharacters(in: range, with: rewrite), into: target.app)
+                await TextReplacer.paste(target.text.replacingCharacters(in: range, with: new), into: target.app)
             }
         }
         viewModel.onApplyFixes = { [weak self] in
@@ -424,6 +427,8 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$moreExamples.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$rewrites.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$rewriting.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$transitionJob.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$transition.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$selectedPhrase.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseMatch.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseExplanation.map { _ in () }.eraseToAnyPublisher(),

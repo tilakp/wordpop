@@ -105,6 +105,12 @@ final class PopupViewModel: ObservableObject {
     @Published var rewriting: Set<RewriteKey> = []
     var onRewrite: (RewriteKey) -> Void = { _ in }
     var onUseRewrite: (RewriteKey) -> Void = { _ in }
+    /// For a selected sentence: the transition job being browsed and the
+    /// transition picked, which is previewed before it goes in.
+    @Published var transitionJob: String?
+    @Published var transition: String?
+    /// Puts a new sentence in place of one in the passage.
+    var onReplaceSentence: (_ sentence: String, _ with: String) -> Void = { _, _ in }
     /// The paragraph the selection sits in, when the app exposes it.
     var paragraph: String?
     /// Misspelled words of a passage with their suggestions, and the fix
@@ -418,6 +424,8 @@ final class PopupViewModel: ObservableObject {
         textStats = nil
         rewrites = [:]
         rewriting = []
+        transitionJob = nil
+        transition = nil
         paragraph = nil
         typos = []
         typoFixes = [:]
