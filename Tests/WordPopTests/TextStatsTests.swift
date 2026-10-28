@@ -57,6 +57,13 @@ final class TextStatsTests: XCTestCase {
         XCTAssertEqual(TextStats.uses(of: "about", forms: [], in: "about about about"), 0, "common words are skipped")
     }
 
+    func testFindsARunOfSentencesOfTheSameLength() {
+        let even = TextStats.analyze("I went home. I made some tea. I sat down there. Then, after a long and tiring day at work, I finally fell asleep on the sofa.")
+        XCTAssertEqual(even.sentenceLengths, [3, 4, 4, 16])
+        XCTAssertEqual(even.evenRun, 0...2)
+        XCTAssertNil(TextStats.analyze("I went home. Then I made a pot of strong tea for us. I sat.").evenRun)
+    }
+
     private let flags = [
         PhraseFlag(phrase: "the fact that", fix: "that", isCliche: false),
         PhraseFlag(phrase: "due to the fact that", fix: "because", isCliche: false),

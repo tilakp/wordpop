@@ -59,6 +59,9 @@ struct TextStatsView: View {
                     .font(.definition)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if stats.sentences >= 3 {
+                section("Sentence rhythm", tint: .synonymTint) { rhythm }
+            }
             if !stats.longSentences.isEmpty {
                 section("Long sentences (over \(TextStats.longSentenceWords) words)", tint: .antonymTint) {
                     ForEach(Array(stats.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
@@ -102,6 +105,34 @@ struct TextStatsView: View {
             }
         }
         .padding(.bottom, 6)
+    }
+
+    /// A bar per sentence, as tall as it is long; long sentences stand
+    /// out in another color, and a flat run is named under the bars.
+    @ViewBuilder
+    private var rhythm: some View {
+        let lengths = stats.sentenceLengths
+        let longest = max(lengths.max() ?? 1, 1)
+        HStack(alignment: .bottom, spacing: 3) {
+            ForEach(Array(lengths.enumerated()), id: \.offset) { index, length in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(length > TextStats.longSentenceWords ? Color.antonymTint : Color.synonymTint.opacity(stats.evenRun?.contains(index) == true ? 0.4 : 0.8))
+                    .frame(maxWidth: 14)
+                    .frame(height: max(3, 44 * CGFloat(length) / CGFloat(longest)))
+                    .help("\(length) words: \(stats.sentenceTexts[index])")
+            }
+        }
+        .frame(height: 44, alignment: .bottom)
+        Text(rhythmNote(lengths))
+            .font(.recentMeta)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func rhythmNote(_ lengths: [Int]) -> String {
+        let range = "Shortest \(lengths.min() ?? 0), longest \(lengths.max() ?? 0) words."
+        guard let run = stats.evenRun else { return range }
+        return range + " Sentences \(run.lowerBound + 1) to \(run.upperBound + 1) are about the same length, which can read flat."
     }
 
     private var summary: String {

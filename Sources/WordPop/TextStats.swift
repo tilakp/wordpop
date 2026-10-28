@@ -31,6 +31,23 @@ struct TextStats: Equatable {
     /// The passage's sentences, for finding the one a note refers to.
     var sentenceTexts: [String] = []
 
+    /// Each sentence's word count, in order.
+    var sentenceLengths: [Int] { sentenceTexts.map { $0.split(whereSeparator: \.isWhitespace).count } }
+
+    /// The longest run of three or more sentences in a row whose lengths
+    /// are within two words of each other, which reads flat; nil when
+    /// there is none.
+    var evenRun: ClosedRange<Int>? {
+        let lengths = sentenceLengths
+        var best: ClosedRange<Int>?
+        var start = 0
+        for end in lengths.indices {
+            while lengths[start...end].max()! - lengths[start...end].min()! > 2 { start += 1 }
+            if end - start >= 2, end - start > (best.map { $0.count - 1 } ?? -1) { best = start...end }
+        }
+        return best
+    }
+
     /// The sentence a passive phrase ("was written") occurs in.
     func sentence(containing phrase: String) -> String? {
         sentenceTexts.first { $0.lowercased().contains(phrase) }
