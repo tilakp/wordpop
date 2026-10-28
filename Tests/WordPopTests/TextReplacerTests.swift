@@ -17,4 +17,9 @@ final class TextReplacerTests: XCTestCase {
     func testReplacesOnlyTheLookedUpWordOfAPhrase() {
         XCTAssertEqual(TextReplacer.replacement(in: "quiet street", with: "silent"), "silent street")
     }
+
+    func testFixesATypoWithoutInflectingTheSuggestion() {
+        XCTAssertEqual(TextReplacer.replacement(in: "Recieved,", with: "received", lemma: "recieved"), "Received,")
+        XCTAssertEqual(TextReplacer.replacement(in: "teh", with: "the", lemma: "teh"), "the")
+    }
 }

@@ -525,6 +525,20 @@ struct PopupContentView: View {
                 }
                 .padding(.top, row.example != nil && row.id != section.rows.first?.id ? 4 : 0)
             }
+            if section.id == "spelling", viewModel.canReplace, let best = section.rows.first?.words.first {
+                HStack(spacing: 8) {
+                    Button("Replace with \u{201C}\(best)\u{201D}") { viewModel.onReplace(best) }
+                        .font(.recentMeta)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(section.tint)
+                    if (section.rows.first?.words.count ?? 0) > 1 {
+                        Text("\u{2325}-click a pill to use another")
+                            .font(.recentMeta)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.top, 2)
+            }
             if section.id == "synonyms", viewModel.hiddenSenseCount > 0 {
                 Button(action: { withAnimation(.easeOut(duration: 0.15)) { viewModel.showAllSenses = true } }) {
                     Text("\(viewModel.hiddenSenseCount) more sense\(viewModel.hiddenSenseCount == 1 ? "" : "s")")
