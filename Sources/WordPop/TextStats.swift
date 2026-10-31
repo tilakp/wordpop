@@ -51,6 +51,20 @@ struct TextStats: Equatable {
         return best
     }
 
+    /// Words that start three or more sentences, and at least a quarter
+    /// of them, most used first: "I" starting 4 of 6 sentences reads
+    /// samey, "The" starting 3 of 40 does not.
+    var repeatedStarts: [(word: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for sentence in sentenceTexts {
+            guard let word = sentence.split(whereSeparator: { !$0.isLetter && $0 != "'" && $0 != "\u{2019}" }).first else { continue }
+            counts[word == "I" ? "I" : word.lowercased(), default: 0] += 1
+        }
+        return counts.filter { $0.value >= 3 && $0.value * 4 >= sentenceTexts.count }
+            .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
+            .map { ($0.key, $0.value) }
+    }
+
     /// The sentence a passive phrase ("was written") occurs in.
     func sentence(containing phrase: String) -> String? {
         sentenceTexts.first { $0.lowercased().contains(phrase) }

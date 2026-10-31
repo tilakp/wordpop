@@ -144,9 +144,12 @@ struct TextStatsView: View {
     }
 
     private func rhythmNote(_ lengths: [Int], run: ClosedRange<Int>?) -> String {
-        let range = "Shortest \(lengths.min() ?? 0), longest \(lengths.max() ?? 0) words."
-        guard let run else { return range }
-        return range + " Sentences \(run.lowerBound + 1) to \(run.upperBound + 1) are about the same length, which can read flat."
+        var note = "Shortest \(lengths.min() ?? 0), longest \(lengths.max() ?? 0) words."
+        if let run { note += " Sentences \(run.lowerBound + 1) to \(run.upperBound + 1) are about the same length, which can read flat." }
+        for start in stats.repeatedStarts {
+            note += " \u{201C}\(start.word.prefix(1).uppercased() + start.word.dropFirst())\u{201D} starts \(start.count) of \(lengths.count) sentences."
+        }
+        return note
     }
 
     /// Counts, reading time and the reading grade in one line.

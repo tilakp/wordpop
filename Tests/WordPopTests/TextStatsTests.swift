@@ -122,4 +122,13 @@ final class TextStatsTests: XCTestCase {
         XCTAssertEqual(hedges.map(\.count), [2, 2, 1, 1])
         XCTAssertTrue(TextStats.hedges(in: "The judge was justly praised.").isEmpty)
     }
+
+    func testFindsRepeatedSentenceStarts() {
+        let stats = TextStats.analyze("I woke early. I made tea. Then I read. \u{201C}I am late,\u{201D} I said. The bus came.")
+        XCTAssertEqual(stats.repeatedStarts.map(\.word), ["I"])
+        XCTAssertEqual(stats.repeatedStarts.first?.count, 3)
+        let varied = TextStats.analyze("The sun rose. The birds sang. A dog barked. We ate. The day was warm. Rain fell. It stopped. "
+            + "We left. Cars passed. Night came. A moon rose. Stars shone. Owls called.")
+        XCTAssertTrue(varied.repeatedStarts.isEmpty, "3 of 13 is under a quarter \(varied.repeatedStarts)")
+    }
 }
