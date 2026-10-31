@@ -59,6 +59,28 @@ enum PopupSection: String, CaseIterable, Identifiable {
     }
 }
 
+/// A part of the notes on a selected passage the user can hide in
+/// Preferences. Spelling and grammar always show.
+enum PassageSection: String, CaseIterable, Identifiable {
+    case tools, consistency, wordy, rhythm, longSentences, passive, crutches, adverbs, repeated
+
+    /// Kept in the same hidden list as the popup's sections, apart by name.
+    var id: String { "passage." + rawValue }
+    var label: String {
+        switch self {
+        case .tools: "Tools"
+        case .consistency: "Consistency"
+        case .wordy: "Wordy phrases"
+        case .rhythm: "Sentence rhythm"
+        case .longSentences: "Long sentences"
+        case .passive: "Passive voice"
+        case .crutches: "Crutch words"
+        case .adverbs: "Adverbs"
+        case .repeated: "Repeated words"
+        }
+    }
+}
+
 enum Settings {
     static let textSizeKey = "WordPop.textSize"
     static let popupPlacementKey = "WordPop.popupPlacement"
@@ -71,6 +93,10 @@ enum Settings {
 
     static func shows(_ section: PopupSection) -> Bool {
         !hiddenSections.contains(section.rawValue)
+    }
+
+    static func shows(_ section: PassageSection) -> Bool {
+        !hiddenSections.contains(section.id)
     }
 
     static var textSize: TextSize {

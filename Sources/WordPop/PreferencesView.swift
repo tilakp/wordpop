@@ -67,13 +67,13 @@ struct PreferencesView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 4) {
                     ForEach(PopupSection.allCases) { section in
-                        Toggle(section.label, isOn: Binding(
-                            get: { !hiddenSections.contains(section.rawValue) },
-                            set: { shown in
-                                if shown { hiddenSections.remove(section.rawValue) } else { hiddenSections.insert(section.rawValue) }
-                                Settings.hiddenSections = hiddenSections
-                            }
-                        ))
+                        Toggle(section.label, isOn: shows(section.rawValue))
+                    }
+                }
+                Text("Notes on a passage").font(.subheadline).padding(.top, 6)
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 4) {
+                    ForEach(PassageSection.allCases) { section in
+                        Toggle(section.label, isOn: shows(section.id))
                     }
                 }
             }
@@ -91,6 +91,17 @@ struct PreferencesView: View {
         }
         .padding(20)
         .frame(width: 380)
+    }
+
+    /// Whether the section with this key shows, saved as it changes.
+    private func shows(_ key: String) -> Binding<Bool> {
+        Binding(
+            get: { !hiddenSections.contains(key) },
+            set: { shown in
+                if shown { hiddenSections.remove(key) } else { hiddenSections.insert(key) }
+                Settings.hiddenSections = hiddenSections
+            }
+        )
     }
 }
 

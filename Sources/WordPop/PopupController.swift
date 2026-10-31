@@ -55,13 +55,15 @@ final class PopupController: NSObject, NSWindowDelegate {
         replaceTarget = selection
         viewModel.reset(with: .empty)
         viewModel.canReplace = selection != nil
-        let stats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) }, flags: Database.phraseFlags)
+        // Hidden sections are not worked out, so none of their fixes can
+        // go in unseen.
+        let stats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) }, flags: Settings.shows(.wordy) ? Database.phraseFlags : [])
         viewModel.textStats = stats
         viewModel.paragraph = selection?.paragraph
         viewModel.typos = Spelling.typos(in: passage)
         viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
-        viewModel.consistency = Consistency.check(passage)
-        viewModel.crutches = ReplacedWords.shared.crutches(in: passage)
+        if Settings.shows(.consistency) { viewModel.consistency = Consistency.check(passage) }
+        if Settings.shows(.crutches) { viewModel.crutches = ReplacedWords.shared.crutches(in: passage) }
         // Wordy phrases start chosen; cliches are a matter of taste.
         viewModel.phraseFixes = Dictionary(stats.wordy.filter { !$0.isCliche }.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
         wireViewModelActions()
@@ -464,6 +466,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$transitionJob.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$transition.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isCheckingTone.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$openTool.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$selectedPhrase.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseMatch.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseExplanation.map { _ in () }.eraseToAnyPublisher(),

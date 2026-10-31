@@ -27,14 +27,8 @@ struct TextStatsView: View {
                 .padding(.horizontal, 22)
                 .padding(.bottom, 14)
 
-            if let sentence = reframeSentence, WritingModel.isAvailable {
-                section("Reframe", tint: .fitTint) { reframeControls(for: sentence) }
-            }
-            if WritingModel.isAvailable {
-                section("Tone", tint: .toneTint) { toneControls }
-            }
-            if let sentence = reframeSentence {
-                section("Transitions", tint: .collocationTint) { transitionControls(for: sentence) }
+            if Settings.shows(.tools), !tools.isEmpty {
+                section("Tools", tint: .fitTint) { toolControls }
             }
             if !viewModel.typos.isEmpty {
                 section("Spelling", tint: .spellingTint) {
@@ -60,15 +54,10 @@ struct TextStatsView: View {
                     applyFixesButton
                 }
             }
-            section("Reading grade", tint: .synonymTint) {
-                Text(gradeLabel)
-                    .font(.definition)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if stats.sentences >= 3 {
+            if stats.sentences >= 3, Settings.shows(.rhythm) {
                 section("Sentence rhythm", tint: .synonymTint) { rhythm }
             }
-            if !stats.longSentences.isEmpty {
+            if !stats.longSentences.isEmpty, Settings.shows(.longSentences) {
                 section("Long sentences (over \(TextStats.longSentenceWords) words)", tint: .antonymTint) {
                     ForEach(Array(stats.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
                         VStack(alignment: .leading, spacing: 4) {
@@ -81,7 +70,7 @@ struct TextStatsView: View {
                     }
                 }
             }
-            if !stats.passives.isEmpty {
+            if !stats.passives.isEmpty, Settings.shows(.passive) {
                 section("Possible passive voice", tint: .strongerTint) {
                     ForEach(stats.passives, id: \.self) { phrase in
                         VStack(alignment: .leading, spacing: 4) {
@@ -101,10 +90,10 @@ struct TextStatsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            if !stats.adverbs.isEmpty {
+            if !stats.adverbs.isEmpty, Settings.shows(.adverbs) {
                 section("Adverbs", tint: .rhymeTint) { wordList(stats.adverbs) }
             }
-            if !stats.repeated.isEmpty {
+            if !stats.repeated.isEmpty, Settings.shows(.repeated) {
                 section("Repeated words", tint: .confusedTint) {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
@@ -152,11 +141,12 @@ struct TextStatsView: View {
         return range + " Sentences \(run.lowerBound + 1) to \(run.upperBound + 1) are about the same length, which can read flat."
     }
 
+    /// Counts, reading time and the reading grade in one line.
     private var summary: String {
         let minutes = stats.readingMinutes < 1 ? "under a minute" : "\(Int(stats.readingMinutes.rounded())) min"
         let average = stats.sentences > 0 ? Double(stats.words) / Double(stats.sentences) : 0
         return "\(stats.words) words \u{B7} \(stats.sentences) sentence\(stats.sentences == 1 ? "" : "s") \u{B7} "
-            + "\(String(format: "%.0f", average)) words per sentence \u{B7} \(minutes) to read"
+            + "\(String(format: "%.0f", average)) words per sentence \u{B7} \(minutes) to read \u{B7} \(gradeLabel)"
     }
 
     private var gradeLabel: String {
@@ -167,7 +157,44 @@ struct TextStatsView: View {
         case ..<13: "fairly difficult, high-school level"
         default: "difficult, college level"
         }
-        return "Grade \(String(format: "%.1f", grade)): \(reader)."
+        return "grade \(String(format: "%.1f", grade)), \(reader)"
+    }
+
+    /// The tools this selection can use: Reframe and Transitions need one
+    /// sentence, Reframe and Tone the on-device model.
+    private var tools: [PopupViewModel.PassageTool] {
+        PopupViewModel.PassageTool.allCases.filter { tool in
+            switch tool {
+            case .reframe: reframeSentence != nil && WritingModel.isAvailable
+            case .tone: WritingModel.isAvailable
+            case .transitions: reframeSentence != nil
+            }
+        }
+    }
+
+    /// A chip per tool; the open one shows its controls below the row.
+    @ViewBuilder
+    private var toolControls: some View {
+        HStack(spacing: 6) {
+            ForEach(tools, id: \.self) { tool in
+                let open = viewModel.openTool == tool
+                Button(action: { viewModel.openTool = open ? nil : tool }) {
+                    Text(tool.rawValue)
+                        .font(.recentMeta)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(Color.fitTint.opacity(open ? 0.3 : 0.12))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        switch viewModel.openTool {
+        case .reframe: if let sentence = reframeSentence { reframeControls(for: sentence) }
+        case .tone: toneControls
+        case .transitions: if let sentence = reframeSentence { transitionControls(for: sentence) }
+        case nil: EmptyView()
+        }
     }
 
     private func section(_ title: String, tint: Color, @ViewBuilder content: () -> some View) -> some View {

@@ -109,6 +109,13 @@ final class PopupViewModel: ObservableObject {
     /// transition picked, which is previewed before it goes in.
     @Published var transitionJob: String?
     @Published var transition: String?
+    /// The passage tool open below the Tools row, if any.
+    @Published var openTool: PassageTool?
+
+    enum PassageTool: String, CaseIterable {
+        case reframe = "Reframe", tone = "Tone", transitions = "Transitions"
+    }
+
     /// How a reader would take the passage, from the on-device model; nil
     /// until asked for.
     @Published var toneReading: (tone: String, reason: String)?
@@ -444,6 +451,7 @@ final class PopupViewModel: ObservableObject {
         rewriting = []
         transitionJob = nil
         transition = nil
+        openTool = nil
         toneReading = nil
         isCheckingTone = false
         paragraph = nil
