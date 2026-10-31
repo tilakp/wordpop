@@ -97,6 +97,13 @@ enum Database {
         }
     }
 
+    /// Words that sound the same as `word` ("pair" -> pear, pare; "their"
+    /// -> there, they're), from the CMU Pronouncing Dictionary
+    /// (scripts/build_homophones.py).
+    static func homophones(of word: String) -> [String] {
+        list("homophones", word: word)
+    }
+
     /// The other words of `word`'s family ("decide" -> decision,
     /// decisive, decisively), nouns first, from WordNet
     /// (scripts/build_family.py).

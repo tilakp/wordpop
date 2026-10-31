@@ -344,6 +344,14 @@ final class PopupViewModel: ObservableObject {
             let caption = entry.confusionSense.map { "\(entry.word): \($0)" }
             sections.append(PillSection(id: "confused", title: "Often confused with", tint: .confusedTint, rows: [row(caption, entry.confusedWith)]))
         }
+        // The selected word's own sounds ("knows" -> nose), else the
+        // headword's.
+        let spoken = selectionText.map { $0.lowercased().trimmingCharacters(in: .punctuationCharacters) }.flatMap { $0.contains(" ") ? nil : $0 }
+        let homophones = spoken.map(Database.homophones) ?? []
+        let soundsLike = homophones.isEmpty ? Database.homophones(of: entry.word) : homophones
+        if !soundsLike.isEmpty {
+            sections.append(PillSection(id: "soundsLike", title: "Sounds like", tint: .confusedTint, rows: [row(nil, soundsLike)]))
+        }
         if !lineRhymes.isEmpty {
             sections.append(PillSection(id: "lineRhymes", title: "Rhymes for your line", tint: .rhymeTint, rows: [row(nil, lineRhymes)]))
         }

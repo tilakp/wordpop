@@ -60,4 +60,10 @@ final class PhraseListTests: XCTestCase {
         XCTAssertTrue(Database.family(of: "quick").contains("quickly"))
         XCTAssertTrue(Database.family(of: "the").isEmpty)
     }
+
+    func testHomophones() {
+        XCTAssertEqual(Set(Database.homophones(of: "their")), ["there", "they're"])
+        XCTAssertEqual(Set(Database.homophones(of: "pair")), ["pear", "pare"])
+        XCTAssertTrue(Database.homophones(of: "colour").isEmpty, "a spelling, not a homophone")
+    }
 }
