@@ -41,6 +41,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 - **More specific words.** For a noun or a verb, a More specific row lists kinds of it, by sense: "walk" → stroll, stumble, limp; "laugh" → chuckle, giggle, guffaw; "car" → sedan, jeep, convertible. From WordNet, so it works offline. A word is listed only when that is its main meaning, so "mouse" is not offered as a way to walk.
 - **Word family.** A Word family row lists the related forms, nouns first: "decide" → decision, decisive, decisively; "quick" → quickness, quickly. Useful when a sentence reads better with the noun or the verb ("make a decision" → decide). From WordNet, offline.
 - **What goes with a word.** A button at the bottom of the popup asks the on-device model for common phrases with the word ("strong evidence", "persuasive argument").
+- **Describing words.** With Apple Intelligence, a link under a noun asks the on-device model for the adjectives writers use with it ("rain" → steady, torrential, pouring; "argument" → heated, bitter), and one under an adjective for the nouns it describes ("eerie" → silence, presence, glow). Only words in the word list are kept. The answers come from the model, not from counted usage.
 - **Repeated in this paragraph.** When you look up a word that you used three or more times in its paragraph (counting forms such as "reports" and "reported"), the popup says so, with the synonyms ready to vary it.
 - **Your crutch words.** WordPop counts the words you replace with a synonym from the popup. After you replace a word three times, the popup says so when you look it up again ("You have replaced "very" 3 times before"), and notes on a passage list the crutch words the passage uses. The counts stay on your Mac; **Clear History** in the menu bar menu removes them.
 
@@ -134,7 +135,7 @@ Both shortcuts can be changed from the menu bar icon under **Preferences**.
 | `⌘C` / `⌘⇧C` | Copy the word / the first definition |
 | `Esc` | Close |
 
-To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`. `--describe "a strong desire to travel"` runs the describe search, `--compare stubborn obstinate` a comparison, `--collocations argument` the phrase search, `--tone "text"` the tone check, `--main-point "text"` the main point check, and `--model-check` every on-device model feature on sample inputs. `swift test` runs the parser tests against captured dictionary text in `Tests/WordPopTests/Fixtures`, and tests for the passage notes, the fixes and the hand-written lists as the app loads them.
+To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`. `--describe "a strong desire to travel"` runs the describe search, `--compare stubborn obstinate` a comparison, `--collocations argument` the phrase search, `--tone "text"` the tone check, `--main-point "text"` the main point check, `--describing rain noun` the describing words, and `--model-check` every on-device model feature on sample inputs. `swift test` runs the parser tests against captured dictionary text in `Tests/WordPopTests/Fixtures`, and tests for the passage notes, the fixes and the hand-written lists as the app loads them.
 
 ## How it works
 

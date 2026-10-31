@@ -118,6 +118,41 @@ enum WritingModel {
         return phrases.filter { compounds[$0.replacingOccurrences(of: " ", with: "")] == nil }
     }
 
+    /// For a noun, the adjectives writers most often use with it
+    /// ("argument" -> heated, bitter, fierce); for an adjective, the nouns
+    /// it most often describes ("eerie" -> silence, feeling, glow). For an
+    /// adjective the model is asked for phrases ("eerie silence"), as
+    /// asked for nouns it answered with synonyms; for a noun, asked for
+    /// phrases, it drifted to compounds ("rain shower"). Only single words
+    /// in the word list are kept.
+    static func describingWords(for word: String, partOfSpeech: String) async -> [String] {
+        let word = word.lowercased()
+        let proposed: [String]
+        if partOfSpeech == "noun" {
+            proposed = await list(
+                .describing,
+                "You help writers find words, like a collocations dictionary. List the adjectives writers most often use to describe the noun \"\(word)\", from plain to vivid. Single words only.",
+                "Word: \(word) (noun)",
+                format: "Answer with twelve single adjectives, most common first, separated by commas, and nothing else."
+            )
+        } else {
+            let phrases = await list(
+                .describing,
+                "You help writers find words, like a collocations dictionary. List the most common two-word phrases made of the adjective \"\(word)\" followed by a noun it describes.",
+                "Word: \(word) (adjective)",
+                format: "Answer with twelve two-word phrases, most common first, separated by commas, and nothing else."
+            )
+            proposed = phrases.compactMap { phrase in
+                let parts = phrase.lowercased().split(separator: " ").map(String.init)
+                return parts.count == 2 && parts[0] == word ? parts[1] : nil
+            }
+        }
+        let words = unique(proposed.map { $0.lowercased().trimmingCharacters(in: .punctuationCharacters) })
+            .filter { !$0.contains(" ") && $0 != word && !functionWords.contains($0) }
+        let known = Database.ranks(of: words)
+        return words.filter { known[$0] != nil }
+    }
+
     private static let functionWords: Set<String> = [
         "a", "an", "the", "of", "for", "to", "in", "on", "at", "by", "from", "with", "about", "against", "into", "over",
         "that", "this", "these", "those", "it", "its", "and", "or", "as", "is", "be",
@@ -332,7 +367,7 @@ enum WritingModel {
 
     /// The kinds of word list the model is asked for, each with its own
     /// structured answer type.
-    private enum ListKind { case fits, described, collocations, tone, lineRhymes, examples }
+    private enum ListKind { case fits, described, collocations, describing, tone, lineRhymes, examples }
 
     /// A list answer: structured first, plain text under permissive
     /// guardrails if the structured request fails.
@@ -344,6 +379,7 @@ enum WritingModel {
             case .fits: await structured(Fits.self, instructions, prompt)?.words
             case .described: await structured(Described.self, instructions, prompt)?.words
             case .collocations: await structured(Collocations.self, instructions, prompt)?.phrases
+            case .describing: await structured(DescribingWords.self, instructions, prompt)?.words
             case .tone: await structured(ToneChoices.self, instructions, prompt)?.words
             case .lineRhymes: await structured(LineRhymes.self, instructions, prompt)?.words
             case .examples: await structured(ExampleSentences.self, instructions, prompt)?.sentences
@@ -467,6 +503,13 @@ private struct SensePick {
 private struct Collocations {
     @Guide(description: "Short phrases of two or three words that native writers commonly use with the word, most common first. Each phrase contains the word.", .count(10))
     var phrases: [String]
+}
+
+@available(macOS 26, *)
+@Generable
+private struct DescribingWords {
+    @Guide(description: "The requested words or two-word phrases, most common first.", .count(12))
+    var words: [String]
 }
 
 @available(macOS 26, *)

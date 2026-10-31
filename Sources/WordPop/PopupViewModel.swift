@@ -214,6 +214,19 @@ final class PopupViewModel: ObservableObject {
     /// Phrases with the word from the on-device model ("tough decision");
     /// nil until asked for, as each request takes about a second.
     @Published var collocations: [String]?
+    /// Adjectives that describe a noun ("silence" -> eerie, awkward), or
+    /// nouns an adjective describes, from the on-device model; nil until
+    /// asked for.
+    @Published var describingWords: [String]?
+    @Published var isLoadingDescribing = false
+    var onLoadDescribing: () -> Void = {}
+
+    /// "noun" or "adjective" when the shown part of speech can have
+    /// describing words; nil otherwise.
+    var describingPartOfSpeech: String? {
+        guard entry.found, let partOfSpeech = block?.partOfSpeech else { return nil }
+        return ["noun", "adjective"].first { partOfSpeech.hasSuffix($0) }
+    }
     @Published var isLoadingCollocations = false
     /// Pill words that are rare in everyday English, shown dimmed so the
     /// plainer choices stand out.
@@ -338,6 +351,10 @@ final class PopupViewModel: ObservableObject {
         if entry.found {
             let family = Database.family(of: entry.word)
             if !family.isEmpty { sections.append(PillSection(id: "family", title: "Word family", tint: .collocationTint, rows: [row(nil, family)])) }
+        }
+        if let describingWords, !describingWords.isEmpty {
+            let title = describingPartOfSpeech == "adjective" ? "Often describes" : "Describing words"
+            sections.append(PillSection(id: "describing", title: title, tint: .collocationTint, rows: [row(nil, describingWords)]))
         }
         if let collocations, !collocations.isEmpty {
             sections.append(PillSection(id: "collocations", title: "Goes with", tint: .collocationTint, rows: [row(nil, collocations)]))
@@ -510,6 +527,8 @@ final class PopupViewModel: ObservableObject {
         replacedCount = nil
         crutches = []
         collocations = nil
+        describingWords = nil
+        isLoadingDescribing = false
         isLoadingCollocations = false
         focusedPill = nil
         rhymeSyllables = Database.syllables(of: newEntry.rhymes)

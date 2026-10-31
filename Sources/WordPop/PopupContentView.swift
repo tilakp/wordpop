@@ -179,6 +179,29 @@ struct PopupContentView: View {
                     .padding(.vertical, 12)
             }
 
+            if viewModel.describingWords == nil, let partOfSpeech = viewModel.describingPartOfSpeech, WritingModel.isAvailable, Settings.shows(.describing) {
+                Divider().padding(.horizontal, 22)
+                Button(action: viewModel.onLoadDescribing) {
+                    Text(viewModel.isLoadingDescribing
+                         ? "Finding words\u{2026}"
+                         : partOfSpeech == "noun"
+                         ? "Words that describe \u{201C}\(viewModel.entry.word)\u{201D}"
+                         : "What is often \u{201C}\(viewModel.entry.word)\u{201D}?")
+                        .font(.recentMeta)
+                        .foregroundStyle(Color.collocationTint)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+            } else if viewModel.describingWords?.isEmpty == true {
+                Divider().padding(.horizontal, 22)
+                Text("No describing words found.")
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+            }
+
             if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable, Settings.shows(.collocations) {
                 Divider().padding(.horizontal, 22)
                 Button(action: viewModel.onLoadCollocations) {

@@ -36,6 +36,16 @@ if let index = CommandLine.arguments.firstIndex(of: "--collocations"), index + 1
     dispatchMain()
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--describing"), index + 1 < CommandLine.arguments.count {
+    let word = CommandLine.arguments[index + 1]
+    let partOfSpeech = index + 2 < CommandLine.arguments.count ? CommandLine.arguments[index + 2] : "noun"
+    Task {
+        print(await WritingModel.describingWords(for: word, partOfSpeech: partOfSpeech).joined(separator: ", "))
+        exit(0)
+    }
+    dispatchMain()
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--tone"), index + 1 < CommandLine.arguments.count {
     let text = CommandLine.arguments[(index + 1)...].joined(separator: " ")
     Task {
@@ -77,6 +87,8 @@ if CommandLine.arguments.contains("--model-check") {
         print("explain:", await WritingModel.explain(phrase: "touch base", in: "Let's touch base next week.") ?? "-")
         print("rewrite:", await WritingModel.rewrite("The report was written by the committee.", .active) ?? "-")
         print("tone:", await WritingModel.tone(of: "Send me the file by noon. I asked twice already.").map { "\($0.tone): \($0.reason)" } ?? "-")
+        print("describing:", await WritingModel.describingWords(for: "rain", partOfSpeech: "noun"),
+              await WritingModel.describingWords(for: "eerie", partOfSpeech: "adjective"))
         print("main point:", await WritingModel.mainPoint(of: [
             "Thanks for the update on the launch.", "The team has worked hard this month.",
             "We need to move the launch to June 3 because the security review is not done.", "Let me know if you have questions.",

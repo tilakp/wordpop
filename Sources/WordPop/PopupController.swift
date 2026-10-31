@@ -405,6 +405,17 @@ final class PopupController: NSObject, NSWindowDelegate {
                 self.viewModel.collocations = phrases
             }
         }
+        viewModel.onLoadDescribing = { [weak self] in
+            guard let self, !self.viewModel.isLoadingDescribing, let partOfSpeech = self.viewModel.describingPartOfSpeech else { return }
+            let entry = self.viewModel.entry
+            self.viewModel.isLoadingDescribing = true
+            Task { @MainActor in
+                let words = await WritingModel.describingWords(for: entry.word, partOfSpeech: partOfSpeech)
+                guard self.viewModel.entry.word == entry.word else { return }
+                self.viewModel.isLoadingDescribing = false
+                self.viewModel.describingWords = words
+            }
+        }
         viewModel.onGoBack = { [weak self] in
             self?.viewModel.goBack()
             if let panel = self?.panel {
@@ -500,6 +511,11 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$contextSense.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$collocations.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isLoadingCollocations.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$describingWords.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$isLoadingDescribing.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$textTool.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$isFindingMainPoint.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$typos.map { _ in () }.eraseToAnyPublisher(),
             // The fix button shows only while a fix is chosen.
             viewModel.$typoFixes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$grammar.map { _ in () }.eraseToAnyPublisher(),
