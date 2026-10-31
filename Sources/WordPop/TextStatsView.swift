@@ -93,15 +93,23 @@ struct TextStatsView: View {
             if !stats.adverbs.isEmpty, Settings.shows(.adverbs) {
                 section("Adverbs", tint: .rhymeTint) { wordList(stats.adverbs) }
             }
+            if !stats.hedges.isEmpty, Settings.shows(.hedges) {
+                section("Hedges and filler", tint: .antonymTint) {
+                    wordList(stats.hedges.map { $0.count > 1 ? "\($0.word) \u{D7}\($0.count)" : $0.word })
+                    Text("Words that soften a point or add nothing to it. Keep the ones you mean.")
+                        .font(.recentMeta)
+                        .foregroundStyle(.secondary)
+                }
+            }
             if !stats.repeated.isEmpty, Settings.shows(.repeated) {
                 section("Repeated words", tint: .confusedTint) {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
             }
-            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, viewModel.typos.isEmpty,
+            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, stats.hedges.isEmpty, viewModel.typos.isEmpty,
                stats.wordy.isEmpty, viewModel.grammar.isEmpty, viewModel.consistency.isEmpty {
                 section("Notes", tint: .fitTint) {
-                    Text("No typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, passive voice, -ly adverbs or repeated words.")
+                    Text("No typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, passive voice, -ly adverbs, hedges or repeated words.")
                         .font(.definition)
                         .foregroundStyle(.secondary)
                 }

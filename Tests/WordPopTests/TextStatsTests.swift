@@ -115,4 +115,11 @@ final class TextStatsTests: XCTestCase {
         XCTAssertEqual(TextStats.tightened("He said \"needless to say\".", fixes: ["needless to say": ""]), "He said \"\".")
         XCTAssertEqual(TextStats.tightened("We are in the process of moving.", fixes: ["in the process of": ""]), "We are moving.")
     }
+
+    func testFindsHedgesInOrderWithCounts() {
+        let hedges = TextStats.hedges(in: "I think it is just a little bit late. Just go. It was kind of fun, I think.")
+        XCTAssertEqual(hedges.map(\.word), ["I think", "just", "a little bit", "kind of"])
+        XCTAssertEqual(hedges.map(\.count), [2, 2, 1, 1])
+        XCTAssertTrue(TextStats.hedges(in: "The judge was justly praised.").isEmpty)
+    }
 }

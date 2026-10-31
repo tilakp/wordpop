@@ -62,7 +62,7 @@ enum PopupSection: String, CaseIterable, Identifiable {
 /// A part of the notes on a selected passage the user can hide in
 /// Preferences. Spelling and grammar always show.
 enum PassageSection: String, CaseIterable, Identifiable {
-    case tools, consistency, wordy, rhythm, longSentences, passive, crutches, adverbs, repeated
+    case tools, consistency, wordy, rhythm, longSentences, passive, crutches, adverbs, hedges, repeated
 
     /// Kept in the same hidden list as the popup's sections, apart by name.
     var id: String { "passage." + rawValue }
@@ -76,6 +76,7 @@ enum PassageSection: String, CaseIterable, Identifiable {
         case .passive: "Passive voice"
         case .crutches: "Crutch words"
         case .adverbs: "Adverbs"
+        case .hedges: "Hedges and filler"
         case .repeated: "Repeated words"
         }
     }

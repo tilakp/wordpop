@@ -25,6 +25,9 @@ struct TextStats: Equatable {
     let adverbs: [String]
     /// Content words used three times or more, most used first.
     let repeated: [(word: String, count: Int)]
+    /// Hedges and filler ("just", "I think", "sort of"), in order of
+    /// first use, with how often each is used.
+    var hedges: [(word: String, count: Int)] = []
     /// Wordy phrases and cliches found in the passage, in its spelling
     /// and in order of use.
     var wordy: [PhraseFlag] = []
@@ -65,7 +68,7 @@ struct TextStats: Equatable {
     static func == (a: TextStats, b: TextStats) -> Bool {
         a.words == b.words && a.sentences == b.sentences && a.grade == b.grade && a.passives == b.passives
             && a.adverbs == b.adverbs && a.longSentences.map(\.text) == b.longSentences.map(\.text)
-            && a.repeated.map(\.word) == b.repeated.map(\.word) && a.wordy == b.wordy
+            && a.repeated.map(\.word) == b.repeated.map(\.word) && a.wordy == b.wordy && a.hedges.map(\.word) == b.hedges.map(\.word)
     }
 
     static func isPassage(_ text: String) -> Bool {
@@ -141,9 +144,36 @@ struct TextStats: Equatable {
             passives: passives(in: lowered),
             adverbs: adverbs(in: text),
             repeated: repeatedWords(in: lowered),
+            hedges: hedges(in: text),
             wordy: flagged(flags, in: text),
             sentenceTexts: sentenceTexts
         )
+    }
+
+    /// Words that soften or pad a claim without adding to it, as
+    /// Grammarly and the Hemingway editor mark them.
+    static let hedgeWords = [
+        "just", "really", "very", "quite", "rather", "somewhat", "fairly", "pretty much", "actually", "basically",
+        "literally", "totally", "simply", "honestly", "probably", "possibly", "perhaps", "maybe", "arguably",
+        "seemingly", "kind of", "sort of", "a bit", "a little bit", "more or less", "I think", "I believe", "I feel",
+        "I guess", "I suppose", "it seems", "in my opinion", "to be honest",
+    ]
+
+    /// The hedges in `text` as whole words in any case, in order of first
+    /// use, with their counts. "A bit" inside "a little bit" counts once.
+    static func hedges(in text: String) -> [(word: String, count: Int)] {
+        let ns = text as NSString
+        var taken: [NSRange] = []
+        var found: [(location: Int, word: String, count: Int)] = []
+        for hedge in hedgeWords.sorted(by: { $0.count > $1.count }) {
+            let pattern = try! NSRegularExpression(pattern: "\\b\(NSRegularExpression.escapedPattern(for: hedge))\\b", options: .caseInsensitive)
+            let matches = pattern.matches(in: text, range: NSRange(location: 0, length: ns.length))
+                .filter { match in !taken.contains { NSIntersectionRange($0, match.range).length > 0 } }
+            guard let first = matches.first else { continue }
+            taken += matches.map(\.range)
+            found.append((first.range.location, hedge, matches.count))
+        }
+        return found.sorted { $0.location < $1.location }.map { ($0.word, $0.count) }
     }
 
     /// The flagged phrases in `text`, matched as whole words in any case.
