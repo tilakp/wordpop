@@ -93,6 +93,17 @@ final class GrammarTests: XCTestCase {
         XCTAssertEqual(fixed, "  I saw an apple. They left, and an owl said we should have known.")
     }
 
+    func testChecksInTheBackground() {
+        let done = expectation(description: "grammar")
+        Spelling.requestGrammarIssues(in: "Then I saw a apple. We should of known.") { issues in
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertEqual(issues.map(\.flagged), ["a", "of"])
+            XCTAssertEqual(issues.map(\.location), [11, 30])
+            done.fulfill()
+        }
+        wait(for: [done], timeout: 10)
+    }
+
     func testFixesEveryCopyOfARepeatedSentence() {
         let text = "Then I saw a apple. I saw a apple. I saw a apple."
         let issues = Spelling.grammarIssues(in: text)

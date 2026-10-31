@@ -93,12 +93,29 @@ enum Spelling {
     /// kept. The checker finds nothing unless spelling is checked in the
     /// same call.
     static func grammarIssues(in text: String, limit: Int = 8) -> [GrammarIssue] {
-        let ns = text as NSString
         let results = NSSpellChecker.shared.check(
-            text, range: NSRange(location: 0, length: ns.length),
-            types: NSTextCheckingResult.CheckingType([.grammar, .spelling]).rawValue,
+            text, range: NSRange(location: 0, length: (text as NSString).length), types: grammarTypes,
             options: [:], inSpellDocumentWithTag: 0, orthography: nil, wordCount: nil
         )
+        return grammarIssues(from: results, in: text, limit: limit)
+    }
+
+    /// The same check in the background, which takes most of a second for
+    /// a long passage; `completion` gets the issues on the main queue.
+    static func requestGrammarIssues(in text: String, limit: Int = 8, completion: @escaping ([GrammarIssue]) -> Void) {
+        NSSpellChecker.shared.requestChecking(
+            of: text, range: NSRange(location: 0, length: (text as NSString).length), types: grammarTypes,
+            options: nil, inSpellDocumentWithTag: 0
+        ) { _, results, _, _ in
+            let issues = grammarIssues(from: results, in: text, limit: limit)
+            DispatchQueue.main.async { completion(issues) }
+        }
+    }
+
+    private static let grammarTypes = NSTextCheckingResult.CheckingType([.grammar, .spelling]).rawValue
+
+    private static func grammarIssues(from results: [NSTextCheckingResult], in text: String, limit: Int) -> [GrammarIssue] {
+        let ns = text as NSString
         var issues: [GrammarIssue] = []
         for result in results where result.resultType == .grammar {
             let sentence = ns.substring(with: result.range)

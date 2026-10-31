@@ -62,11 +62,16 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
         viewModel.consistency = Consistency.check(passage)
         viewModel.crutches = ReplacedWords.shared.crutches(in: passage)
-        viewModel.grammar = Spelling.grammarIssues(in: passage)
-        viewModel.grammarFixes = Dictionary(uniqueKeysWithValues: viewModel.grammar.enumerated().map { ($0.offset, $0.element.corrections[0]) })
         // Wordy phrases start chosen; cliches are a matter of taste.
         viewModel.phraseFixes = Dictionary(stats.wordy.filter { !$0.isCliche }.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
         wireViewModelActions()
+        // The grammar check takes most of a second for a long passage, so
+        // its notes come in after the popup is up.
+        Spelling.requestGrammarIssues(in: passage) { [weak self] issues in
+            guard let self, self.viewModel.textStats == stats else { return }
+            self.viewModel.grammar = issues
+            self.viewModel.grammarFixes = Dictionary(uniqueKeysWithValues: issues.enumerated().map { ($0.offset, $0.element.corrections[0]) })
+        }
 
         let panel = ensurePanel()
         layOut(panel: panel, near: point)
@@ -454,6 +459,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$isLoadingCollocations.map { _ in () }.eraseToAnyPublisher(),
             // The fix button shows only while a fix is chosen.
             viewModel.$typoFixes.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$grammar.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$grammarFixes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$phraseFixes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$variantChoices.map { _ in () }.eraseToAnyPublisher(),
