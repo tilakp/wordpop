@@ -292,11 +292,12 @@ final class PopupController: NSObject, NSWindowDelegate {
             self.viewModel.onReplaceSentence(key.sentence, rewrite)
         }
         viewModel.onCheckTone = { [weak self] in
-            guard let self, !self.viewModel.isCheckingTone, let passage = self.viewModel.textStats?.sentenceTexts.joined(separator: " ") else { return }
+            guard let self, !self.viewModel.isCheckingTone, let stats = self.viewModel.textStats else { return }
             self.viewModel.isCheckingTone = true
             Task { @MainActor in
-                let reading = await WritingModel.tone(of: passage)
-                guard self.viewModel.isCheckingTone else { return }
+                let reading = await WritingModel.tone(of: stats.sentenceTexts.joined(separator: " "))
+                // A reading for a passage the popup no longer shows is dropped.
+                guard self.viewModel.isCheckingTone, self.viewModel.textStats == stats else { return }
                 self.viewModel.isCheckingTone = false
                 self.viewModel.toneReading = reading ?? ("", "No reading came back.")
             }
