@@ -24,11 +24,17 @@ enum TextTool: String, CaseIterable {
     }
 
     /// The tools that would change `text`: title case only for a short
-    /// headline, never for a passage of sentences.
+    /// headline, never for a passage of sentences, and sentence case only
+    /// for text that looks title-cased or is in capitals, not for prose
+    /// whose capitals are names.
     static func useful(for text: String) -> [TextTool] {
-        let headline = text.split(whereSeparator: \.isWhitespace).count <= 15 && !text.contains("\n")
+        let words = text.split(whereSeparator: \.isWhitespace)
+        let headline = words.count <= 15 && !text.contains("\n")
+        let capitalized = words.filter { $0.first?.isUppercase == true }.count
+        let looksTitled = capitalized * 2 >= words.count || !text.contains(where: \.isLowercase)
         return allCases.filter { tool in
             if tool == .titleCase, !headline { return false }
+            if tool == .sentenceCase, !looksTitled { return false }
             return tool.apply(to: text) != text
         }
     }
@@ -86,7 +92,7 @@ enum TextTool: String, CaseIterable {
             }
             let end = text[index...].firstIndex { !$0.isLetter && $0 != "'" && $0 != "\u{2019}" } ?? text.endIndex
             let word = String(text[index..<end])
-            let isName = names.contains { $0.contains(index) }
+            let isName = names.contains { $0.contains(index) } || alwaysCapitalized.contains(word.lowercased())
             let pronoun = word.lowercased() == "i" || ["i'", "i\u{2019}"].contains { word.lowercased().hasPrefix($0) }
             let keep = isName || hasInnerCapital(word) || isAllCaps(word)
             result += keep ? word : sentenceStart || pronoun ? capitalized(word) : lowered(word)
@@ -95,6 +101,12 @@ enum TextTool: String, CaseIterable {
         }
         return result
     }
+
+    /// Days and months, which keep their capital in any sentence.
+    private static let alwaysCapitalized: Set<String> = [
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "january", "february", "april",
+        "june", "july", "august", "september", "october", "november", "december",
+    ]
 
     /// Straight quotes to curly ones: a quote opens at the start, after a
     /// space or an opening bracket or dash, and closes everywhere else, so

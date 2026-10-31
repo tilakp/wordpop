@@ -30,4 +30,9 @@ final class TextToolsTests: XCTestCase {
         XCTAssertEqual(TextTool.useful(for: "A Guide to Writing"), [.sentenceCase])
         XCTAssertFalse(TextTool.useful(for: String(repeating: "word ", count: 20) + "end.").contains(.titleCase))
     }
+
+    func testSentenceCaseIsForTitledTextAndKeepsDays() {
+        XCTAssertFalse(TextTool.useful(for: "Hi Sam, please send it before Friday. Thanks.").contains(.sentenceCase))
+        XCTAssertEqual(TextTool.sentenceCase.apply(to: "Plans For Friday And June"), "Plans for Friday and June")
+    }
 }

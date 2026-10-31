@@ -25,6 +25,8 @@ struct TextStatsView: View {
             Text(summary)
                 .font(.forms)
                 .foregroundStyle(.secondary)
+                // Wraps instead of being cut short when a tool opens below.
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 22)
                 .padding(.bottom, 14)
 
