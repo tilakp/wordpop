@@ -92,6 +92,11 @@ enum Settings {
     /// The reading grade passages should not go above; 0 for none.
     static let targetGradeKey = "WordPop.targetGrade"
 
+    /// Whether notes on a passage include the fiction notes; off unless
+    /// turned on, as most text is not fiction.
+    static let fictionNotesKey = "WordPop.fictionNotes"
+    static var showsFiction: Bool { UserDefaults.standard.bool(forKey: fictionNotesKey) }
+
     static var targetGrade: Int? {
         let grade = UserDefaults.standard.integer(forKey: targetGradeKey)
         return grade > 0 ? grade : nil

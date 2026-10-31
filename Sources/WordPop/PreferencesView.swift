@@ -8,6 +8,7 @@ struct PreferencesView: View {
     @State private var hiddenSections = Settings.hiddenSections
     @AppStorage(StyleRules.presetKey) private var stylePreset = StyleRules.Preset.none
     @AppStorage(Settings.targetGradeKey) private var targetGrade = 0
+    @AppStorage(Settings.fictionNotesKey) private var fictionNotes = false
     let onLookupShortcutChanged: (HotkeyShortcut) -> String?
     let onQuickSearchShortcutChanged: (HotkeyShortcut) -> String?
 
@@ -78,6 +79,7 @@ struct PreferencesView: View {
                         Toggle(section.label, isOn: shows(section.id))
                     }
                 }
+                Toggle("Fiction: dialogue tags, filter words, emotions told", isOn: $fictionNotes)
             }
 
             Divider()

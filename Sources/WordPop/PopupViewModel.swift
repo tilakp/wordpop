@@ -181,6 +181,8 @@ final class PopupViewModel: ObservableObject {
         fixes.merge(systemFixes) { first, _ in first }
         return fixes
     }
+    /// Notes for fiction, when turned on in Preferences.
+    @Published var fiction = FictionNotes()
     /// What the passage does against the user's style rules.
     @Published var style = StyleRules.Report()
     /// Puts the chosen typo and phrase fixes into the passage at once.
@@ -490,6 +492,7 @@ final class PopupViewModel: ObservableObject {
         openTool = nil
         textTool = nil
         style = StyleRules.Report()
+        fiction = FictionNotes()
         toneReading = nil
         isCheckingTone = false
         mainPoint = nil

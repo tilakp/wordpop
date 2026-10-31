@@ -104,6 +104,9 @@ struct TextStatsView: View {
                     }
                 }
             }
+            if !viewModel.fiction.isEmpty {
+                section("Fiction", tint: .toneTint) { fictionControls }
+            }
             if !viewModel.crutches.isEmpty {
                 section("Your crutch words", tint: .confusedTint) {
                     wordList(viewModel.crutches.map { "\($0.word) (replaced \($0.count)\u{D7})" })
@@ -156,7 +159,7 @@ struct TextStatsView: View {
     private func copyNotes() {
         let report = NotesReport.markdown(
             stats: stats, typos: viewModel.typos, grammar: viewModel.grammar, consistency: viewModel.consistency,
-            style: viewModel.style, targetGrade: Settings.targetGrade, shows: Settings.shows
+            style: viewModel.style, fiction: viewModel.fiction, targetGrade: Settings.targetGrade, shows: Settings.shows
         )
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(report, forType: .string)
@@ -596,6 +599,32 @@ struct TextStatsView: View {
                 .overlay(Capsule().strokeBorder(chosen ? Color.confusedTint : Color.confusedTint.opacity(0.25)))
         }
         .buttonStyle(.plain)
+    }
+
+    /// The fiction notes, each kind on its own line with what it means.
+    @ViewBuilder
+    private var fictionControls: some View {
+        let fiction = viewModel.fiction
+        if let share = fiction.dialogueShare {
+            Text("Dialogue: \(Int((share * 100).rounded()))% of the words.").font(.definition).foregroundStyle(.secondary)
+        }
+        fictionLine("Adverbs on tags", fiction.tagAdverbs, hint: "Let the line itself show how it is said.")
+        fictionLine("Tags", fiction.showyTags.map { $0.count > 1 ? "\($0.word) \u{D7}\($0.count)" : $0.word },
+                    hint: "Readers skip over \u{201C}said\u{201D} and \u{201C}asked\u{201D}; other tags draw the eye.")
+        fictionLine("Filter words", fiction.filterWords.map { $0.count > 1 ? "\($0.word) \u{D7}\($0.count)" : $0.word },
+                    hint: "\u{201C}She saw the door open\u{201D} reads closer as \u{201C}The door opened.\u{201D}")
+        fictionLine("Emotions told", fiction.emotionTells, hint: "Show it through action, speech or the body.")
+    }
+
+    @ViewBuilder
+    private func fictionLine(_ title: String, _ items: [String], hint: String) -> some View {
+        if !items.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                (Text("\(title): ").font(.definition.weight(.semibold)) + Text(items.joined(separator: ", ")).font(.definition))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(hint).font(.recentMeta).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var hasStyleFixes: Bool { viewModel.style.words.contains { !$0.fix.isEmpty } }

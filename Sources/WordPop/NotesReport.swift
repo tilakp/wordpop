@@ -10,6 +10,7 @@ enum NotesReport {
         grammar: [GrammarIssue] = [],
         consistency: Consistency = Consistency(),
         style: StyleRules.Report = StyleRules.Report(),
+        fiction: FictionNotes = FictionNotes(),
         targetGrade: Int? = nil,
         shows: (PassageSection) -> Bool = { _ in true }
     ) -> String {
@@ -48,6 +49,10 @@ enum NotesReport {
         if shows(.rhythm) {
             add("Sentence starts", stats.repeatedStarts.map { "\u{201C}\($0.word)\u{201D} starts \($0.count) of \(stats.sentences) sentences" })
         }
+        add("Fiction", (fiction.dialogueShare.map { ["dialogue \(Int(($0 * 100).rounded()))% of words"] } ?? [])
+            + fiction.tagAdverbs + fiction.showyTags.map(\.word).map { "tag: \($0)" }
+            + (fiction.filterWords.isEmpty ? [] : ["filter words: " + fiction.filterWords.map(\.word).joined(separator: ", ")])
+            + fiction.emotionTells.map { "told: \($0)" })
         if lines.count == 2 { lines.append("No notes.") }
         return lines.joined(separator: "\n")
     }

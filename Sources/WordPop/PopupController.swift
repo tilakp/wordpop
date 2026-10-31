@@ -73,6 +73,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.typoFixes = Dictionary(viewModel.typos.map { ($0.word, $0.suggestions[0]) }, uniquingKeysWith: { first, _ in first })
         if Settings.shows(.consistency) { viewModel.consistency = Consistency.check(passage) }
         if Settings.shows(.crutches) { viewModel.crutches = ReplacedWords.shared.crutches(in: passage) }
+        if Settings.showsFiction { viewModel.fiction = FictionNotes.check(passage) }
         // Wordy phrases start chosen; cliches are a matter of taste.
         // The user's own rules start chosen too, when they give a fix.
         viewModel.phraseFixes = Dictionary(
