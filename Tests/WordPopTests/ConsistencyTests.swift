@@ -32,6 +32,7 @@ final class ConsistencyTests: XCTestCase {
         XCTAssertEqual(Consistency.undefinedAcronyms(in: "Write in STE. It is Simplified Technical English (STE). Do NOT use the API."), ["STE"])
         XCTAssertEqual(Consistency.undefinedAcronyms(in: "Simplified Technical English (STE) is strict. Use STE and ATA codes."), ["ATA"])
         XCTAssertEqual(Consistency.undefinedAcronyms(in: "WARNING: the KPIs are late."), ["KPI"])
+        XCTAssertEqual(Consistency.undefinedAcronyms(in: "STEM matters. Simplified Technical English (STE) helps. STE is good."), [], "STE is defined; stem is a word")
     }
 
     func testEditDistance() {

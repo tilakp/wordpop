@@ -140,7 +140,8 @@ struct Consistency: Equatable {
             var acronym = ns.substring(with: match.range)
             if acronym.hasSuffix("s") { acronym.removeLast() }
             guard !found.contains(acronym), !commonAcronyms.contains(acronym), isAcronym(acronym) else { continue }
-            let firstUse = ns.range(of: acronym).location
+            // As a word of its own, not inside a longer one ("STEM").
+            let firstUse = ns.range(of: "\\b\(acronym)s?\\b", options: .regularExpression).location
             let definition = ns.range(of: "(\(acronym))")
             if definition.location == NSNotFound || definition.location > firstUse + 1 { found.append(acronym) }
         }
