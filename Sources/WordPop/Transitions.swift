@@ -17,14 +17,27 @@ enum Transitions {
     private static let withoutComma: Set<String> = ["But", "So", "Then"]
 
     /// The transition the sentence already starts with, if any, as written
-    /// ("However" in "However, the plan failed.").
+    /// ("However" in "However, the plan failed."). Without a comma, "So"
+    /// and "Then" are one only when a clause follows ("So we left"), not
+    /// in "So far" or "So many people".
     static func leading(in sentence: String) -> String? {
         let all = groups.flatMap(\.phrases).sorted { $0.count > $1.count }
         return all.first { phrase in
             guard sentence.lowercased().hasPrefix(phrase.lowercased()) else { return false }
             let rest = sentence.dropFirst(phrase.count)
-            return rest.hasPrefix(",") || withoutComma.contains(phrase) && rest.hasPrefix(" ")
+            if rest.hasPrefix(",") { return true }
+            guard withoutComma.contains(phrase), rest.hasPrefix(" ") else { return false }
+            return phrase == "But" || startsClause(String(rest.drop { $0 == " " }))
         }
+    }
+
+    /// Whether `text` starts with a pronoun, determiner or noun, the
+    /// subject of a clause.
+    private static func startsClause(_ text: String) -> Bool {
+        let tagger = NLTagger(tagSchemes: [.lexicalClass])
+        tagger.string = text
+        let (tag, _) = tagger.tag(at: text.startIndex, unit: .word, scheme: .lexicalClass)
+        return [.pronoun, .determiner, .noun].contains(tag)
     }
 
     /// `sentence` starting with `transition`, in place of any transition

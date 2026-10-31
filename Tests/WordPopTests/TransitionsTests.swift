@@ -15,6 +15,12 @@ final class TransitionsTests: XCTestCase {
         XCTAssertEqual(Transitions.leading(in: "On the other hand, it rained."), "On the other hand")
         XCTAssertNil(Transitions.leading(in: "Still water runs deep."))
         XCTAssertNil(Transitions.leading(in: "Sometimes it rains."))
+        XCTAssertNil(Transitions.leading(in: "So far it works."))
+        XCTAssertNil(Transitions.leading(in: "So many people came."))
+        XCTAssertNil(Transitions.leading(in: "Then again, maybe not."))
+        XCTAssertEqual(Transitions.leading(in: "Then the rain came."), "Then")
+        XCTAssertEqual(Transitions.leading(in: "But it rained."), "But")
+        XCTAssertEqual(Transitions.applying("However", to: "So far it works."), "However, so far it works.")
         XCTAssertEqual(Transitions.applying("As a result", to: "However, the plan failed."), "As a result, the plan failed.")
         XCTAssertEqual(Transitions.applying("However", to: "So we left early."), "However, we left early.")
     }
