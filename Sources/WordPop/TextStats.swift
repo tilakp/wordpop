@@ -83,6 +83,24 @@ struct TextStats: Equatable {
         return occurrences(of: lemma, forms: forms, in: paragraph)
     }
 
+    /// The different words of `text`, lowercased, by first letter: split
+    /// once, then `contains(_:in:)` asks about many words cheaply.
+    static func wordIndex(of text: String) -> [Character: Set<String>] {
+        var index: [Character: Set<String>] = [:]
+        for range in tokens(of: text, unit: .word) {
+            let word = text[range].lowercased()
+            if let first = word.first { index[first, default: []].insert(word) }
+        }
+        return index
+    }
+
+    /// Whether `lemma` or a regular form of it is among the indexed words.
+    static func contains(_ lemma: String, in index: [Character: Set<String>]) -> Bool {
+        let lemma = lemma.lowercased()
+        guard let first = lemma.first, let words = index[first] else { return false }
+        return words.contains(lemma) || words.contains { Inflection.form(of: $0, lemma: lemma, forms: []) != .plain }
+    }
+
     /// How many times `lemma` or one of its forms is used in `text`, for
     /// any word, short and common ones included.
     static func occurrences(of lemma: String, forms: [String] = [], in text: String) -> Int {

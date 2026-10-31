@@ -33,7 +33,10 @@ final class ReplacedWords {
     /// The crutch words used in `text` (or a form of them), most replaced
     /// first, with how often each was replaced.
     func crutches(in text: String) -> [(word: String, count: Int)] {
-        counts.filter { $0.value >= Self.crutchCount && TextStats.occurrences(of: $0.key, in: text) > 0 }
+        let crutches = counts.filter { $0.value >= Self.crutchCount }
+        guard !crutches.isEmpty else { return [] }
+        let words = TextStats.wordIndex(of: text)
+        return crutches.filter { TextStats.contains($0.key, in: words) }
             .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
             .map { ($0.key, $0.value) }
     }

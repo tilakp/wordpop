@@ -60,6 +60,10 @@ final class TextStatsTests: XCTestCase {
     func testCountsShortAndCommonWordsToo() {
         XCTAssertEqual(TextStats.occurrences(of: "very", in: "It was very, very cold. Very."), 3)
         XCTAssertEqual(TextStats.occurrences(of: "plan", in: "We planned the plans."), 2)
+        let index = TextStats.wordIndex(of: "It was Very cold, and we planned more.")
+        XCTAssertTrue(TextStats.contains("very", in: index))
+        XCTAssertTrue(TextStats.contains("plan", in: index))
+        XCTAssertFalse(TextStats.contains("really", in: index))
     }
 
     func testFindsARunOfSentencesOfTheSameLength() {
