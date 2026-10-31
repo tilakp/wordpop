@@ -12,11 +12,11 @@ enum Database {
     /// the binary, flat with the Command Line Tools and in
     /// Contents/Resources with Xcode's build system. Under `swift test` the
     /// resource bundle is next to the test bundle that holds this code.
-    private static var url: URL? {
-        if let url = Bundle.main.url(forResource: "wordpop", withExtension: "sqlite") { return url }
+    private static func url(named name: String) -> URL? {
+        if let url = Bundle.main.url(forResource: name, withExtension: "sqlite") { return url }
         let folders = [Bundle.main.bundleURL, Bundle(for: BundleToken.self).bundleURL.deletingLastPathComponent()]
         return folders.flatMap { folder in
-            ["WordPop_WordPop.bundle/wordpop.sqlite", "WordPop_WordPop.bundle/Contents/Resources/wordpop.sqlite"]
+            ["WordPop_WordPop.bundle/\(name).sqlite", "WordPop_WordPop.bundle/Contents/Resources/\(name).sqlite"]
                 .map { folder.appendingPathComponent($0) }
         }
         .first { FileManager.default.fileExists(atPath: $0.path) }
@@ -24,13 +24,29 @@ enum Database {
 
     private final class BundleToken {}
 
-    private static let connection: OpaquePointer? = {
-        guard let url else { return nil }
+    private static func open(_ name: String) -> OpaquePointer? {
+        guard let url = url(named: name) else { return nil }
         var db: OpaquePointer?
         let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
         guard sqlite3_open_v2(url.path, &db, flags, nil) == SQLITE_OK else { return nil }
         return db
-    }()
+    }
+
+    private static let connection = open("wordpop")
+    /// Example sentences from Tatoeba with a full-text index
+    /// (scripts/build_examples.py), in a file of their own.
+    private static let examples = open("examples")
+
+    /// How many example sentences use `phrase` as a phrase (in any case,
+    /// ignoring punctuation), and up to `limit` of the shorter ones. They
+    /// are not sorted by length, which took 0.2 s for a word as common as
+    /// "the"; the sentences are stored in a random order.
+    static func usage(of phrase: String, limit: Int) -> (count: Int, sentences: [String]) {
+        let match = "\"" + phrase.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        let count = rows("SELECT count(*) FROM sentences WHERE sentences MATCH ?1", [match], in: examples).first.flatMap { Int($0[0]) } ?? 0
+        let sentences = rows("SELECT text FROM sentences WHERE sentences MATCH ?1 AND length(text) < 90 LIMIT ?2", [match, limit], in: examples).map { $0[0] }
+        return (count, sentences)
+    }
 
     static func list(_ table: String, word: String, partOfSpeech: String? = nil) -> [String] {
         let sql = partOfSpeech == nil
@@ -156,8 +172,8 @@ enum Database {
         rows(sql, parameters).map { $0[0] }
     }
 
-    private static func rows(_ sql: String, _ parameters: [Any]) -> [[String]] {
-        guard let connection else { return [] }
+    private static func rows(_ sql: String, _ parameters: [Any], in database: OpaquePointer? = connection) -> [[String]] {
+        guard let connection = database else { return [] }
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(connection, sql, -1, &statement, nil) == SQLITE_OK, let statement else { return [] }
         defer { sqlite3_finalize(statement) }

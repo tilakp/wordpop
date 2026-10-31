@@ -10,6 +10,7 @@ let package = Package(
             path: "Sources/WordPop",
             resources: [
                 .copy("Resources/wordpop.sqlite"),
+                .copy("Resources/examples.sqlite"),
             ]
         ),
         .testTarget(

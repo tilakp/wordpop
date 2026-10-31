@@ -19,6 +19,7 @@ cp "$BIN_DIR/WordPop" "$APP/Contents/MacOS/WordPop"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Sources/WordPop/Resources/wordpop.sqlite "$APP/Contents/Resources/wordpop.sqlite"
+cp Sources/WordPop/Resources/examples.sqlite "$APP/Contents/Resources/examples.sqlite"
 
 SIGN_IDENTITY="-"
 if security find-identity -v -p codesigning 2>/dev/null | grep -q "WordPop Local Signing"; then

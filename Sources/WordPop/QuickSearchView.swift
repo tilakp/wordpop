@@ -18,7 +18,7 @@ final class QuickSearchModel: ObservableObject {
 
     func updateCorrections() {
         let word = query.trimmingCharacters(in: .whitespaces)
-        guard describedMeaning == nil, pattern == nil, word.count >= 3, !word.contains(" "),
+        guard describedMeaning == nil, usagePhrases == nil, pattern == nil, word.count >= 3, !word.contains(" "),
               WordList.suggestions(for: word, limit: 1).isEmpty else {
             corrections = []
             return
@@ -34,7 +34,7 @@ final class QuickSearchModel: ObservableObject {
     /// describe mode instead.
     var pattern: (glob: String, meaning: String?)? {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard describedMeaning == nil, trimmed.contains(where: { "*?_".contains($0) }) else { return nil }
+        guard describedMeaning == nil, usagePhrases == nil, trimmed.contains(where: { "*?_".contains($0) }) else { return nil }
         let parts = trimmed.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
         guard let glob = parts.first, !glob.isEmpty, !glob.contains(" "), glob.contains(where: \.isLetter) else { return nil }
         let meaning = parts.count > 1 && !parts[1].isEmpty ? parts[1] : nil
@@ -62,6 +62,31 @@ final class QuickSearchModel: ObservableObject {
         return Set((thesaurus + bundled).map { $0.lowercased() })
     }
 
+    /// A query that starts with a quote mark checks how phrases are used:
+    /// "different than | different from.
+    var usagePhrases: [String]? {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard let first = trimmed.first, "\"\u{201C}".contains(first) else { return nil }
+        return trimmed.dropFirst().split(separator: "|")
+            .map { $0.trimmingCharacters(in: .whitespaces.union(CharacterSet(charactersIn: "\"\u{201C}\u{201D}"))) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// Each phrase of a usage query with how many example sentences use
+    /// it and a few of them.
+    @Published private(set) var usage: [(phrase: String, count: Int, sentences: [String])] = []
+
+    func updateUsage() {
+        guard let phrases = usagePhrases, !phrases.isEmpty else {
+            usage = []
+            return
+        }
+        usage = phrases.prefix(4).map { phrase in
+            let found = Database.usage(of: phrase, limit: phrases.count == 1 ? 5 : 2)
+            return (phrase, found.count, found.sentences)
+        }
+    }
+
     /// A query that starts with "?" describes a word instead of naming it.
     var describedMeaning: String? {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
@@ -77,6 +102,7 @@ final class QuickSearchModel: ObservableObject {
         lastDescribed = nil
         corrections = []
         patternMatches = []
+        usage = []
     }
 
     @MainActor
@@ -115,6 +141,7 @@ struct QuickSearchView: View {
     /// Starred words matching the query come first, then recent lookups,
     /// then dictionary completions to fill the remaining rows.
     private var rows: [Row] {
+        if model.usagePhrases != nil { return [] }
         if model.describedMeaning != nil {
             return model.described.map { Row(word: $0, date: nil) }
         }
@@ -146,7 +173,12 @@ struct QuickSearchView: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 14)
 
-            if !rows.isEmpty {
+            if model.usagePhrases != nil {
+                Divider().padding(.horizontal, 18)
+                usageList
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+            } else if !rows.isEmpty {
                 Divider().padding(.horizontal, 18)
                 rowList
                     .padding(.horizontal, 8)
@@ -175,12 +207,14 @@ struct QuickSearchView: View {
             model.isDescribing = false
             model.updateCorrections()
             model.updatePatternMatches()
+            model.updateUsage()
         }
         // Any change to the rows can change the height, not only their
         // count: spelling corrections carry a second line.
         .onChange(of: rows.map(\.id)) { _, _ in onLayoutChange() }
         .onChange(of: describeNote) { _, _ in onLayoutChange() }
         .onChange(of: patternNote) { _, _ in onLayoutChange() }
+        .onChange(of: model.usage.map { "\($0.phrase)\($0.count)" }) { _, _ in onLayoutChange() }
     }
 
     private var searchField: some View {
@@ -189,7 +223,7 @@ struct QuickSearchView: View {
                 .foregroundStyle(.secondary)
                 .font(.system(size: 17))
 
-            TextField("Look up a word, or ?describe one\u{2026}", text: $model.query)
+            TextField("Look up a word, ?describe one, or \"check a phrase\u{2026}", text: $model.query)
                 .textFieldStyle(.plain)
                 .font(.searchField)
                 .focused($isFocused)
@@ -239,6 +273,48 @@ struct QuickSearchView: View {
         }
     }
 
+    /// Each phrase of a usage query with its count in the example
+    /// sentences and a few of them, the phrase in bold.
+    @ViewBuilder
+    private var usageList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if model.usage.isEmpty {
+                Text("Type a phrase to see how often it is used, in about 400,000 example sentences. Compare two with |: \"different than | different from")
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(Array(model.usage.enumerated()), id: \.offset) { _, item in
+                VStack(alignment: .leading, spacing: 3) {
+                    (Text(item.phrase).font(.recentWord) + Text("  \(item.count == 0 ? "no" : String(item.count)) sentence\(item.count == 1 ? "" : "s")").font(.recentMeta).foregroundColor(.secondary))
+                    ForEach(item.sentences, id: \.self) { sentence in
+                        Text(Self.highlighting(item.phrase, in: sentence))
+                            .font(.recentMeta)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            if !model.usage.isEmpty {
+                Text("Example sentences from Tatoeba (CC BY 2.0 FR). A count shows how common a phrase is, not whether it is correct.")
+                    .font(.recentMeta)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// `sentence` with the first use of `phrase` (in any case) in bold.
+    static func highlighting(_ phrase: String, in sentence: String) -> AttributedString {
+        var text = AttributedString(sentence)
+        if let range = text.range(of: phrase, options: .caseInsensitive) {
+            text[range].inlinePresentationIntent = .stronglyEmphasized
+            text[range].foregroundColor = .primary
+        }
+        return text
+    }
+
     /// What the describe mode has to say when it has no rows to show.
     private var describeNote: String? {
         guard let meaning = model.describedMeaning else { return nil }
@@ -263,6 +339,8 @@ struct QuickSearchView: View {
             if let first = rows.first { onSubmit(first.word) }
             return
         }
+        // The usage check updates as you type; there is nothing to open.
+        if model.usagePhrases != nil { return }
         if model.describedMeaning != nil {
             Task { await model.describe() }
             return

@@ -69,6 +69,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 - **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first. Start with `?` to describe a meaning instead ("?the smell of rain on dry earth" → petrichor, "?a happy accident" → serendipity); this uses the on-device model and checks every suggestion against its dictionary definition.
 - **Spelling help.** Not sure how a word is spelled? Type your best guess in Quick Search: if it is misspelled, the close words are listed with their part of speech and first definition, so you can pick the right one by meaning. A misspelled word you select gets a "Did you mean" row in the popup. Click "Replace with" to fix it with the top suggestion, or `⌥`-click another pill to use that one. In a selected passage, the Spelling notes list each typo with its fixes; choose the ones you want and click the fix button. A name or a term that is not a typo? Click **Not a typo** to add it to your Mac's spelling dictionary, the same list as **Learn Spelling** in other apps, so neither WordPop nor any other app flags it again (**Unlearn Spelling** on the word's right-click menu in TextEdit or Mail takes it out). Suggestions come from the macOS spell checker and work offline.
 - **Pattern search.** In Quick Search, `*` stands for any letters and `?` or `_` for one: `b??t` lists best, beat, boat. Add `: meaning` to keep only synonyms of a word: `con* : agree` gives consent, concur.
+- **Is this phrase used?** In Quick Search, start with a quote mark to check a phrase against about 400,000 example sentences: `"comprised of` shows how many use it and a few of them, with the phrase in bold. Compare phrases with `|`: `"different than | different from` gives 20 and 168. A count shows how common a phrase is, not whether it is correct. The sentences come from [Tatoeba](https://tatoeba.org) and ship with the app (about 40 MB).
 - **Lookup history and type-ahead.** Quick Search lists your recent lookups (kept for 30 days) under the field, then completes what you type from a 69,000-word list. Arrow keys and Return open a row. **Clear History** in the menu bar menu removes it.
 
 ### Your words and settings
@@ -147,6 +148,7 @@ To inspect what WordPop parses for a word without opening the popup: `.build/rel
 - **More specific words:** `scripts/build_specific.py` takes WordNet's narrower terms (hyponyms) for the first three senses of each noun and verb.
 - **Sounds like:** `scripts/build_homophones.py` groups the words that share a CMU pronunciation, stress included.
 - **Word family:** `scripts/build_family.py` follows WordNet's derivation and pertainym links both ways, up to two steps, keeping words that start with the same three letters.
+- **Usage examples:** `scripts/build_examples.py` downloads Tatoeba's English sentences, keeps 400,000 of 7 to 25 words (without the stock names "Tom" and "Mary", once each) and indexes them with SQLite FTS5 in `examples.sqlite`, a file apart from `wordpop.sqlite`.
 - **Type-ahead:** `scripts/build_words.py` writes the WordNet lemma list ordered by `wordfreq` frequency.
 - **Hand-written lists:** often-confused words (`confusables.txt`), stronger words (`stronger.txt`), inclusive alternatives (`inclusive.txt`), wordy phrases (`wordy.txt`), formal words (`plain.txt`), hidden verbs (`hidden.txt`, which `build_db.py` expands to every form of the verb) and clichés (`cliches.txt`) in `scripts/`.
 - All the datasets and lists ship in one SQLite file (`scripts/build_db.py`) queried on demand, so launch does no decoding and the data costs a few megabytes of memory instead of ~100 MB.
@@ -170,6 +172,7 @@ python3 build_words.py
 python3 build_specific.py
 python3 build_family.py
 python3 build_homophones.py
+python3 build_examples.py   # examples.sqlite, downloads about 25 MB
 python3 build_db.py     # packs the outputs into ../Sources/WordPop/Resources/wordpop.sqlite
 ```
 
@@ -179,7 +182,7 @@ Synonyms within each part of speech are ranked by GloVe cosine similarity to the
 
 ```
 Sources/WordPop/       Swift sources (AppKit + SwiftUI)
-Sources/WordPop/Resources/  wordpop.sqlite: synonyms, antonyms, rhymes, syllables, the word list and the hand-written lists
+Sources/WordPop/Resources/  wordpop.sqlite: synonyms, antonyms, rhymes, syllables, the word list and the hand-written lists; examples.sqlite: example sentences
 Resources/             App icon and Info.plist
 scripts/               Python scripts that build the datasets, and the hand-written lists
 build_app.sh           Builds and signs WordPop.app
@@ -191,6 +194,7 @@ setup_signing.sh       One-time local signing certificate setup
 - Open English WordNet is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - Moby Thesaurus II by Grady Ward is in the public domain.
 - The CMU Pronouncing Dictionary is licensed under a BSD-style license.
+- Example sentences are from [Tatoeba](https://tatoeba.org), licensed under [CC BY 2.0 FR](https://creativecommons.org/licenses/by/2.0/fr/).
 - Definitions, thesaurus entries, and bilingual entries come from the dictionaries installed with macOS and are not redistributed by this project. Enumerating those dictionaries uses Dictionary Services functions that Apple ships but does not document (`DCSCopyAvailableDictionaries`, `DCSGetActiveDictionaries`), so this app is not App Store eligible as is.
 
 ## License
