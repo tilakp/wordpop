@@ -332,6 +332,16 @@ final class PopupController: NSObject, NSWindowDelegate {
                 self.viewModel.toneReading = reading ?? ("", "No reading came back.")
             }
         }
+        viewModel.onFindMainPoint = { [weak self] in
+            guard let self, !self.viewModel.isFindingMainPoint, let stats = self.viewModel.textStats else { return }
+            self.viewModel.isFindingMainPoint = true
+            Task { @MainActor in
+                let answer = await WritingModel.mainPoint(of: stats.sentenceTexts)
+                guard self.viewModel.isFindingMainPoint, self.viewModel.textStats == stats else { return }
+                self.viewModel.isFindingMainPoint = false
+                self.viewModel.mainPoint = answer ?? ("", nil)
+            }
+        }
         viewModel.onReplaceSentence = { [weak self] sentence, new in
             // The passage goes back with only that sentence changed.
             guard let self, let target = self.replaceTarget, let range = target.text.range(of: sentence) else { return }

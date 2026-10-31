@@ -113,7 +113,7 @@ final class PopupViewModel: ObservableObject {
     @Published var openTool: PassageTool?
 
     enum PassageTool: String, CaseIterable {
-        case reframe = "Reframe", tone = "Tone", transitions = "Transitions", text = "Text"
+        case reframe = "Reframe", tone = "Tone", mainPoint = "Main point", transitions = "Transitions", text = "Text"
     }
     /// The selected text, for the text tools, and the tool being
     /// previewed.
@@ -125,6 +125,11 @@ final class PopupViewModel: ObservableObject {
     @Published var toneReading: (tone: String, reason: String)?
     @Published var isCheckingTone = false
     var onCheckTone: () -> Void = {}
+    /// The passage's main point and the sentence that states it, from the
+    /// on-device model; nil until asked for.
+    @Published var mainPoint: (point: String, sentence: Int?)?
+    @Published var isFindingMainPoint = false
+    var onFindMainPoint: () -> Void = {}
     /// Puts a new sentence in place of one in the passage.
     var onReplaceSentence: (_ sentence: String, _ with: String) -> Void = { _, _ in }
     /// The paragraph the selection sits in, when the app exposes it.
@@ -475,6 +480,8 @@ final class PopupViewModel: ObservableObject {
         style = StyleRules.Report()
         toneReading = nil
         isCheckingTone = false
+        mainPoint = nil
+        isFindingMainPoint = false
         paragraph = nil
         typos = []
         typoFixes = [:]

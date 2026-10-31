@@ -203,6 +203,7 @@ struct TextStatsView: View {
             switch tool {
             case .reframe: reframeSentence != nil && WritingModel.isAvailable
             case .tone: WritingModel.isAvailable
+            case .mainPoint: WritingModel.isAvailable && stats.sentences > 1
             case .transitions: reframeSentence != nil
             case .text: viewModel.canReplace && !TextTool.useful(for: viewModel.selectionText ?? "").isEmpty
             }
@@ -229,6 +230,7 @@ struct TextStatsView: View {
         switch viewModel.openTool {
         case .reframe: if let sentence = reframeSentence { reframeControls(for: sentence) }
         case .tone: toneControls
+        case .mainPoint: mainPointControls
         case .transitions: if let sentence = reframeSentence { transitionControls(for: sentence) }
         case .text: TextToolControls(viewModel: viewModel)
         case nil: EmptyView()
@@ -341,6 +343,41 @@ struct TextStatsView: View {
                     .foregroundStyle(Color.accentColor)
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    /// A link that asks the on-device model for the passage's main point,
+    /// then the point and whether the passage leads with it.
+    @ViewBuilder
+    private var mainPointControls: some View {
+        if let answer = viewModel.mainPoint {
+            if answer.point.isEmpty {
+                Text("No answer came back.").font(.recentMeta).foregroundStyle(.tertiary)
+            } else {
+                (Text("Main point: ").font(.definition.weight(.semibold)) + Text(answer.point).font(.definition))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(Self.leadNote(for: answer.sentence))
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            Button(action: viewModel.onFindMainPoint) {
+                Text(viewModel.isFindingMainPoint ? "Reading\u{2026}" : "What is the main point?")
+                    .font(.recentMeta)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Whether the passage leads with its main point, as editors want for
+    /// an email or a report.
+    static func leadNote(for sentence: Int?) -> String {
+        switch sentence {
+        case 1: "Your first sentence states it."
+        case let number?: "Sentence \(number) states it. Readers who stop early miss it; consider putting it first."
+        case nil: "No sentence states it outright. Consider opening with one that does."
         }
     }
 

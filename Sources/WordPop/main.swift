@@ -46,6 +46,16 @@ if let index = CommandLine.arguments.firstIndex(of: "--tone"), index + 1 < Comma
     dispatchMain()
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--main-point"), index + 1 < CommandLine.arguments.count {
+    let text = CommandLine.arguments[(index + 1)...].joined(separator: " ")
+    Task {
+        let answer = await WritingModel.mainPoint(of: TextStats.analyze(text).sentenceTexts)
+        print(answer.map { "sentence \($0.sentence.map(String.init) ?? "none"): \($0.point)" } ?? "-")
+        exit(0)
+    }
+    dispatchMain()
+}
+
 if CommandLine.arguments.contains("--model-check") {
     // Runs every on-device model feature on fixed inputs, for spotting
     // requests the model refuses or answers badly.
@@ -67,6 +77,10 @@ if CommandLine.arguments.contains("--model-check") {
         print("explain:", await WritingModel.explain(phrase: "touch base", in: "Let's touch base next week.") ?? "-")
         print("rewrite:", await WritingModel.rewrite("The report was written by the committee.", .active) ?? "-")
         print("tone:", await WritingModel.tone(of: "Send me the file by noon. I asked twice already.").map { "\($0.tone): \($0.reason)" } ?? "-")
+        print("main point:", await WritingModel.mainPoint(of: [
+            "Thanks for the update on the launch.", "The team has worked hard this month.",
+            "We need to move the launch to June 3 because the security review is not done.", "Let me know if you have questions.",
+        ]).map { "\($0.sentence.map(String.init) ?? "none"): \($0.point)" } ?? "-")
         print("sensitive:", await WritingModel.senseIndex(of: "killed", in: "The frost killed the plants.",
                                                           definitions: ["cause the death of", "put an end to", "pass time"]) as Any)
         exit(0)

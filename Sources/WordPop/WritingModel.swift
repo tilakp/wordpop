@@ -285,6 +285,31 @@ enum WritingModel {
         return (parts[0].lowercased(), parts[1])
     }
 
+    /// The passage's main point in one sentence, and the number (from 1)
+    /// of the sentence that states it; nil for the number when no sentence
+    /// does. Editors want it first in an email or a report.
+    static func mainPoint(of sentences: [String]) async -> (point: String, sentence: Int?)? {
+        guard sentences.count > 1 else { return nil }
+        let instructions = "You are an editor. You find the one main point a text makes: the thing the reader must know or do. Be brief and concrete."
+        let prompt = sentences.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+        func result(_ point: String, _ number: Int) -> (point: String, sentence: Int?)? {
+            let point = point.trimmingCharacters(in: .whitespacesAndNewlines)
+            return point.isEmpty ? nil : (point, (1...sentences.count).contains(number) ? number : nil)
+        }
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *), let answer = await structured(MainPoint.self, instructions, prompt) {
+            return result(answer.point, answer.sentence)
+        }
+        #endif
+        guard let answer = await ask(
+            instructions,
+            prompt + "\nAnswer with the number of the sentence that states the main point most directly (0 if none does), a colon, and the main point in one short sentence. Nothing else."
+        ) else { return nil }
+        let parts = answer.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard parts.count == 2, let number = Int(parts[0]) else { return nil }
+        return result(parts[1], number)
+    }
+
     /// The rhymes that would make a strong, natural ending for the next
     /// line of a poem or song, given the meaning and mood of `line`.
     static func rhymes(for line: String, endingIn word: String, candidates: [String]) async -> [String] {
@@ -419,6 +444,15 @@ private struct ToneReading {
     var tone: String
     @Guide(description: "One short sentence on which words or phrases make the text read that way.")
     var reason: String
+}
+
+@available(macOS 26, *)
+@Generable
+private struct MainPoint {
+    @Guide(description: "The one main point of the text in one short sentence: what the reader must know or do.")
+    var point: String
+    @Guide(description: "The number of the sentence that states this main point most directly, or 0 if no sentence states it.")
+    var sentence: Int
 }
 
 @available(macOS 26, *)
