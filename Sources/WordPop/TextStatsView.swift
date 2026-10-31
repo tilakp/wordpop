@@ -125,27 +125,30 @@ struct TextStatsView: View {
     /// out in another color, and a flat run is named under the bars.
     @ViewBuilder
     private var rhythm: some View {
+        // Both are worked out from every sentence, so once per drawing,
+        // not once per bar.
         let lengths = stats.sentenceLengths
+        let run = stats.evenRun
         let longest = max(lengths.max() ?? 1, 1)
         HStack(alignment: .bottom, spacing: 3) {
             ForEach(Array(lengths.enumerated()), id: \.offset) { index, length in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(length > TextStats.longSentenceWords ? Color.antonymTint : Color.synonymTint.opacity(stats.evenRun?.contains(index) == true ? 0.4 : 0.8))
+                    .fill(length > TextStats.longSentenceWords ? Color.antonymTint : Color.synonymTint.opacity(run?.contains(index) == true ? 0.4 : 0.8))
                     .frame(maxWidth: 14)
                     .frame(height: max(3, 44 * CGFloat(length) / CGFloat(longest)))
                     .help("\(length) words: \(stats.sentenceTexts[index])")
             }
         }
         .frame(height: 44, alignment: .bottom)
-        Text(rhythmNote(lengths))
+        Text(rhythmNote(lengths, run: run))
             .font(.recentMeta)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    private func rhythmNote(_ lengths: [Int]) -> String {
+    private func rhythmNote(_ lengths: [Int], run: ClosedRange<Int>?) -> String {
         let range = "Shortest \(lengths.min() ?? 0), longest \(lengths.max() ?? 0) words."
-        guard let run = stats.evenRun else { return range }
+        guard let run else { return range }
         return range + " Sentences \(run.lowerBound + 1) to \(run.upperBound + 1) are about the same length, which can read flat."
     }
 
