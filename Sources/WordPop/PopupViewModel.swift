@@ -316,6 +316,11 @@ final class PopupViewModel: ObservableObject {
                     sections.append(PillSection(id: "antonyms", title: "Antonyms", tint: .antonymTint, rows: [row(nil, block.antonyms)]))
                 }
             }
+            // "phrasal verb" and "modal verb" read as verbs.
+            if let partOfSpeech = block.partOfSpeech?.split(separator: " ").last.map(String.init), ["noun", "verb"].contains(partOfSpeech) {
+                let rows = Database.specific(for: entry.word, partOfSpeech: partOfSpeech).map { row($0.caption, $0.words) }
+                if !rows.isEmpty { sections.append(PillSection(id: "specific", title: "More specific", tint: .compareTint, rows: rows)) }
+            }
         }
         if let collocations, !collocations.isEmpty {
             sections.append(PillSection(id: "collocations", title: "Goes with", tint: .collocationTint, rows: [row(nil, collocations)]))

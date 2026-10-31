@@ -1,5 +1,5 @@
 """
-Packs synonyms.json, antonyms.json, rhymes.json, syllables.json and words.txt (the outputs
+Packs synonyms.json, antonyms.json, rhymes.json, syllables.json, specific.json and words.txt (the outputs
 of the other build scripts) and the hand-written confusables.txt,
 stronger.txt, inclusive.txt, wordy.txt, plain.txt and cliches.txt into Sources/WordPop/Resources/wordpop.sqlite.
 
@@ -31,6 +31,8 @@ db.executescript("""
     CREATE TABLE hints (word TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT, words TEXT NOT NULL,
                         PRIMARY KEY (word, kind, position)) WITHOUT ROWID;
     CREATE TABLE flags (phrase TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL, fix TEXT NOT NULL) WITHOUT ROWID;
+    CREATE TABLE specific (word TEXT NOT NULL, pos TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT NOT NULL,
+                           words TEXT NOT NULL, PRIMARY KEY (word, pos, position)) WITHOUT ROWID;
 """)
 
 for table in ("synonyms", "antonyms"):
@@ -62,6 +64,17 @@ with open("syllables.json", encoding="utf-8") as f:
     syllables = json.load(f)
 db.executemany("INSERT INTO syllables VALUES (?, ?)", syllables.items())
 print(f"syllables: {len(syllables)} words")
+
+# More specific words by sense, from build_specific.py.
+with open("specific.json", encoding="utf-8") as f:
+    specific = json.load(f)
+db.executemany(
+    "INSERT INTO specific VALUES (?, ?, ?, ?, ?)",
+    ((word, pos, position, caption, SEPARATOR.join(words))
+     for word, groups in specific.items() for pos, senses in groups.items()
+     for position, (caption, words) in enumerate(senses)),
+)
+print(f"specific: {len(specific)} words")
 
 with open("words.txt", encoding="utf-8") as f:
     words = [line.strip() for line in f if line.strip()]

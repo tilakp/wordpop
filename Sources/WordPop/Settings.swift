@@ -28,7 +28,7 @@ enum PopupPlacement: String, CaseIterable, Identifiable {
 
 /// A part of the popup the user can hide in Preferences.
 enum PopupSection: String, CaseIterable, Identifiable {
-    case fits, synonyms, antonyms, stronger, inclusive, confused, rhymes, tone, collocations, examples, usage, phrases, origin
+    case fits, synonyms, antonyms, specific, stronger, inclusive, confused, rhymes, tone, collocations, examples, usage, phrases, origin
 
     var id: String { rawValue }
     var label: String {
@@ -36,6 +36,7 @@ enum PopupSection: String, CaseIterable, Identifiable {
         case .fits: "Fits your sentence"
         case .synonyms: "Synonyms"
         case .antonyms: "Antonyms"
+        case .specific: "More specific words"
         case .stronger: "Stronger words"
         case .inclusive: "Inclusive alternatives"
         case .confused: "Often confused"

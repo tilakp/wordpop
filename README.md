@@ -37,6 +37,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 - **Compare two words.** `⇧`-click a pill, or press `⇧Return`, to see it next to the word: both definitions and, with Apple Intelligence, a one-line difference ("famous implies positive recognition; notorious implies negative reputation").
 - **Tone shifts.** The Tone buttons list synonyms that are more formal, more casual, more vivid, or simpler (the most common words of that sense), ready for `⌥`-click replace.
 - **Stronger words and inclusive alternatives.** Vague words get stronger options ("very tired" → exhausted, "said quietly" → whispered), and gendered or exclusionary words get alternatives ("chairman" → chair, chairperson), from two hand-written lists.
+- **More specific words.** For a noun or a verb, a More specific row lists kinds of it, by sense: "walk" → stroll, stumble, limp; "laugh" → chuckle, giggle, guffaw; "car" → sedan, jeep, convertible. From WordNet, so it works offline. A word is listed only when that is its main meaning, so "mouse" is not offered as a way to walk.
 - **What goes with a word.** A button at the bottom of the popup asks the on-device model for common phrases with the word ("strong evidence", "persuasive argument").
 - **Repeated in this paragraph.** When you look up a word that you used three or more times in its paragraph (counting forms such as "reports" and "reported"), the popup says so, with the synonyms ready to vary it.
 - **Your crutch words.** WordPop counts the words you replace with a synonym from the popup. After you replace a word three times, the popup says so when you look it up again ("You have replaced "very" 3 times before"), and notes on a passage list the crutch words the passage uses. The counts stay on your Mac; **Clear History** in the menu bar menu removes them.
@@ -55,7 +56,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 ### Quick Search
 
 - **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first. Start with `?` to describe a meaning instead ("?the smell of rain on dry earth" → petrichor, "?a happy accident" → serendipity); this uses the on-device model and checks every suggestion against its dictionary definition.
-- **Spelling help.** Not sure how a word is spelled? Type your best guess in Quick Search: if it is misspelled, the close words are listed with their part of speech and first definition, so you can pick the right one by meaning. A misspelled word you select gets a "Did you mean" row in the popup. Click "Replace with" to fix it with the top suggestion, or `⌥`-click another pill to use that one. In a selected passage, the Spelling notes list each typo with its fixes; choose the ones you want and click the fix button. A name or a term that is not a typo? Click **Not a typo** to add it to your Mac's spelling dictionary, the same list as **Learn Spelling** in other apps, so neither WordPop nor any other app flags it again (**Unlearn Spelling** in an app's Edit menu takes it out). Suggestions come from the macOS spell checker and work offline.
+- **Spelling help.** Not sure how a word is spelled? Type your best guess in Quick Search: if it is misspelled, the close words are listed with their part of speech and first definition, so you can pick the right one by meaning. A misspelled word you select gets a "Did you mean" row in the popup. Click "Replace with" to fix it with the top suggestion, or `⌥`-click another pill to use that one. In a selected passage, the Spelling notes list each typo with its fixes; choose the ones you want and click the fix button. A name or a term that is not a typo? Click **Not a typo** to add it to your Mac's spelling dictionary, the same list as **Learn Spelling** in other apps, so neither WordPop nor any other app flags it again (**Unlearn Spelling** on the word's right-click menu in TextEdit or Mail takes it out). Suggestions come from the macOS spell checker and work offline.
 - **Pattern search.** In Quick Search, `*` stands for any letters and `?` or `_` for one: `b??t` lists best, beat, boat. Add `: meaning` to keep only synonyms of a word: `con* : agree` gives consent, concur.
 - **Lookup history and type-ahead.** Quick Search lists your recent lookups (kept for 30 days) under the field, then completes what you type from a 69,000-word list. Arrow keys and Return open a row. **Clear History** in the menu bar menu removes it.
 
@@ -131,6 +132,7 @@ To inspect what WordPop parses for a word without opening the popup: `.build/rel
 
 - **Definitions, pronunciation, etymology:** macOS Dictionary Services. WordPop reads the entry's own XHTML markup (`DCSRecordCopyData`), where every headword, sense, example, label, inflection, and phrase is tagged, and merges homographs such as "lead" (verb) and "lead" (metal). If no record matches, it falls back to parsing the flat text from `DCSCopyTextDefinition`.
 - **Synonyms and antonyms:** the Oxford American Writer's Thesaurus (or Oxford Thesaurus of English) installed with macOS, read from its markup the same way. When it has no entry, a bundled JSON dataset generated by `scripts/build_synonyms.py` from the [Open English WordNet](https://github.com/globalwordnet/english-wordnet), topped up with the public-domain [Moby Thesaurus II](https://github.com/words/moby), is used instead.
+- **More specific words:** `scripts/build_specific.py` takes WordNet's narrower terms (hyponyms) for the first three senses of each noun and verb.
 - **Type-ahead:** `scripts/build_words.py` writes the WordNet lemma list ordered by `wordfreq` frequency.
 - **Hand-written lists:** often-confused words (`confusables.txt`), stronger words (`stronger.txt`), inclusive alternatives (`inclusive.txt`), wordy phrases (`wordy.txt`), formal words (`plain.txt`) and clichés (`cliches.txt`) in `scripts/`.
 - All the datasets and lists ship in one SQLite file (`scripts/build_db.py`) queried on demand, so launch does no decoding and the data costs a few megabytes of memory instead of ~100 MB.
@@ -151,6 +153,7 @@ curl -sL -o glove-wiki-gigaword-100.gz \
 python3 build_synonyms.py
 python3 build_rhymes.py
 python3 build_words.py
+python3 build_specific.py
 python3 build_db.py     # packs the outputs into ../Sources/WordPop/Resources/wordpop.sqlite
 ```
 

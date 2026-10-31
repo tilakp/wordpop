@@ -88,6 +88,15 @@ enum Database {
         }
     }
 
+    /// More specific words for each main sense of a noun or verb ("walk"
+    /// -> stroll, amble, trudge), with a short gloss of the sense, from
+    /// WordNet (scripts/build_specific.py).
+    static func specific(for word: String, partOfSpeech: String) -> [(caption: String, words: [String])] {
+        rows("SELECT caption, words FROM specific WHERE word = ?1 AND pos = ?2 ORDER BY position", [word.lowercased(), partOfSpeech]).map {
+            ($0[0], $0[1].components(separatedBy: separator))
+        }
+    }
+
     /// Every wordy phrase, formal word and cliche with its plainer fix
     /// (scripts/wordy.txt, plain.txt and cliches.txt), read once.
     static let phraseFlags: [PhraseFlag] = rows("SELECT phrase, kind, fix FROM flags", []).map {

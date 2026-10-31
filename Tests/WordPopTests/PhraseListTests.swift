@@ -35,4 +35,12 @@ final class PhraseListTests: XCTestCase {
         let fixes = Dictionary(found.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
         XCTAssertEqual(TextStats.tightened(text, fixes: fixes), "Use the rest. We started work and used many tools.")
     }
+
+    func testMoreSpecificWordsBySense() {
+        let walk = Database.specific(for: "walk", partOfSpeech: "verb")
+        XCTAssertTrue(walk.first?.words.contains("stroll") == true, "\(walk)")
+        XCTAssertFalse(walk.flatMap(\.words).contains("mouse"), "not a main sense of mouse")
+        XCTAssertTrue(Database.specific(for: "laugh", partOfSpeech: "noun").first?.words.contains("giggle") == true)
+        XCTAssertTrue(Database.specific(for: "happy", partOfSpeech: "noun").isEmpty)
+    }
 }
