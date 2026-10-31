@@ -113,7 +113,8 @@ final class PopupViewModel: ObservableObject {
     @Published var openTool: PassageTool?
 
     enum PassageTool: String, CaseIterable {
-        case reframe = "Reframe", expand = "Expand", tone = "Tone", mainPoint = "Main point", transitions = "Transitions", text = "Text"
+        case reframe = "Reframe", expand = "Expand", tone = "Tone", mainPoint = "Main point", transitions = "Transitions", text = "Text",
+             translate = "Translate"
     }
     /// The selected text, for the text tools, and the tool being
     /// previewed.
@@ -181,6 +182,19 @@ final class PopupViewModel: ObservableObject {
         fixes.merge(systemFixes) { first, _ in first }
         return fixes
     }
+    /// Translation of the selection: the result, the languages to choose
+    /// from, and the chosen one.
+    @Published var translation: Translator.Outcome?
+    @Published var isTranslating = false
+    @Published var translationTargets: [(id: String, name: String)] = []
+    @Published var translateTarget = Translator.target {
+        didSet {
+            Translator.target = translateTarget
+            translation = nil
+        }
+    }
+    var onTranslate: () -> Void = {}
+
     /// The passage note sections whose short guide is open, by title.
     @Published var openGuides: Set<String> = []
     /// Notes for fiction, when turned on in Preferences.
@@ -513,6 +527,8 @@ final class PopupViewModel: ObservableObject {
         style = StyleRules.Report()
         fiction = FictionNotes()
         openGuides = []
+        translation = nil
+        isTranslating = false
         toneReading = nil
         isCheckingTone = false
         mainPoint = nil

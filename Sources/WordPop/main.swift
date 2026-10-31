@@ -56,6 +56,15 @@ if let index = CommandLine.arguments.firstIndex(of: "--rewrite"), index + 2 < Co
     dispatchMain()
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--translate"), index + 2 < CommandLine.arguments.count {
+    let text = CommandLine.arguments[(index + 2)...].joined(separator: " ")
+    Task {
+        print(await Translator.translate(text, to: CommandLine.arguments[index + 1]))
+        exit(0)
+    }
+    dispatchMain()
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--tone"), index + 1 < CommandLine.arguments.count {
     let text = CommandLine.arguments[(index + 1)...].joined(separator: " ")
     Task {

@@ -333,6 +333,17 @@ final class PopupController: NSObject, NSWindowDelegate {
                 self.viewModel.toneReading = reading ?? ("", "No reading came back.")
             }
         }
+        viewModel.onTranslate = { [weak self] in
+            guard let self, !self.viewModel.isTranslating, let text = self.viewModel.selectionText else { return }
+            let target = self.viewModel.translateTarget
+            self.viewModel.isTranslating = true
+            Task { @MainActor in
+                let outcome = await Translator.translate(text, to: target)
+                guard self.viewModel.isTranslating, self.viewModel.selectionText == text, self.viewModel.translateTarget == target else { return }
+                self.viewModel.isTranslating = false
+                self.viewModel.translation = outcome
+            }
+        }
         viewModel.onFindMainPoint = { [weak self] in
             guard let self, !self.viewModel.isFindingMainPoint, let stats = self.viewModel.textStats else { return }
             self.viewModel.isFindingMainPoint = true
@@ -517,6 +528,9 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$isFindingMainPoint.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$typos.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$openGuides.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$translation.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$isTranslating.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$translationTargets.map { _ in () }.eraseToAnyPublisher(),
             // The fix button shows only while a fix is chosen.
             viewModel.$typoFixes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$grammar.map { _ in () }.eraseToAnyPublisher(),

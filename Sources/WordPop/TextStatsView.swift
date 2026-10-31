@@ -235,6 +235,7 @@ struct TextStatsView: View {
             case .mainPoint: WritingModel.isAvailable && stats.sentences > 1
             case .transitions: reframeSentence != nil
             case .text: viewModel.canReplace && !TextTool.useful(for: viewModel.selectionText ?? "").isEmpty
+            case .translate: Translator.isAvailable
             }
         }
     }
@@ -269,6 +270,7 @@ struct TextStatsView: View {
         case .mainPoint: mainPointControls
         case .transitions: if let sentence = reframeSentence { transitionControls(for: sentence) }
         case .text: TextToolControls(viewModel: viewModel)
+        case .translate: translateControls
         case nil: EmptyView()
         }
     }
@@ -400,6 +402,58 @@ struct TextStatsView: View {
                     .foregroundStyle(Color.accentColor)
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    /// A language menu and a link that translates the selection, then the
+    /// translation with Replace, or how to download a missing language.
+    @ViewBuilder
+    private var translateControls: some View {
+        HStack(spacing: 8) {
+            Picker("Into", selection: $viewModel.translateTarget) {
+                if viewModel.translationTargets.isEmpty {
+                    Text(Translator.name(of: viewModel.translateTarget)).tag(viewModel.translateTarget)
+                }
+                ForEach(viewModel.translationTargets, id: \.id) { Text($0.name).tag($0.id) }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+            .font(.recentMeta)
+            Button(action: viewModel.onTranslate) {
+                Text(viewModel.isTranslating ? "Translating\u{2026}" : "Translate")
+                    .font(.recentMeta)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+        }
+        .task {
+            if viewModel.translationTargets.isEmpty { viewModel.translationTargets = await Translator.targets() }
+        }
+        switch viewModel.translation {
+        case .translated(let text):
+            Text(text)
+                .font(.definition)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
+            if viewModel.canReplace, let original = viewModel.selectionText {
+                Button("Replace") { viewModel.onReplaceSentence(original, text) }
+                    .font(.recentMeta)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+            }
+        case .notInstalled(let languages):
+            Text("Download \(languages) for translation once, in System Settings > General > Language & Region > Translation Languages. After that it works offline.")
+                .font(.recentMeta)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Open Language & Region", action: Translator.openLanguageSettings)
+                .font(.recentMeta)
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+        case .failed(let reason):
+            Text(reason).font(.recentMeta).foregroundStyle(.tertiary)
+        case nil:
+            EmptyView()
         }
     }
 
