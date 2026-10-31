@@ -543,16 +543,22 @@ struct PopupContentView: View {
                 }
                 .padding(.top, row.example != nil && row.id != section.rows.first?.id ? 4 : 0)
             }
-            if section.id == "spelling", viewModel.canReplace, let best = section.rows.first?.words.first {
+            if section.id == "spelling" {
                 HStack(spacing: 8) {
-                    Button("Replace with \u{201C}\(best)\u{201D}") { viewModel.onReplace(best) }
-                        .font(.recentMeta)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(section.tint)
-                    if (section.rows.first?.words.count ?? 0) > 1 {
-                        Text("\u{2325}-click a pill to use another")
+                    if viewModel.canReplace, let best = section.rows.first?.words.first {
+                        Button("Replace with \u{201C}\(best)\u{201D}") { viewModel.onReplace(best) }
                             .font(.recentMeta)
-                            .foregroundStyle(.tertiary)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(section.tint)
+                        if (section.rows.first?.words.count ?? 0) > 1 {
+                            Text("\u{2325}-click a pill to use another")
+                                .font(.recentMeta)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    notATypoButton {
+                        Spelling.learn(viewModel.entry.word)
+                        viewModel.onClose()
                     }
                 }
                 .padding(.top, 2)

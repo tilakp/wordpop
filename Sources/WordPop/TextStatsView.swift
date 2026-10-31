@@ -401,6 +401,7 @@ struct TextStatsView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    notATypoButton { viewModel.learn(typo: typo.word) }
                 }
             }
         }
@@ -558,4 +559,14 @@ struct TextStatsView: View {
             .font(.pill)
             .fixedSize(horizontal: false, vertical: true)
     }
+}
+
+/// A link that adds a flagged word (a name, a term) to the Mac's spelling
+/// dictionary, so it is not flagged again here or in other apps.
+func notATypoButton(action: @escaping () -> Void) -> some View {
+    Button("Not a typo", action: action)
+        .font(.recentMeta)
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help("Adds the word to your Mac\u{2019}s spelling dictionary, so no app flags it again")
 }

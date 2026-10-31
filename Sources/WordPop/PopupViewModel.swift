@@ -129,6 +129,14 @@ final class PopupViewModel: ObservableObject {
     /// chosen for each (by typo); typos without a fix are left as they are.
     @Published var typos: [(word: String, suggestions: [String])] = []
     @Published var typoFixes: [String: String] = [:]
+
+    /// Learns a word the passage notes flagged as a typo (a name, a term)
+    /// and takes it off the list.
+    func learn(typo word: String) {
+        Spelling.learn(word)
+        typos.removeAll { $0.word == word }
+        typoFixes[word] = nil
+    }
     /// The fix chosen for each wordy phrase or cliche, by its spelling in
     /// the passage; phrases without one are left as they are.
     @Published var phraseFixes: [String: String] = [:]

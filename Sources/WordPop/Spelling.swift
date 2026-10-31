@@ -39,6 +39,13 @@ enum Spelling {
         return Array(unique.prefix(limit))
     }
 
+    /// Adds `word` to the Mac's spelling dictionary, the same list as
+    /// "Learn Spelling" in any app's menu, so no app flags it again. "Unlearn
+    /// Spelling" in an app's menu takes it out.
+    static func learn(_ word: String) {
+        NSSpellChecker.shared.learnWord(word)
+    }
+
     /// The misspelled words of a passage, once each in order of use, with
     /// their suggestions; words the spell checker has no suggestion for
     /// (often names) are left out, and so are British or American
