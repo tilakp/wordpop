@@ -516,6 +516,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$textTool.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isFindingMainPoint.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$typos.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$openGuides.map { _ in () }.eraseToAnyPublisher(),
             // The fix button shows only while a fix is chosen.
             viewModel.$typoFixes.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$grammar.map { _ in () }.eraseToAnyPublisher(),

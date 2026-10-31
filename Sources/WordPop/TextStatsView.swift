@@ -274,14 +274,36 @@ struct TextStatsView: View {
     }
 
     private func section(_ title: String, tint: Color, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let guide = Guides.text(for: title)
+        let guideOpen = viewModel.openGuides.contains(title)
+        return VStack(alignment: .leading, spacing: 0) {
             Divider().padding(.horizontal, 22)
             VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.sectionLabel)
-                    .tracking(1.2)
-                    .foregroundStyle(tint)
-                    .textCase(.uppercase)
+                HStack(spacing: 5) {
+                    Text(title)
+                        .font(.sectionLabel)
+                        .tracking(1.2)
+                        .foregroundStyle(tint)
+                        .textCase(.uppercase)
+                    if guide != nil {
+                        Button(action: {
+                            if guideOpen { viewModel.openGuides.remove(title) } else { viewModel.openGuides.insert(title) }
+                        }) {
+                            Image(systemName: guideOpen ? "info.circle.fill" : "info.circle")
+                                .font(.recentMeta)
+                                .foregroundStyle(tint.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                        .help("What this note means")
+                    }
+                }
+                if guideOpen, let guide {
+                    Text(guide)
+                        .font(.recentMeta)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 2)
+                }
                 content()
             }
             .padding(.horizontal, 22)

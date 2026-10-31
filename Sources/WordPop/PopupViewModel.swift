@@ -181,6 +181,8 @@ final class PopupViewModel: ObservableObject {
         fixes.merge(systemFixes) { first, _ in first }
         return fixes
     }
+    /// The passage note sections whose short guide is open, by title.
+    @Published var openGuides: Set<String> = []
     /// Notes for fiction, when turned on in Preferences.
     @Published var fiction = FictionNotes()
     /// What the passage does against the user's style rules.
@@ -510,6 +512,7 @@ final class PopupViewModel: ObservableObject {
         textTool = nil
         style = StyleRules.Report()
         fiction = FictionNotes()
+        openGuides = []
         toneReading = nil
         isCheckingTone = false
         mainPoint = nil
