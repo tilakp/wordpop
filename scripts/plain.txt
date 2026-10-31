@@ -1,0 +1,100 @@
+# Formal words and the plain words that say the same, after
+# plainlanguage.gov and the Hemingway editor. One word per line, as in
+# wordy.txt: "word | plain word". Each form is listed on its own line, as
+# matches are whole words. Only words whose plain form fits in nearly
+# every sentence are here: not "attempt" (an attempt) or "implement" (a
+# garden implement). build_db.py loads this into the flags table with the
+# wordy phrases.
+utilize | use
+utilizes | uses
+utilized | used
+utilizing | using
+utilization | use
+utilise | use
+utilises | uses
+utilised | used
+utilising | using
+commence | start
+commences | starts
+commenced | started
+commencing | starting
+ascertain | find out
+ascertains | finds out
+ascertained | found out
+ascertaining | finding out
+endeavor to | try to
+endeavour to | try to
+endeavored to | tried to
+endeavoured to | tried to
+facilitate | help
+facilitates | helps
+facilitated | helped
+facilitating | helping
+approximately | about
+additional | extra
+subsequently | later
+numerous | many
+sufficient | enough
+insufficient | not enough
+demonstrate | show
+demonstrates | shows
+demonstrated | showed
+demonstrating | showing
+obtain | get
+obtains | gets
+obtained | got
+obtaining | getting
+assist | help
+assists | helps
+assisted | helped
+assisting | helping
+assistance | help
+possess | have
+possesses | has
+inquire | ask
+inquires | asks
+inquired | asked
+inquiring | asking
+enquire | ask
+enquires | asks
+enquired | asked
+enquiring | asking
+modify | change
+modifies | changes
+modified | changed
+modifying | changing
+modification | change
+modifications | changes
+regarding | about
+henceforth | from now on
+thereafter | after that
+whilst | while
+amongst | among
+initiate | start
+initiates | starts
+initiated | started
+initiating | starting
+finalize | finish
+finalizes | finishes
+finalized | finished
+finalizing | finishing
+optimal | best
+anticipate | expect
+anticipates | expects
+anticipated | expected
+anticipating | expecting
+consequently | so
+remainder | rest
+methodology | method
+proficiency | skill
+cognizant of | aware of
+in lieu of | instead of
+per annum | a year
+expedite | speed up
+expedites | speeds up
+expedited | sped up
+expediting | speeding up
+disseminate | share
+disseminates | shares
+disseminated | shared
+disseminating | sharing

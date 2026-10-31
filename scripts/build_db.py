@@ -1,7 +1,7 @@
 """
 Packs synonyms.json, antonyms.json, rhymes.json, syllables.json and words.txt (the outputs
 of the other build scripts) and the hand-written confusables.txt,
-stronger.txt, inclusive.txt, wordy.txt and cliches.txt into Sources/WordPop/Resources/wordpop.sqlite.
+stronger.txt, inclusive.txt, wordy.txt, plain.txt and cliches.txt into Sources/WordPop/Resources/wordpop.sqlite.
 
 The app queries this database on demand instead of decoding the JSON at
 launch, which took about half a second of CPU and held ~100 MB resident.
@@ -92,8 +92,9 @@ for kind in ("stronger", "inclusive"):
     db.executemany("INSERT INTO hints VALUES (?, ?, ?, ?, ?)", rows)
     print(f"hints {kind}: {len(rows)} rows")
 
-# "phrase | fix", where an empty fix means the phrase can go.
-for kind in ("wordy", "cliches"):
+# "phrase | fix", where an empty fix means the phrase can go. Plain words
+# ("utilize | use") are fixed like wordy phrases.
+for kind in ("wordy", "plain", "cliches"):
     with open(f"{kind}.txt", encoding="utf-8") as f:
         rows = [(phrase.strip().lower(), kind, fix.strip())
                 for phrase, _, fix in (line.rstrip("\n").partition("|") for line in f if line.strip() and not line.startswith("#"))]

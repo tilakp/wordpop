@@ -2,7 +2,7 @@ import XCTest
 @testable import WordPop
 
 /// The hand-written lists as the app loads them from the bundled
-/// database (scripts/wordy.txt and cliches.txt).
+/// database (scripts/wordy.txt, plain.txt and cliches.txt).
 final class PhraseListTests: XCTestCase {
     func testLoadsTheWordyAndClicheLists() {
         let flags = Database.phraseFlags
@@ -25,5 +25,14 @@ final class PhraseListTests: XCTestCase {
         XCTAssertEqual(found.map(\.phrase), ["Due to the fact that", "low-hanging fruit", "in order to", "Needless to say"])
         let fixes = Dictionary(found.filter { !$0.isCliche }.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
         XCTAssertEqual(TextStats.tightened(text, fixes: fixes), "Because we were late, we took the low-hanging fruit to finish. It worked.")
+    }
+
+    func testPlainWordsAreFixedLikeWordyPhrases() {
+        let text = "Utilize the remainder. We commenced work and utilized numerous tools."
+        let found = TextStats.flagged(Database.phraseFlags, in: text)
+        XCTAssertEqual(found.map(\.phrase), ["Utilize", "remainder", "commenced", "utilized", "numerous"])
+        XCTAssertFalse(found.contains(where: \.isCliche))
+        let fixes = Dictionary(found.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
+        XCTAssertEqual(TextStats.tightened(text, fixes: fixes), "Use the rest. We started work and used many tools.")
     }
 }
