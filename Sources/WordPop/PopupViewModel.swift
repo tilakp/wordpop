@@ -133,7 +133,18 @@ final class PopupViewModel: ObservableObject {
     /// variant group (by index), and the spelling system chosen, if any.
     @Published var consistency = Consistency()
     @Published var variantChoices: [Int: String] = [:]
-    @Published var spellingSystem: SpellingSystem?
+    @Published var spellingSystem: SpellingSystem? {
+        didSet {
+            systemFixes = switch spellingSystem {
+            case .british: consistency.toBritish
+            case .american: consistency.toAmerican
+            case nil: [:]
+            }
+        }
+    }
+    /// The words to change for the chosen spelling system, worked out once
+    /// when it is chosen.
+    private var systemFixes: [String: String] = [:]
 
     enum SpellingSystem { case british, american }
 
@@ -143,11 +154,7 @@ final class PopupViewModel: ObservableObject {
         for (index, chosen) in variantChoices {
             for form in consistency.variants[index] where form != chosen { fixes[form] = chosen }
         }
-        switch spellingSystem {
-        case .british: fixes.merge(consistency.toBritish) { first, _ in first }
-        case .american: fixes.merge(consistency.toAmerican) { first, _ in first }
-        case nil: break
-        }
+        fixes.merge(systemFixes) { first, _ in first }
         return fixes
     }
     /// Puts the chosen typo and phrase fixes into the passage at once.

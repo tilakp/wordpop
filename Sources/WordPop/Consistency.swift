@@ -8,11 +8,9 @@ struct Consistency: Equatable {
     /// Each word the passage spells more than one way, most used first.
     var variants: [[String]] = []
     /// British-only and American-only spellings, when the passage has
-    /// both, with the other spelling of each where the checker knows it.
+    /// both.
     var british: [String] = []
     var american: [String] = []
-    var toAmerican: [String: String] = [:]
-    var toBritish: [String: String] = [:]
     var mixedQuotes = false
     var mixedSpacing = false
     /// Acronyms with no "(ABC)" before or at their first use.
@@ -28,8 +26,6 @@ struct Consistency: Equatable {
         if !british.isEmpty, !american.isEmpty {
             result.british = british
             result.american = american
-            result.toAmerican = counterparts(of: british, from: "en_GB", to: "en_US")
-            result.toBritish = counterparts(of: american, from: "en_US", to: "en_GB")
         }
         result.mixedQuotes = text.contains { "\"'".contains($0) } && text.contains { "\u{201C}\u{201D}\u{2018}\u{2019}".contains($0) }
         result.mixedSpacing = text.range(of: "[.!?][\"\u{201D}]? {2,}[A-Z]", options: .regularExpression) != nil
@@ -68,15 +64,37 @@ struct Consistency: Equatable {
 
     /// The words only the British or only the American spell checker
     /// accepts ("colour", "organised"; "color", "organized"), once each.
+    /// Each checker reads the different words once, joined into one text,
+    /// which for a long passage is far quicker than asking about each word.
     private static func spellingSystems(of tokens: [String]) -> (british: [String], american: [String]) {
-        var british: [String] = [], american: [String] = []
         var seen = Set<String>()
-        for token in tokens where token.count >= 4 && !token.contains("-") && seen.insert(token.lowercased()).inserted {
-            let gb = isSpelledRight(token, in: "en_GB"), us = isSpelledRight(token, in: "en_US")
+        let candidates = tokens.filter { $0.count >= 4 && !$0.contains("-") && seen.insert($0.lowercased()).inserted }
+        let joined = candidates.joined(separator: " ")
+        let rejectedByUS = rejected(in: joined, language: "en_US"), rejectedByGB = rejected(in: joined, language: "en_GB")
+        var british: [String] = [], american: [String] = []
+        for token in candidates {
+            let us = !rejectedByUS.contains(token.lowercased()), gb = !rejectedByGB.contains(token.lowercased())
             if gb, !us { british.append(token) }
             if us, !gb { american.append(token) }
         }
         return (british, american)
+    }
+
+    /// The words of `text` that the spell checker for `language` rejects,
+    /// lowercased.
+    private static func rejected(in text: String, language: String) -> Set<String> {
+        let ns = text as NSString
+        var words = Set<String>()
+        var start = 0
+        while start < ns.length {
+            let range = NSSpellChecker.shared.checkSpelling(
+                of: text, startingAt: start, language: language, wrap: false, inSpellDocumentWithTag: 0, wordCount: nil
+            )
+            guard range.location != NSNotFound, range.length > 0 else { break }
+            words.insert(ns.substring(with: range).lowercased())
+            start = NSMaxRange(range)
+        }
+        return words
     }
 
     /// The other locale's spelling of each word: its first suggestion
@@ -84,6 +102,12 @@ struct Consistency: Equatable {
     /// that the word's own locale rejects or that is at most two edits
     /// away ("center" -> "centre"). So "gray" does not become "tray", nor
     /// "enrol" "Enron".
+    /// The American spelling of each British word, where the checker
+    /// knows it; asked for only when the writer picks American, as each
+    /// word's suggestions take several milliseconds.
+    var toAmerican: [String: String] { Self.counterparts(of: british, from: "en_GB", to: "en_US") }
+    var toBritish: [String: String] { Self.counterparts(of: american, from: "en_US", to: "en_GB") }
+
     private static func counterparts(of words: [String], from source: String, to target: String) -> [String: String] {
         var result: [String: String] = [:]
         for word in words {
