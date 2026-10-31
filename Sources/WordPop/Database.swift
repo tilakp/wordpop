@@ -97,6 +97,13 @@ enum Database {
         }
     }
 
+    /// The other words of `word`'s family ("decide" -> decision,
+    /// decisive, decisively), nouns first, from WordNet
+    /// (scripts/build_family.py).
+    static func family(of word: String) -> [String] {
+        list("family", word: word)
+    }
+
     /// A style rule preset as written (scripts/ste.txt), for
     /// `StyleRules.parse`.
     static func preset(named name: String) -> String? {

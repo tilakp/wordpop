@@ -54,4 +54,10 @@ final class PhraseListTests: XCTestCase {
         XCTAssertEqual(TextStats.tightened(text, fixes: fixes),
                        "She decided about the plan. They have concluded that it works, and it has affected sales. We are analyzing the data.")
     }
+
+    func testWordFamilies() {
+        XCTAssertEqual(Database.family(of: "decide"), ["decision", "deciding", "decisiveness", "decisive", "decisively"])
+        XCTAssertTrue(Database.family(of: "quick").contains("quickly"))
+        XCTAssertTrue(Database.family(of: "the").isEmpty)
+    }
 }

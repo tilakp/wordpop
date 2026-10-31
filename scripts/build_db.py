@@ -1,5 +1,5 @@
 """
-Packs synonyms.json, antonyms.json, rhymes.json, syllables.json, specific.json and words.txt (the outputs
+Packs synonyms.json, antonyms.json, rhymes.json, syllables.json, specific.json, family.json and words.txt (the outputs
 of the other build scripts) and the hand-written confusables.txt,
 stronger.txt, inclusive.txt, wordy.txt, plain.txt, cliches.txt and hidden.txt, and the ste.txt style preset, into Sources/WordPop/Resources/wordpop.sqlite.
 
@@ -31,6 +31,7 @@ db.executescript("""
     CREATE TABLE hints (word TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT, words TEXT NOT NULL,
                         PRIMARY KEY (word, kind, position)) WITHOUT ROWID;
     CREATE TABLE flags (phrase TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL, fix TEXT NOT NULL) WITHOUT ROWID;
+    CREATE TABLE family (word TEXT PRIMARY KEY NOT NULL, words TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE presets (name TEXT PRIMARY KEY NOT NULL, rules TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE specific (word TEXT NOT NULL, pos TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT NOT NULL,
                            words TEXT NOT NULL, PRIMARY KEY (word, pos, position)) WITHOUT ROWID;
@@ -76,6 +77,12 @@ db.executemany(
      for position, (caption, words) in enumerate(senses)),
 )
 print(f"specific: {len(specific)} words")
+
+# Word families, from build_family.py.
+with open("family.json", encoding="utf-8") as f:
+    family = json.load(f)
+db.executemany("INSERT INTO family VALUES (?, ?)", ((w, SEPARATOR.join(f)) for w, f in family.items()))
+print(f"family: {len(family)} words")
 
 with open("words.txt", encoding="utf-8") as f:
     words = [line.strip() for line in f if line.strip()]

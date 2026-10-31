@@ -333,6 +333,10 @@ final class PopupViewModel: ObservableObject {
                 if !rows.isEmpty { sections.append(PillSection(id: "specific", title: "More specific", tint: .compareTint, rows: rows)) }
             }
         }
+        if entry.found {
+            let family = Database.family(of: entry.word)
+            if !family.isEmpty { sections.append(PillSection(id: "family", title: "Word family", tint: .collocationTint, rows: [row(nil, family)])) }
+        }
         if let collocations, !collocations.isEmpty {
             sections.append(PillSection(id: "collocations", title: "Goes with", tint: .collocationTint, rows: [row(nil, collocations)]))
         }
