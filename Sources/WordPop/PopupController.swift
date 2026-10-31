@@ -23,6 +23,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         replaceEntry = entry
         viewModel.reset(with: entry)
         viewModel.canReplace = selection != nil
+        viewModel.selectionText = selection?.trimmed
         if let paragraph = selection?.paragraph, entry.found {
             let uses = TextStats.uses(of: entry.word, forms: entry.forms, in: paragraph)
             if uses >= 3 { viewModel.paragraphUses = uses }
@@ -55,6 +56,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         replaceTarget = selection
         viewModel.reset(with: .empty)
         viewModel.canReplace = selection != nil
+        viewModel.selectionText = passage
         // Hidden sections are not worked out, so none of their fixes can
         // go in unseen.
         let stats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) }, flags: Settings.shows(.wordy) ? Database.phraseFlags : [])

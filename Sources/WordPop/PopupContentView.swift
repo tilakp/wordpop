@@ -248,6 +248,9 @@ struct PopupContentView: View {
                     .font(.recentMeta)
                     .foregroundStyle(.secondary)
             }
+            if viewModel.canReplace, !TextTool.useful(for: phrase).isEmpty {
+                TextToolControls(viewModel: viewModel).padding(.top, 4)
+            }
         }
     }
 

@@ -113,8 +113,12 @@ final class PopupViewModel: ObservableObject {
     @Published var openTool: PassageTool?
 
     enum PassageTool: String, CaseIterable {
-        case reframe = "Reframe", tone = "Tone", transitions = "Transitions"
+        case reframe = "Reframe", tone = "Tone", transitions = "Transitions", text = "Text"
     }
+    /// The selected text, for the text tools, and the tool being
+    /// previewed.
+    var selectionText: String?
+    @Published var textTool: TextTool?
 
     /// How a reader would take the passage, from the on-device model; nil
     /// until asked for.
@@ -465,6 +469,7 @@ final class PopupViewModel: ObservableObject {
         transitionJob = nil
         transition = nil
         openTool = nil
+        textTool = nil
         toneReading = nil
         isCheckingTone = false
         paragraph = nil

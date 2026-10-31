@@ -179,6 +179,7 @@ struct TextStatsView: View {
             case .reframe: reframeSentence != nil && WritingModel.isAvailable
             case .tone: WritingModel.isAvailable
             case .transitions: reframeSentence != nil
+            case .text: viewModel.canReplace && !TextTool.useful(for: viewModel.selectionText ?? "").isEmpty
             }
         }
     }
@@ -204,6 +205,7 @@ struct TextStatsView: View {
         case .reframe: if let sentence = reframeSentence { reframeControls(for: sentence) }
         case .tone: toneControls
         case .transitions: if let sentence = reframeSentence { transitionControls(for: sentence) }
+        case .text: TextToolControls(viewModel: viewModel)
         case nil: EmptyView()
         }
     }
@@ -569,4 +571,42 @@ func notATypoButton(action: @escaping () -> Void) -> some View {
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .help("Adds the word to your Mac\u{2019}s spelling dictionary, so no app flags it again")
+}
+
+/// A chip for each text tool that would change the selection (Title
+/// Case, Sentence case, quotes, Join lines), then the changed text with a
+/// button that puts it in place of the selection.
+struct TextToolControls: View {
+    @ObservedObject var viewModel: PopupViewModel
+
+    var body: some View {
+        if let text = viewModel.selectionText, viewModel.canReplace {
+            FlowLayout(spacing: 6) {
+                ForEach(TextTool.useful(for: text), id: \.self) { tool in
+                    let chosen = viewModel.textTool == tool
+                    Button(action: { viewModel.textTool = chosen ? nil : tool }) {
+                        Text(tool.rawValue)
+                            .font(.recentMeta)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 3)
+                            .background(Color.collocationTint.opacity(chosen ? 0.3 : 0.12))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            if let tool = viewModel.textTool {
+                let new = tool.apply(to: text)
+                Text(new)
+                    .font(.definition)
+                    .lineLimit(6)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+                Button("Replace") { viewModel.onReplaceSentence(text, new) }
+                    .font(.recentMeta)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+    }
 }
