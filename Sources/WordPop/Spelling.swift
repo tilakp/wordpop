@@ -68,10 +68,13 @@ enum Spelling {
 
     /// `text` with every use of each misspelled word (the keys, matched
     /// as whole words, in any case) changed to its fix, in the same
-    /// capitalization: "Recieved" -> "Received".
+    /// capitalization: "Recieved" -> "Received", "recieved" -> "received".
+    /// A fix capitalized only because its key starts a sentence is taken in
+    /// plain case, so its capital does not spread to other uses.
     static func applying(_ fixes: [String: String], to text: String) -> String {
         var result = text
-        for (typo, fix) in fixes {
+        for (typo, written) in fixes {
+            let fix = TextReplacer.plainCase(typo) != typo ? TextReplacer.plainCase(written) : written
             guard let pattern = try? NSRegularExpression(
                 pattern: "\\b\(NSRegularExpression.escapedPattern(for: typo))\\b", options: .caseInsensitive
             ) else { continue }

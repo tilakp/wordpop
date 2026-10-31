@@ -55,7 +55,7 @@ struct Consistency: Equatable {
         var spelling: [String: String] = [:]
         for token in tokens {
             counts[token.lowercased(), default: 0] += 1
-            if spelling[token.lowercased()] == nil { spelling[token.lowercased()] = token }
+            if spelling[token.lowercased()] == nil { spelling[token.lowercased()] = TextReplacer.plainCase(token) }
         }
         return counts.keys.filter { $0.contains("-") }
             .compactMap { hyphenated -> [String]? in

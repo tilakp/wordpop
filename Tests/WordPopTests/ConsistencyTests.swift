@@ -5,6 +5,7 @@ final class ConsistencyTests: XCTestCase {
     func testFindsHyphenatedAndJoinedSpellings() {
         let result = Consistency.check("Send an email today. The e-mail went out, and every email after it. We co-operate.")
         XCTAssertEqual(result.variants, [["email", "e-mail"]])
+        XCTAssertEqual(Consistency.check("Email me. Send an e-mail.").variants, [["email", "e-mail"]], "plain case, not the sentence capital")
         XCTAssertTrue(Consistency.check("We meet every day. It is an everyday task. A well-known author is well known.").variants.isEmpty)
     }
 

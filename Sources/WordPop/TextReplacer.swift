@@ -24,6 +24,13 @@ enum TextReplacer {
         return selection.replacingCharacters(in: range, with: matchingCase(of: token, inflected))
     }
 
+    /// `word` without a capital it has only for starting a sentence:
+    /// "Colour" -> "colour"; "NASA" and "iPhone" stay as they are.
+    static func plainCase(_ word: String) -> String {
+        guard word.first?.isUppercase == true, !word.dropFirst().contains(where: \.isUppercase) else { return word }
+        return word.prefix(1).lowercased() + word.dropFirst()
+    }
+
     static func matchingCase(of original: String, _ word: String) -> String {
         let letters = original.filter(\.isLetter)
         if letters.count > 1, letters == letters.uppercased() { return word.uppercased() }

@@ -16,6 +16,14 @@ final class SpellingTests: XCTestCase {
         XCTAssertEqual(Spelling.suggestions(for: "pharoah"), ["pharaoh"])
     }
 
+    func testASentenceCapitalDoesNotSpreadToOtherUses() {
+        XCTAssertEqual(Spelling.applying(["Recieved": "Received"], to: "Recieved it. We recieved more."), "Received it. We received more.")
+        XCTAssertEqual(Spelling.applying(["Colour": "Color"], to: "Colour matters. Pick a colour."), "Color matters. Pick a color.")
+        XCTAssertEqual(Spelling.applying(["e-mail": "email"], to: "E-mail me. Send an e-mail."), "Email me. Send an email.")
+        XCTAssertEqual(TextReplacer.plainCase("NASA"), "NASA")
+        XCTAssertEqual(TextReplacer.plainCase("iPhone"), "iPhone")
+    }
+
     func testGlossIsPartOfSpeechAndFirstDefinition() {
         XCTAssertEqual(DictionaryLookup.gloss(of: "weird")?.hasPrefix("adjective \u{B7} "), true)
     }
