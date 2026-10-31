@@ -1,0 +1,78 @@
+# Hidden verbs: a weak verb and a noun where one verb says it ("make a
+# decision" -> decide). One phrase per line in its base form, "phrase |
+# verb"; build_db.py adds the other forms of the first verb ("makes",
+# "made", "making a decision" -> decides, decided, deciding) and "the" for
+# "a" or "an". Include the preposition the noun takes when the verb does
+# not ("perform an analysis of" -> analyze, not "analyze of"). Only verbs
+# whose past tense and past participle are the same are used, as "made"
+# is both.
+make a decision | decide
+make a decision about | decide about
+make a recommendation | recommend
+make an attempt | try
+make an effort to | try to
+make use of | use
+make mention of | mention
+make an assumption | assume
+make a suggestion | suggest
+make an announcement | announce
+make an adjustment to | adjust
+make a change to | change
+make changes to | change
+make an improvement to | improve
+make improvements to | improve
+make a reference to | refer to
+make an application for | apply for
+make a contribution to | contribute to
+make a comparison of | compare
+make a comparison between | compare
+make an estimate of | estimate
+make a payment | pay
+make an inquiry about | ask about
+give consideration to | consider
+give an explanation of | explain
+give a description of | describe
+give approval to | approve
+give approval for | approve
+give an indication of | indicate
+give assistance to | help
+give a response to | respond to
+give an answer to | answer
+take into consideration | consider
+take into account | consider
+take action | act
+take a decision | decide
+take a look at | look at
+have a discussion about | discuss
+have a tendency to | tend to
+have an impact on | affect
+have an effect on | affect
+have a need for | need
+have a preference for | prefer
+reach a conclusion | conclude
+reach a decision | decide
+reach an agreement | agree
+come to the conclusion | conclude
+come to a conclusion | conclude
+come to an agreement | agree
+come to a decision | decide
+conduct an investigation | investigate
+conduct an investigation into | investigate
+conduct an investigation of | investigate
+conduct an analysis of | analyze
+conduct a review of | review
+conduct a survey of | survey
+perform an analysis of | analyze
+perform a review of | review
+perform an evaluation of | evaluate
+carry out an investigation into | investigate
+carry out an analysis of | analyze
+carry out a review of | review
+carry out an assessment of | assess
+undertake a review of | review
+provide assistance | help
+provide assistance to | help
+provide a description of | describe
+provide an explanation of | explain
+provide an overview of | summarize
+offer a suggestion | suggest

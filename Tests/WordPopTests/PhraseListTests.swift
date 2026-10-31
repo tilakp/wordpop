@@ -43,4 +43,15 @@ final class PhraseListTests: XCTestCase {
         XCTAssertTrue(Database.specific(for: "laugh", partOfSpeech: "noun").first?.words.contains("giggle") == true)
         XCTAssertTrue(Database.specific(for: "happy", partOfSpeech: "noun").isEmpty)
     }
+
+    func testHiddenVerbsInEveryForm() {
+        let text = "She made a decision about the plan. They have come to the conclusion that it works, and it has had an impact on sales. "
+            + "We are performing an analysis of the data."
+        let found = TextStats.flagged(Database.phraseFlags, in: text)
+        XCTAssertEqual(found.map(\.phrase), ["made a decision about", "have come to the conclusion", "had an impact on", "performing an analysis of"])
+        XCTAssertTrue(found.allSatisfy(\.isHiddenVerb))
+        let fixes = Dictionary(found.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
+        XCTAssertEqual(TextStats.tightened(text, fixes: fixes),
+                       "She decided about the plan. They have concluded that it works, and it has affected sales. We are analyzing the data.")
+    }
 }

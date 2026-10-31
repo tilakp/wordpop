@@ -1,7 +1,7 @@
 """
 Packs synonyms.json, antonyms.json, rhymes.json, syllables.json, specific.json and words.txt (the outputs
 of the other build scripts) and the hand-written confusables.txt,
-stronger.txt, inclusive.txt, wordy.txt, plain.txt and cliches.txt into Sources/WordPop/Resources/wordpop.sqlite.
+stronger.txt, inclusive.txt, wordy.txt, plain.txt, cliches.txt and hidden.txt into Sources/WordPop/Resources/wordpop.sqlite.
 
 The app queries this database on demand instead of decoding the JSON at
 launch, which took about half a second of CPU and held ~100 MB resident.
@@ -113,6 +113,70 @@ for kind in ("wordy", "plain", "cliches"):
                 for phrase, _, fix in (line.rstrip("\n").partition("|") for line in f if line.strip() and not line.startswith("#"))]
     db.executemany("INSERT INTO flags VALUES (?, ?, ?)", rows)
     print(f"flags {kind}: {len(rows)} phrases")
+
+# Hidden verbs: each base phrase in every form of its first verb, each
+# mapped to the same form of the plain verb. Forms: base, third person,
+# past, past participle, -ing.
+LIGHT_VERBS = {
+    "make": ("make", "makes", "made", "made", "making"),
+    "give": ("give", "gives", "gave", "given", "giving"),
+    "take": ("take", "takes", "took", "taken", "taking"),
+    "have": ("have", "has", "had", "had", "having"),
+    "reach": ("reach", "reaches", "reached", "reached", "reaching"),
+    "come": ("come", "comes", "came", None, "coming"),
+    "conduct": ("conduct", "conducts", "conducted", "conducted", "conducting"),
+    "perform": ("perform", "performs", "performed", "performed", "performing"),
+    "carry": ("carry", "carries", "carried", "carried", "carrying"),
+    "undertake": ("undertake", "undertakes", "undertook", "undertaken", "undertaking"),
+    "provide": ("provide", "provides", "provided", "provided", "providing"),
+    "offer": ("offer", "offers", "offered", "offered", "offering"),
+}
+IRREGULAR = {"pay": ("pay", "pays", "paid", "paid", "paying")}
+DOUBLED = {"refer", "prefer"}
+
+
+def forms(verb):
+    """The five forms of a regular verb ("decide" -> decides, decided,
+    decided, deciding)."""
+    if verb in IRREGULAR:
+        return IRREGULAR[verb]
+    if verb in DOUBLED:
+        stem = verb + verb[-1]
+        return verb, verb + "s", stem + "ed", stem + "ed", stem + "ing"
+    if verb.endswith("y") and verb[-2] not in "aeiou":
+        return verb, verb[:-1] + "ies", verb[:-1] + "ied", verb[:-1] + "ied", verb + "ing"
+    if verb.endswith("ee"):
+        return verb, verb + "s", verb + "d", verb + "d", verb + "ing"
+    if verb.endswith("e"):
+        return verb, verb + "s", verb + "d", verb + "d", verb[:-1] + "ing"
+    third = verb + "es" if verb.endswith(("s", "sh", "ch", "x", "z")) else verb + "s"
+    return verb, third, verb + "ed", verb + "ed", verb + "ing"
+
+
+hidden = {}
+with open("hidden.txt", encoding="utf-8") as f:
+    for line in f:
+        if not line.strip() or line.startswith("#"):
+            continue
+        phrase, _, fix = (part.strip() for part in line.partition("|"))
+        light, rest = phrase.split(" ", 1)
+        verb, *after = fix.split(" ")
+        targets = forms(verb)
+        variants = [rest]
+        for article in (" a ", " an "):
+            if article in f" {rest} ":
+                variants.append(f" {rest} ".replace(article, " the ", 1).strip())
+        for variant in variants:
+            for index, light_form in enumerate(LIGHT_VERBS[light]):
+                if light_form:
+                    hidden.setdefault(f"{light_form} {variant}", " ".join([targets[index], *after]))
+            # "Come" is its own past participle: "have come to the
+            # conclusion" -> have concluded, not "have conclude".
+            if LIGHT_VERBS[light][3] is None:
+                for auxiliary in ("have", "has", "had"):
+                    hidden[f"{auxiliary} come {variant}"] = " ".join([auxiliary, targets[3], *after])
+db.executemany("INSERT OR IGNORE INTO flags VALUES (?, 'hidden', ?)", hidden.items())
+print(f"flags hidden: {len(hidden)} phrases")
 
 db.commit()
 db.execute("VACUUM")

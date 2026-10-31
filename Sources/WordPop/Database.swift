@@ -97,10 +97,11 @@ enum Database {
         }
     }
 
-    /// Every wordy phrase, formal word and cliche with its plainer fix
-    /// (scripts/wordy.txt, plain.txt and cliches.txt), read once.
+    /// Every wordy phrase, formal word, hidden verb and cliche with its
+    /// plainer fix (scripts/wordy.txt, plain.txt, hidden.txt and
+    /// cliches.txt), read once.
     static let phraseFlags: [PhraseFlag] = rows("SELECT phrase, kind, fix FROM flags", []).map {
-        PhraseFlag(phrase: $0[0], fix: $0[2], isCliche: $0[1] == "cliches")
+        PhraseFlag(phrase: $0[0], fix: $0[2], isCliche: $0[1] == "cliches", isHiddenVerb: $0[1] == "hidden")
     }
 
     /// Syllable counts from the CMU Pronouncing Dictionary, for the words

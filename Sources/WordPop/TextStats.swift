@@ -1,12 +1,14 @@
 import Foundation
 import NaturalLanguage
 
-/// A wordy phrase ("in order to") or a cliche ("low-hanging fruit") and
-/// the plainer words for it; an empty fix means the phrase can go.
+/// A wordy phrase ("in order to"), a hidden verb ("made a decision") or
+/// a cliche ("low-hanging fruit") and the plainer words for it; an empty
+/// fix means the phrase can go.
 struct PhraseFlag: Equatable {
     let phrase: String
     let fix: String
     let isCliche: Bool
+    var isHiddenVerb = false
 }
 
 /// Readability notes for a selected passage, in the spirit of the
@@ -206,7 +208,7 @@ struct TextStats: Equatable {
                 taken.append(match.range)
                 let spelled = ns.substring(with: match.range)
                 if !found.contains(where: { $0.flag.phrase.lowercased() == spelled.lowercased() }) {
-                    found.append((match.range.location, PhraseFlag(phrase: spelled, fix: flag.fix, isCliche: flag.isCliche)))
+                    found.append((match.range.location, PhraseFlag(phrase: spelled, fix: flag.fix, isCliche: flag.isCliche, isHiddenVerb: flag.isHiddenVerb)))
                 }
             }
         }

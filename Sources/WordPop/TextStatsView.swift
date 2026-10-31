@@ -522,8 +522,8 @@ struct TextStatsView: View {
                     .font(.pill)
                     .strikethrough(chosen)
                     .foregroundStyle(.secondary)
-                if flag.isCliche {
-                    Text("clich\u{E9}").font(.pillLabel).foregroundStyle(.tertiary)
+                if flag.isCliche || flag.isHiddenVerb {
+                    Text(flag.isCliche ? "clich\u{E9}" : "hidden verb").font(.pillLabel).foregroundStyle(.tertiary)
                 }
                 if !flag.isCliche || !flag.fix.isEmpty {
                     Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
