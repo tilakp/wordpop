@@ -176,6 +176,8 @@ final class PopupViewModel: ObservableObject {
         fixes.merge(systemFixes) { first, _ in first }
         return fixes
     }
+    /// What the passage does against the user's style rules.
+    @Published var style = StyleRules.Report()
     /// Puts the chosen typo and phrase fixes into the passage at once.
     var onApplyFixes: () -> Void = {}
 
@@ -470,6 +472,7 @@ final class PopupViewModel: ObservableObject {
         transition = nil
         openTool = nil
         textTool = nil
+        style = StyleRules.Report()
         toneReading = nil
         isCheckingTone = false
         paragraph = nil

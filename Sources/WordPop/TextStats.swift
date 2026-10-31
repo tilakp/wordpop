@@ -200,9 +200,7 @@ struct TextStats: Equatable {
         var taken: [NSRange] = []
         var found: [(location: Int, flag: PhraseFlag)] = []
         for flag in flags.sorted(by: { $0.phrase.count > $1.phrase.count }) {
-            guard let pattern = try? NSRegularExpression(
-                pattern: "\\b\(NSRegularExpression.escapedPattern(for: flag.phrase))\\b", options: .caseInsensitive
-            ) else { continue }
+            guard let pattern = try? NSRegularExpression(pattern: wholePhrase(flag.phrase), options: .caseInsensitive) else { continue }
             for match in pattern.matches(in: text, range: NSRange(location: 0, length: ns.length))
             where !taken.contains(where: { NSIntersectionRange($0, match.range).length > 0 }) {
                 taken.append(match.range)
@@ -227,9 +225,7 @@ struct TextStats: Equatable {
         for (phrase, fix) in fixes.sorted(by: { $0.key.count > $1.key.count }) {
             // Spaces and tabs only, so a removal never joins two paragraphs.
             let (head, tail) = fix.isEmpty ? (",?[ \\t]*", ",?[ \\t]*") : ("", "")
-            guard let pattern = try? NSRegularExpression(
-                pattern: "\(head)\\b\(NSRegularExpression.escapedPattern(for: phrase))\\b\(tail)", options: .caseInsensitive
-            ) else { continue }
+            guard let pattern = try? NSRegularExpression(pattern: head + wholePhrase(phrase) + tail, options: .caseInsensitive) else { continue }
             for match in pattern.matches(in: result, range: NSRange(location: 0, length: (result as NSString).length)).reversed() {
                 let ns = result as NSString
                 let original = ns.substring(with: match.range)
@@ -251,6 +247,14 @@ struct TextStats: Equatable {
             }
         }
         return result
+    }
+
+    /// A pattern for `phrase` as whole words. A word boundary is asked for
+    /// only at an end that is a letter or digit, so a style rule for a
+    /// dash ("\u{2014}") matches between two words too.
+    static func wholePhrase(_ phrase: String) -> String {
+        let isWord = { (character: Character?) in character.map { $0.isLetter || $0.isNumber } ?? false }
+        return (isWord(phrase.first) ? "\\b" : "") + NSRegularExpression.escapedPattern(for: phrase) + (isWord(phrase.last) ? "\\b" : "")
     }
 
     /// Whether `next` ends what came before it, so no space goes in front:

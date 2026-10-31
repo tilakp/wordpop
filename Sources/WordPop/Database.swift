@@ -97,6 +97,12 @@ enum Database {
         }
     }
 
+    /// A style rule preset as written (scripts/ste.txt), for
+    /// `StyleRules.parse`.
+    static func preset(named name: String) -> String? {
+        query("SELECT rules FROM presets WHERE name = ?1", [name]).first
+    }
+
     /// Every wordy phrase, formal word, hidden verb and cliche with its
     /// plainer fix (scripts/wordy.txt, plain.txt, hidden.txt and
     /// cliches.txt), read once.

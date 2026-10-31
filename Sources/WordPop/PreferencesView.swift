@@ -6,6 +6,7 @@ struct PreferencesView: View {
     @AppStorage(Settings.textSizeKey) private var textSize = TextSize.medium
     @AppStorage(Settings.popupPlacementKey) private var popupPlacement = PopupPlacement.center
     @State private var hiddenSections = Settings.hiddenSections
+    @AppStorage(StyleRules.presetKey) private var stylePreset = StyleRules.Preset.none
     let onLookupShortcutChanged: (HotkeyShortcut) -> String?
     let onQuickSearchShortcutChanged: (HotkeyShortcut) -> String?
 
@@ -76,6 +77,20 @@ struct PreferencesView: View {
                         Toggle(section.label, isOn: shows(section.id))
                     }
                 }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Style Rules").font(.headline)
+                Text("Notes on a passage list the words, long sentences and paragraphs that break these rules. Your own rules add to the preset.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Picker("Preset", selection: $stylePreset) {
+                    ForEach(StyleRules.Preset.allCases) { Text($0.label).tag($0) }
+                }
+                Button("Edit My Rules\u{2026}", action: StyleRules.openFile)
             }
 
             Divider()

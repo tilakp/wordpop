@@ -1,7 +1,7 @@
 """
 Packs synonyms.json, antonyms.json, rhymes.json, syllables.json, specific.json and words.txt (the outputs
 of the other build scripts) and the hand-written confusables.txt,
-stronger.txt, inclusive.txt, wordy.txt, plain.txt, cliches.txt and hidden.txt into Sources/WordPop/Resources/wordpop.sqlite.
+stronger.txt, inclusive.txt, wordy.txt, plain.txt, cliches.txt and hidden.txt, and the ste.txt style preset, into Sources/WordPop/Resources/wordpop.sqlite.
 
 The app queries this database on demand instead of decoding the JSON at
 launch, which took about half a second of CPU and held ~100 MB resident.
@@ -31,6 +31,7 @@ db.executescript("""
     CREATE TABLE hints (word TEXT NOT NULL, kind TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT, words TEXT NOT NULL,
                         PRIMARY KEY (word, kind, position)) WITHOUT ROWID;
     CREATE TABLE flags (phrase TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL, fix TEXT NOT NULL) WITHOUT ROWID;
+    CREATE TABLE presets (name TEXT PRIMARY KEY NOT NULL, rules TEXT NOT NULL) WITHOUT ROWID;
     CREATE TABLE specific (word TEXT NOT NULL, pos TEXT NOT NULL, position INTEGER NOT NULL, caption TEXT NOT NULL,
                            words TEXT NOT NULL, PRIMARY KEY (word, pos, position)) WITHOUT ROWID;
 """)
@@ -177,6 +178,12 @@ with open("hidden.txt", encoding="utf-8") as f:
                     hidden[f"{auxiliary} come {variant}"] = " ".join([auxiliary, targets[3], *after])
 db.executemany("INSERT OR IGNORE INTO flags VALUES (?, 'hidden', ?)", hidden.items())
 print(f"flags hidden: {len(hidden)} phrases")
+
+# Style rule presets, kept as written; the app parses them like the
+# user's own rules file.
+with open("ste.txt", encoding="utf-8") as f:
+    db.execute("INSERT INTO presets VALUES ('ste', ?)", (f.read(),))
+print("presets: ste")
 
 db.commit()
 db.execute("VACUUM")

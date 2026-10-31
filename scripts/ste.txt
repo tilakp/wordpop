@@ -1,0 +1,87 @@
+# Simplified Technical English (ASD-STE100) preset: a starter set, not the
+# full STE dictionary. Common words STE does not approve, with the approved
+# word to use, and STE's length and -ing rules. Same format as your own
+# rules file: "word | approved word", or a word alone to flag it; matches
+# are whole words, so each form is on its own line. Words that are often
+# nouns too ("a request", "an attempt") are left out, as their fixes start
+# chosen. build_db.py stores this file in the presets table.
+max sentence words: 20
+max paragraph sentences: 6
+flag -ing words
+accomplish | do
+accomplishes | does
+accomplishing | doing
+adjacent to | near
+advise | tell
+advises | tells
+advised | told
+affix | attach
+affixes | attaches
+affixed | attached
+alter | change
+alters | changes
+altered | changed
+approximately | about
+assist | help
+assists | helps
+assisted | helped
+attempted | tried
+commence | start
+commences | starts
+commenced | started
+consequently | as a result
+demonstrate | show
+demonstrates | shows
+discontinue | stop
+discontinues | stops
+discontinued | stopped
+due to | because of
+eliminate | remove
+eliminates | removes
+eliminated | removed
+employ | use
+employs | uses
+employed | used
+ensure | make sure
+ensures | makes sure
+facilitate | help
+facilitates | helps
+frequently | often
+inform | tell
+informs | tells
+initiate | start
+initiates | starts
+initiated | started
+locate | find
+locates | finds
+modify | change
+modifies | changes
+modified | changed
+numerous | many
+obtain | get
+obtains | gets
+perform | do
+performs | does
+possess | have
+possesses | has
+prior to | before
+proceed | go
+proceeds | goes
+proceeded | went
+regarding | about
+remain | stay
+remained | stayed
+requested | asked
+retain | keep
+retains | keeps
+subsequently | after
+sufficient | enough
+terminate | stop
+terminates | stops
+terminated | stopped
+utilize | use
+utilizes | uses
+utilized | used
+verify | make sure
+verifies | makes sure
+whilst | while

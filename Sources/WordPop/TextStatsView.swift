@@ -33,19 +33,25 @@ struct TextStatsView: View {
             if !viewModel.typos.isEmpty {
                 section("Spelling", tint: .spellingTint) {
                     typoControls
-                    if viewModel.grammar.isEmpty, viewModel.consistency.isEmpty, stats.wordy.isEmpty { applyFixesButton }
+                    if viewModel.grammar.isEmpty, viewModel.consistency.isEmpty, !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !viewModel.grammar.isEmpty {
                 section("Grammar", tint: .spellingTint) {
                     grammarControls
-                    if viewModel.consistency.isEmpty, stats.wordy.isEmpty { applyFixesButton }
+                    if viewModel.consistency.isEmpty, !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !viewModel.consistency.isEmpty {
                 section("Consistency", tint: .confusedTint) {
                     consistencyControls
-                    if stats.wordy.isEmpty { applyFixesButton }
+                    if !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
+                }
+            }
+            if !viewModel.style.isEmpty {
+                section("Style rules", tint: .inclusiveTint) {
+                    styleControls
+                    if hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !stats.wordy.isEmpty {
@@ -106,7 +112,7 @@ struct TextStatsView: View {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
             }
-            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, stats.hedges.isEmpty, viewModel.typos.isEmpty,
+            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, stats.hedges.isEmpty, viewModel.style.isEmpty, viewModel.typos.isEmpty,
                stats.wordy.isEmpty, viewModel.grammar.isEmpty, viewModel.consistency.isEmpty {
                 section("Notes", tint: .fitTint) {
                     Text("No typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, passive voice, -ly adverbs, hedges or repeated words.")
@@ -508,6 +514,59 @@ struct TextStatsView: View {
                 .overlay(Capsule().strokeBorder(chosen ? Color.confusedTint : Color.confusedTint.opacity(0.25)))
         }
         .buttonStyle(.plain)
+    }
+
+    private var hasStyleFixes: Bool { viewModel.style.words.contains { !$0.fix.isEmpty } }
+
+    /// What breaks the user's style rules: each word to avoid with its fix,
+    /// chosen or not like a wordy phrase's (or only marked when the rule
+    /// gives none), then the sentences and paragraphs over the limits and
+    /// the -ing forms.
+    @ViewBuilder
+    private var styleControls: some View {
+        let style = viewModel.style
+        ForEach(style.words, id: \.phrase) { flag in
+            let chosen = viewModel.phraseFixes[flag.phrase] != nil
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(flag.phrase)
+                    .font(.pill)
+                    .strikethrough(chosen)
+                    .foregroundStyle(.secondary)
+                if flag.fix.isEmpty {
+                    Text("avoid").font(.pillLabel).foregroundStyle(.tertiary)
+                } else {
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                    Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
+                        Text(flag.fix)
+                            .font(.pill)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 2)
+                            .background(Color.inclusiveTint.opacity(chosen ? 0.28 : 0.08))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(chosen ? Color.inclusiveTint : Color.inclusiveTint.opacity(0.25)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        if let limit = style.sentenceLimit, !style.longSentences.isEmpty {
+            Text("Over \(limit) words:").font(.definition).foregroundStyle(.secondary)
+            ForEach(Array(style.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
+                Text("\(sentence.split(whereSeparator: \.isWhitespace).count) words: \u{201C}\(sentence.prefix(80))\(sentence.count > 80 ? "\u{2026}" : "")\u{201D}")
+                    .font(.example)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        ForEach(style.longParagraphs, id: \.number) { paragraph in
+            Text("Paragraph \(paragraph.number) has \(paragraph.sentences) sentences.").font(.definition).foregroundStyle(.secondary)
+        }
+        if !style.ingWords.isEmpty {
+            Text("-ing forms: \(style.ingWords.joined(separator: ", "))")
+                .font(.definition)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     /// Each wordy phrase or cliche with its fix ("remove" when it can go),

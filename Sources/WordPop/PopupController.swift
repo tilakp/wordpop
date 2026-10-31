@@ -59,7 +59,14 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.selectionText = passage
         // Hidden sections are not worked out, so none of their fixes can
         // go in unseen.
-        let stats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) }, flags: Settings.shows(.wordy) ? Database.phraseFlags : [])
+        var stats = TextStats.analyze(passage, syllables: { Database.syllables(of: $0) }, flags: Settings.shows(.wordy) ? Database.phraseFlags : [])
+        let rules = StyleRules.current
+        if !rules.isEmpty {
+            viewModel.style = rules.check(passage, sentences: stats.sentenceTexts)
+            // A phrase the style rules cover is listed there, not twice.
+            let covered = Set(viewModel.style.words.map { $0.phrase.lowercased() })
+            stats.wordy.removeAll { covered.contains($0.phrase.lowercased()) }
+        }
         viewModel.textStats = stats
         viewModel.paragraph = selection?.paragraph
         viewModel.typos = Spelling.typos(in: passage)
@@ -67,7 +74,11 @@ final class PopupController: NSObject, NSWindowDelegate {
         if Settings.shows(.consistency) { viewModel.consistency = Consistency.check(passage) }
         if Settings.shows(.crutches) { viewModel.crutches = ReplacedWords.shared.crutches(in: passage) }
         // Wordy phrases start chosen; cliches are a matter of taste.
-        viewModel.phraseFixes = Dictionary(stats.wordy.filter { !$0.isCliche }.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
+        // The user's own rules start chosen too, when they give a fix.
+        viewModel.phraseFixes = Dictionary(
+            (stats.wordy.filter { !$0.isCliche } + viewModel.style.words.filter { !$0.fix.isEmpty }).map { ($0.phrase, $0.fix) },
+            uniquingKeysWith: { first, _ in first }
+        )
         wireViewModelActions()
         // The grammar check takes most of a second for a long passage, so
         // its notes come in after the popup is up. The checker's agreement
