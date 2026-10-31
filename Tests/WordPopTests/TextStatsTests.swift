@@ -131,4 +131,15 @@ final class TextStatsTests: XCTestCase {
             + "We left. Cars passed. Night came. A moon rose. Stars shone. Owls called.")
         XCTAssertTrue(varied.repeatedStarts.isEmpty, "3 of 13 is under a quarter \(varied.repeatedStarts)")
     }
+
+    func testFindsSentencesAboveATargetGrade() {
+        let stats = TextStats.analyze(
+            "The cat sat on the mat and looked at the dog in the yard. "
+                + "Organizational considerations necessitate comprehensive evaluation of alternative implementation methodologies before any final deployment. "
+                + "Utilization matters."
+        )
+        XCTAssertEqual(stats.sentenceGrades.count, 3)
+        XCTAssertEqual(stats.sentences(above: 8).map(\.text),
+                       ["Organizational considerations necessitate comprehensive evaluation of alternative implementation methodologies before any final deployment."])
+    }
 }

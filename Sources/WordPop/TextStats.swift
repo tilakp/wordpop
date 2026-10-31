@@ -35,6 +35,20 @@ struct TextStats: Equatable {
     var wordy: [PhraseFlag] = []
     /// The passage's sentences, for finding the one a note refers to.
     var sentenceTexts: [String] = []
+    /// Each sentence's own reading grade, in order.
+    var sentenceGrades: [Double] = []
+
+    /// Sentences that read above `target` grade, hardest first. Short
+    /// sentences are left out: the grade formula swings wildly on a few
+    /// words ("Utilization matters." is grade 17).
+    func sentences(above target: Double) -> [(text: String, grade: Double)] {
+        zip(sentenceTexts, sentenceGrades)
+            .filter { $0.1 > target && $0.0.split(whereSeparator: \.isWhitespace).count >= Self.gradedSentenceWords }
+            .sorted { $0.1 > $1.1 }
+            .map { ($0.0, $0.1) }
+    }
+
+    static let gradedSentenceWords = 12
 
     /// Each sentence's word count, in order.
     var sentenceLengths: [Int] { sentenceTexts.map { $0.split(whereSeparator: \.isWhitespace).count } }
@@ -142,8 +156,11 @@ struct TextStats: Equatable {
 
         let known = syllables(Array(Set(lowered)))
         let syllableTotal = lowered.reduce(0) { $0 + (known[$1] ?? estimatedSyllables($1)) }
-        let wordCount = max(words.count, 1), sentenceCount = max(sentenceTexts.count, 1)
-        let grade = 0.39 * Double(wordCount) / Double(sentenceCount) + 11.8 * Double(syllableTotal) / Double(wordCount) - 15.59
+        let grade = fleschKincaid(words: words.count, sentences: sentenceTexts.count, syllables: syllableTotal)
+        let sentenceGrades = sentenceTexts.map { sentence in
+            let words = tokens(of: sentence, unit: .word).map { sentence[$0].lowercased() }.filter { $0.contains(where: \.isLetter) }
+            return fleschKincaid(words: words.count, sentences: 1, syllables: words.reduce(0) { $0 + (known[$1] ?? estimatedSyllables($1)) })
+        }
 
         let longSentences = sentenceTexts.compactMap { sentence -> (String, Int)? in
             let count = sentence.split(whereSeparator: \.isWhitespace).count
@@ -153,8 +170,7 @@ struct TextStats: Equatable {
         return TextStats(
             words: words.count,
             sentences: sentenceTexts.count,
-            // Above 0, so a rounded small negative never shows as -0.0.
-            grade: max(0, (grade * 10).rounded() / 10) + 0,
+            grade: grade,
             readingMinutes: Double(words.count) / 238,
             longSentences: longSentences,
             passives: passives(in: lowered),
@@ -162,8 +178,17 @@ struct TextStats: Equatable {
             repeated: repeatedWords(in: lowered),
             hedges: hedges(in: text),
             wordy: flagged(flags, in: text),
-            sentenceTexts: sentenceTexts
+            sentenceTexts: sentenceTexts,
+            sentenceGrades: sentenceGrades
         )
+    }
+
+    /// The Flesch-Kincaid grade, to one decimal and not below 0, so a
+    /// rounded small negative never shows as -0.0.
+    static func fleschKincaid(words: Int, sentences: Int, syllables: Int) -> Double {
+        let words = max(words, 1), sentences = max(sentences, 1)
+        let grade = 0.39 * Double(words) / Double(sentences) + 11.8 * Double(syllables) / Double(words) - 15.59
+        return max(0, (grade * 10).rounded() / 10) + 0
     }
 
     /// Words that soften or pad a claim without adding to it, as

@@ -63,6 +63,19 @@ struct TextStatsView: View {
             if stats.sentences >= 3, Settings.shows(.rhythm) {
                 section("Sentence rhythm", tint: .synonymTint) { rhythm }
             }
+            if let target = Settings.targetGrade, !hardSentences.isEmpty {
+                section("Above grade \(target)", tint: .antonymTint) {
+                    ForEach(Array(hardSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Grade \(String(format: "%.0f", sentence.grade)): \u{201C}\(sentence.text.prefix(90))\(sentence.text.count > 90 ? "\u{2026}" : "")\u{201D}")
+                                .font(.example)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            rewriteControls(for: sentence.text, rewrite: .split, label: "Split it")
+                        }
+                    }
+                }
+            }
             if !stats.longSentences.isEmpty, Settings.shows(.longSentences) {
                 section("Long sentences (over \(TextStats.longSentenceWords) words)", tint: .antonymTint) {
                     ForEach(Array(stats.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
@@ -112,7 +125,7 @@ struct TextStatsView: View {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
             }
-            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, stats.hedges.isEmpty, viewModel.style.isEmpty, viewModel.typos.isEmpty,
+            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, stats.hedges.isEmpty, hardSentences.isEmpty, viewModel.style.isEmpty, viewModel.typos.isEmpty,
                stats.wordy.isEmpty, viewModel.grammar.isEmpty, viewModel.consistency.isEmpty {
                 section("Notes", tint: .fitTint) {
                     Text("No typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, passive voice, -ly adverbs, hedges or repeated words.")
@@ -166,6 +179,11 @@ struct TextStatsView: View {
             + "\(String(format: "%.0f", average)) words per sentence \u{B7} \(minutes) to read \u{B7} \(gradeLabel)"
     }
 
+    /// The sentences above the target grade, if one is set.
+    private var hardSentences: [(text: String, grade: Double)] {
+        Settings.targetGrade.map { stats.sentences(above: Double($0)) } ?? []
+    }
+
     private var gradeLabel: String {
         let grade = stats.grade
         let reader = switch grade {
@@ -174,7 +192,8 @@ struct TextStatsView: View {
         case ..<13: "fairly difficult, high-school level"
         default: "difficult, college level"
         }
-        return "grade \(String(format: "%.1f", grade)), \(reader)"
+        let target = Settings.targetGrade.map { ", target \($0)" } ?? ""
+        return "grade \(String(format: "%.1f", grade))\(target), \(reader)"
     }
 
     /// The tools this selection can use: Reframe and Transitions need one

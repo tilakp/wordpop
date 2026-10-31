@@ -7,6 +7,7 @@ struct PreferencesView: View {
     @AppStorage(Settings.popupPlacementKey) private var popupPlacement = PopupPlacement.center
     @State private var hiddenSections = Settings.hiddenSections
     @AppStorage(StyleRules.presetKey) private var stylePreset = StyleRules.Preset.none
+    @AppStorage(Settings.targetGradeKey) private var targetGrade = 0
     let onLookupShortcutChanged: (HotkeyShortcut) -> String?
     let onQuickSearchShortcutChanged: (HotkeyShortcut) -> String?
 
@@ -89,6 +90,10 @@ struct PreferencesView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Picker("Preset", selection: $stylePreset) {
                     ForEach(StyleRules.Preset.allCases) { Text($0.label).tag($0) }
+                }
+                Picker("Target reading grade", selection: $targetGrade) {
+                    Text("None").tag(0)
+                    ForEach(5...12, id: \.self) { Text("Grade \($0)").tag($0) }
                 }
                 Button("Edit My Rules\u{2026}", action: StyleRules.openFile)
             }

@@ -87,6 +87,13 @@ enum Settings {
     static let textSizeKey = "WordPop.textSize"
     static let popupPlacementKey = "WordPop.popupPlacement"
     static let hiddenSectionsKey = "WordPop.hiddenSections"
+    /// The reading grade passages should not go above; 0 for none.
+    static let targetGradeKey = "WordPop.targetGrade"
+
+    static var targetGrade: Int? {
+        let grade = UserDefaults.standard.integer(forKey: targetGradeKey)
+        return grade > 0 ? grade : nil
+    }
 
     static var hiddenSections: Set<String> {
         get { Set(UserDefaults.standard.stringArray(forKey: hiddenSectionsKey) ?? []) }
