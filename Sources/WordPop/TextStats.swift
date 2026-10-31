@@ -160,7 +160,8 @@ struct TextStats: Equatable {
     static func tightened(_ text: String, fixes: [String: String]) -> String {
         var result = text
         for (phrase, fix) in fixes.sorted(by: { $0.key.count > $1.key.count }) {
-            let (head, tail) = fix.isEmpty ? (",?\\s*", ",?\\s*") : ("", "")
+            // Spaces and tabs only, so a removal never joins two paragraphs.
+            let (head, tail) = fix.isEmpty ? (",?[ \\t]*", ",?[ \\t]*") : ("", "")
             guard let pattern = try? NSRegularExpression(
                 pattern: "\(head)\\b\(NSRegularExpression.escapedPattern(for: phrase))\\b\(tail)", options: .caseInsensitive
             ) else { continue }
@@ -169,12 +170,12 @@ struct TextStats: Equatable {
                 let original = ns.substring(with: match.range)
                 if fix.isEmpty {
                     // One space stays between the words on either side; a
-                    // capital moves on to the next word.
+                    // capital moves on to the next word. "Next" is a whole
+                    // character, so an emoji is not split.
                     let leading = original.prefix { $0 == "," || $0.isWhitespace }
                     let after = NSMaxRange(match.range)
-                    var next = after < ns.length ? ns.substring(with: NSRange(location: after, length: 1)) : ""
-                    let endsSentence = next.isEmpty || next.first?.isPunctuation == true
-                    let gap = leading.isEmpty || endsSentence ? "" : " "
+                    var next = after < ns.length ? ns.substring(with: ns.rangeOfComposedCharacterSequence(at: after)) : ""
+                    let gap = leading.isEmpty || closesSentence(next, followedBy: ns, at: after) ? "" : " "
                     if original.dropFirst(leading.count).first?.isUppercase == true { next = next.uppercased() }
                     result = ns.replacingCharacters(
                         in: NSRange(location: match.range.location, length: match.range.length + next.utf16.count), with: gap + next
@@ -185,6 +186,21 @@ struct TextStats: Equatable {
             }
         }
         return result
+    }
+
+    /// Whether `next` ends what came before it, so no space goes in front:
+    /// a period or comma, a closing bracket or quote, or the end of the
+    /// text. An opening quote or bracket ("(again)") keeps its space; a
+    /// straight quote opens when a letter follows it.
+    private static func closesSentence(_ next: String, followedBy text: NSString, at location: Int) -> Bool {
+        guard let character = next.first else { return true }
+        if ".,;:!?)]}\u{201D}\u{2019}".contains(character) { return true }
+        if character == "\"" || character == "'" {
+            let after = location + next.utf16.count
+            guard after < text.length else { return true }
+            return !(text.substring(with: text.rangeOfComposedCharacterSequence(at: after)).first?.isLetter ?? false)
+        }
+        return false
     }
 
     private static func tokens(of text: String, unit: NLTokenUnit) -> [Range<String.Index>] {

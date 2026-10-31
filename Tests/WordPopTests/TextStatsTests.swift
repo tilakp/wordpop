@@ -100,6 +100,11 @@ final class TextStatsTests: XCTestCase {
         XCTAssertEqual(TextStats.tightened("Needless to say, it failed.", fixes: ["needless to say": ""]), "It failed.")
         XCTAssertEqual(TextStats.tightened("It failed, needless to say.", fixes: ["needless to say": ""]), "It failed.")
         XCTAssertEqual(TextStats.tightened("We were, needless to say, late.", fixes: ["needless to say": ""]), "We were late.")
+        XCTAssertEqual(TextStats.tightened("Needless to say, \u{1F600} it worked.", fixes: ["needless to say": ""]), "\u{1F600} it worked.")
+        XCTAssertEqual(TextStats.tightened("First para.\n\nNeedless to say, it failed.", fixes: ["needless to say": ""]), "First para.\n\nIt failed.")
+        XCTAssertEqual(TextStats.tightened("We were, needless to say, \"late\".", fixes: ["needless to say": ""]), "We were \"late\".")
+        XCTAssertEqual(TextStats.tightened("It failed, needless to say (again).", fixes: ["needless to say": ""]), "It failed (again).")
+        XCTAssertEqual(TextStats.tightened("He said \"needless to say\".", fixes: ["needless to say": ""]), "He said \"\".")
         XCTAssertEqual(TextStats.tightened("We are in the process of moving.", fixes: ["in the process of": ""]), "We are moving.")
     }
 }
