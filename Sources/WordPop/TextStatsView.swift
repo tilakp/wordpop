@@ -5,6 +5,7 @@ import SwiftUI
 struct TextStatsView: View {
     let stats: TextStats
     @ObservedObject var viewModel: PopupViewModel
+    @State private var copiedNotes = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -133,8 +134,31 @@ struct TextStatsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            Divider().padding(.horizontal, 22)
+            Button(action: copyNotes) {
+                Text(copiedNotes ? "Copied" : "Copy notes as Markdown")
+                    .font(.recentMeta)
+                    .foregroundStyle(copiedNotes ? Color.secondary : Color.accentColor)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 10)
         }
         .padding(.bottom, 6)
+        // The popup view is reused for the next passage.
+        .onChange(of: stats) { _, _ in copiedNotes = false }
+    }
+
+    /// Puts the notes on the clipboard as Markdown, for a review comment
+    /// or a message.
+    private func copyNotes() {
+        let report = NotesReport.markdown(
+            stats: stats, typos: viewModel.typos, grammar: viewModel.grammar, consistency: viewModel.consistency,
+            style: viewModel.style, targetGrade: Settings.targetGrade, shows: Settings.shows
+        )
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(report, forType: .string)
+        copiedNotes = true
     }
 
     /// A bar per sentence, as tall as it is long; long sentences stand
