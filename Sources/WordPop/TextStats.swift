@@ -134,7 +134,8 @@ struct TextStats: Equatable {
         return TextStats(
             words: words.count,
             sentences: sentenceTexts.count,
-            grade: max(0, (grade * 10).rounded() / 10),
+            // Above 0, so a rounded small negative never shows as -0.0.
+            grade: max(0, (grade * 10).rounded() / 10) + 0,
             readingMinutes: Double(words.count) / 238,
             longSentences: longSentences,
             passives: passives(in: lowered),

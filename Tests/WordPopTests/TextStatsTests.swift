@@ -37,6 +37,10 @@ final class TextStatsTests: XCTestCase {
 
     func testSimpleTextReadsAtALowGrade() {
         XCTAssertLessThan(TextStats.analyze("The cat sat on the mat. The dog ran to the park.").grade, 3)
+        XCTAssertEqual(String(format: "%.1f", TextStats.analyze(
+            "The storm came in fast. We closed the shutters quickly. The dog hid under the bed. The lights went out at nine.",
+            syllables: { Database.syllables(of: $0) }
+        ).grade), "0.0", "a small negative grade shows as 0.0, not -0.0")
     }
 
     func testAShortSentenceIsAPassageButAnIdiomIsNot() {
