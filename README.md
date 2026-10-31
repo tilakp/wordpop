@@ -1,6 +1,6 @@
 # WordPop
 
-A writer's dictionary for the Mac. Select a word anywhere, press a hotkey, and get its definition, the synonyms that fit your sentence, rhymes, usage notes and more in a popup, then put a better word in place with one keystroke. Fully offline. No accounts, no network calls.
+A writer's dictionary for the Mac. Select a word anywhere, press a hotkey, and get its definition, the synonyms that fit your sentence, rhymes, usage notes and more in a popup, then put a better word in place with one keystroke. Select a sentence or a passage instead, and get an editor's notes: typos, grammar, wordy phrases, mixed spellings and sentence rhythm, with one click to fix what you choose. Fully offline. No accounts, no network calls.
 
 WordPop lives in the menu bar and stays out of the Dock.
 
@@ -14,42 +14,56 @@ WordPop lives in the menu bar and stays out of the Dock.
 
 ## Features
 
+### Look up a word
+
 - **Lookup from any app.** Select text in a browser, editor, PDF, chat window, or anywhere else, then press `⌃⌥⌘D`. The popup appears in the centre of the screen, or next to the mouse pointer if you choose that in Preferences.
-- **Replace with a synonym.** `⌥`-click a pill, or focus it and press `⌥Return`, to put that word in place of your selection. Punctuation, capitalization and word form are kept: "Quiet," becomes "Hushed,", and "ran" replaced with "sprint" becomes "sprinted".
-- **Compare two words.** `⇧`-click a pill, or press `⇧Return`, to see it next to the word: both definitions and, with Apple Intelligence, a one-line difference ("famous implies positive recognition; notorious implies negative reputation").
-- **Register labels.** Synonyms carry tags such as *informal*, *archaic* or *British*, so the everyday word stands apart from the colloquial one.
-- **Stronger words and inclusive alternatives.** Vague words get stronger options ("very tired" → exhausted, "said quietly" → whispered), and gendered or exclusionary words get alternatives ("chairman" → chair, chairperson), from two hand-written lists.
-- **What goes with a word.** A button at the bottom of the popup asks the on-device model for common phrases with the word ("strong evidence", "persuasive argument").
-- **Fits your sentence.** With Apple Intelligence (macOS 26 or later), the on-device model reads the sentence you selected the word in, picks the sense it is used in, and shows that sense's synonyms first ("She runs a small bakery" → manage, be in charge of). The matching definition moves to the top under "In your sentence". It runs locally; nothing leaves your Mac.
-- **Tone shifts.** The Tone buttons list synonyms that are more formal, more casual, more vivid, or simpler (the most common words of that sense), ready for `⌥`-click replace.
-- **Idioms.** Select a phrase like "spill the beans" or "moved the goalposts" and the popup shows the dictionary's entry for the phrase, found under any of its words. When the dictionary has none, Apple Intelligence can explain it, marked as not coming from the dictionary.
-- **More examples.** A link under the definitions writes three fresh example sentences for the sense in your sentence.
-- **Rhymes for your line.** When the selected word ends its line, the model picks the rhymes that suit the line's meaning ("…the fading light" → night, white, bright).
-- **Usage notes and often-confused words.** The dictionary's usage notes (affect vs effect, fewer vs less) appear in a Usage section, and a hand-written list of 117 groups adds an "Often confused with" row (its/it's, principal/principle, lay/lie).
-- **Plain words first.** Synonyms that are rare in everyday English are dimmed, so the plainer choices stand out.
-- **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first. Start with `?` to describe a meaning instead ("?the smell of rain on dry earth" → petrichor, "?a happy accident" → serendipity); this uses the on-device model and checks every suggestion against its dictionary definition.
-- **Spelling help.** Not sure how a word is spelled? Type your best guess in Quick Search: if it is misspelled, the close words are listed with their part of speech and first definition, so you can pick the right one by meaning. A misspelled word you select gets a "Did you mean" row in the popup. Click "Replace with" to fix it with the top suggestion, or `⌥`-click another pill to use that one. In a selected passage, the Spelling notes list each typo with its fixes; choose the ones you want and click "Fix typos". Suggestions come from the macOS spell checker and work offline.
-- **Pattern search.** In Quick Search, `*` stands for any letters and `?` or `_` for one: `b??t` lists best, beat, boat. Add `: meaning` to keep only synonyms of a word: `con* : agree` gives consent, concur.
-- **Notes on a passage.** Select eight or more words, or one sentence of five or more words, and press the lookup shortcut. The top line gives word and sentence counts, reading time and the reading grade; below come typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, possible passive voice, -ly adverbs and repeated words, each only when the passage has some. Reframe, Tone and Transitions sit in one Tools row and open one at a time. With Apple Intelligence, a long sentence can be split and a passive one made active, and Replace puts the rewrite into your text.
-- **Grammar notes.** Notes on a passage list grammar mistakes that the macOS checker finds, each with its correction: "a apple" → an, "They was" → were, "should of" → have, "Its a nice day" → It's, "taller then" → than. They are fixed together with typos and wordy phrases. The checker misses many mistakes, so no note does not mean no mistake.
-- **Sentence rhythm.** For three or more sentences, notes on a passage draw a bar for each sentence, as tall as it is long, with long sentences in red. When three or more sentences in a row are about the same length, the note says so, as that can read flat. Point at a bar to see its sentence.
-- **Consistency.** Notes on a passage point out what the text does two ways: one word spelled with and without a hyphen ("e-mail" and "email"), British and American spelling together ("colour" and "center"), straight and curly quotes, one and two spaces after a sentence, and acronyms used before they are spelled out ("STE" with no "Simplified Technical English (STE)" first). Pick a spelling, or **British** or **American**, and the fix button makes the passage use it throughout. British and American spellings are not listed as typos.
-- **Wordy phrases and clichés.** Notes on a passage list wordy phrases with a shorter way to say each ("in order to" → to, "due to the fact that" → because, "needless to say" → remove) and clichés with a plainer one ("low-hanging fruit" → easy wins). Wordy fixes start chosen and clichés do not; click a fix to choose it or not, then **Tighten** puts them into your text, together with any chosen typo fixes. The lists are in `scripts/wordy.txt` and `scripts/cliches.txt`.
-- **Reframe a sentence.** Select one sentence and open **Reframe** in the Tools row: Clearer, Shorter, Lead with the point and More confident. In apps that share the text around your selection, the on-device model also reads the sentences before and after it, so names, tense and terms stay the same. Replace puts the new sentence in place of the old one.
-- **Tone check.** With Apple Intelligence, open **Tone** in the Tools row of the notes on a passage and click "How will this come across?". The on-device model says how a reader will most likely take the text (warm, neutral, formal, curt, defensive, uncertain and others) and which words make it read that way: "Reads as defensive. The phrase 'As I already explained' …". In tests the same text got the same reading in 20 of 21 runs.
-- **Transitions.** Select one sentence and open **Transitions** in the Tools row: pick a job (Add, Contrast, Cause, Example, Sequence, Emphasis, Sum up), then a connector such as "However" or "As a result". The popup shows the sentence with it ("Even so, the new plan cut our costs by half."), and Replace puts it in your text. A connector the sentence already starts with is swapped, and names, acronyms and "I" keep their capital. Works offline.
-- **Repeated in this paragraph.** When you look up a word that you used three or more times in its paragraph (counting forms such as "reports" and "reported"), the popup says so, with the synonyms ready to vary it.
-- **Your crutch words.** WordPop counts the words you replace with a synonym from the popup. After you replace a word three times, the popup says so when you look it up again ("You have replaced "very" 3 times before"), and notes on a passage list the crutch words the passage uses. The counts stay on your Mac; **Clear History** in the menu bar menu removes them.
-- **Starred words.** Star a word in the popup (`⌘D`) to keep it in a personal word bank. Starred words come first in Quick Search, **Copy Starred Words** in the menu bar menu copies the list, and **Practice Starred Words** quizzes you on them: match the definition, or fill the blank in a fresh sentence.
-- **Services, Shortcuts and launchers.** Right-click selected text and choose **Services > Look Up in WordPop**, or open `wordpop://lookup?word=serendipity`, `wordpop://search`, `wordpop://practice` or `wordpop://preferences` from Shortcuts, Raycast, Alfred or a script.
-- **Lookup history and type-ahead.** Quick Search lists your recent lookups (kept for 30 days) under the field, then completes what you type from a 69,000-word list. Arrow keys and Return open a row. **Clear History** in the menu bar menu removes it.
-- **Keyboard-first.** Inside the popup: `←`/`→`/`Tab` move through the pills, `Return` follows one, `⌥Return` replaces your selection with it, `1`-`9` switch part of speech, `Space` speaks, `⌘[` goes back, `⌘D` stars the word, `⌘C` copies the word, `⌘⇧C` copies the first definition, `Esc` closes.
 - **Definitions and examples** from the built-in macOS dictionary (the same data as Dictionary.app), parsed into numbered senses and sub-senses. Words with several parts of speech get a verb/noun/adjective switcher.
 - **Pronunciation** shown as IPA (per part of speech for words like "project" and "record"), plus a speaker button that reads the word aloud with the system voice. Syllable breaks ("me·tic·u·lous") and inflected forms ("runs, running, past ran") come along with it.
 - **Synonyms by sense** from the Oxford American Writer's Thesaurus that ships with macOS: each sense gets its example sentence and its own synonyms, with everyday words ahead of informal or archaic ones. Words the Thesaurus lacks fall back to a bundled WordNet and Moby dataset. Antonyms are grouped the same way.
-- **Other languages.** If a word is not in the English dictionary, WordPop tries the other dictionaries you have enabled in Dictionary.app (for example Spanish or German) and shows that entry.
-- **Rhymes**, grouped by syllable count and ranked by how common the word is, plus near rhymes for words with few perfect ones ("orange" → storage, porridge).
+- **Fits your sentence.** With Apple Intelligence (macOS 26 or later), the on-device model reads the sentence you selected the word in, picks the sense it is used in, and shows that sense's synonyms first ("She runs a small bakery" → manage, be in charge of). The matching definition moves to the top under "In your sentence". It runs locally; nothing leaves your Mac.
+- **Register labels.** Synonyms carry tags such as *informal*, *archaic* or *British*, so the everyday word stands apart from the colloquial one.
+- **Plain words first.** Synonyms that are rare in everyday English are dimmed, so the plainer choices stand out.
+- **Usage notes and often-confused words.** The dictionary's usage notes (affect vs effect, fewer vs less) appear in a Usage section, and a hand-written list of 117 groups adds an "Often confused with" row (its/it's, principal/principle, lay/lie).
+- **Idioms.** Select a phrase like "spill the beans" or "moved the goalposts" and the popup shows the dictionary's entry for the phrase, found under any of its words. When the dictionary has none, Apple Intelligence can explain it, marked as not coming from the dictionary.
+- **More examples.** A link under the definitions writes three fresh example sentences for the sense in your sentence.
 - **Phrases and phrasal verbs** ("on the quiet", "run out of") from the entry, in a collapsible section, along with **etymology**.
+- **Rhymes**, grouped by syllable count and ranked by how common the word is, plus near rhymes for words with few perfect ones ("orange" → storage, porridge).
+- **Rhymes for your line.** When the selected word ends its line, the model picks the rhymes that suit the line's meaning ("…the fading light" → night, white, bright).
+- **Other languages.** If a word is not in the English dictionary, WordPop tries the other dictionaries you have enabled in Dictionary.app (for example Spanish or German) and shows that entry.
+
+### Choose a better word
+
+- **Replace with a synonym.** `⌥`-click a pill, or focus it and press `⌥Return`, to put that word in place of your selection. Punctuation, capitalization and word form are kept: "Quiet," becomes "Hushed,", and "ran" replaced with "sprint" becomes "sprinted".
+- **Compare two words.** `⇧`-click a pill, or press `⇧Return`, to see it next to the word: both definitions and, with Apple Intelligence, a one-line difference ("famous implies positive recognition; notorious implies negative reputation").
+- **Tone shifts.** The Tone buttons list synonyms that are more formal, more casual, more vivid, or simpler (the most common words of that sense), ready for `⌥`-click replace.
+- **Stronger words and inclusive alternatives.** Vague words get stronger options ("very tired" → exhausted, "said quietly" → whispered), and gendered or exclusionary words get alternatives ("chairman" → chair, chairperson), from two hand-written lists.
+- **What goes with a word.** A button at the bottom of the popup asks the on-device model for common phrases with the word ("strong evidence", "persuasive argument").
+- **Repeated in this paragraph.** When you look up a word that you used three or more times in its paragraph (counting forms such as "reports" and "reported"), the popup says so, with the synonyms ready to vary it.
+- **Your crutch words.** WordPop counts the words you replace with a synonym from the popup. After you replace a word three times, the popup says so when you look it up again ("You have replaced "very" 3 times before"), and notes on a passage list the crutch words the passage uses. The counts stay on your Mac; **Clear History** in the menu bar menu removes them.
+
+### Edit a passage
+
+- **Notes on a passage.** Select eight or more words, or one sentence of five or more words, and press the lookup shortcut. The top line gives word and sentence counts, reading time and the reading grade; below come typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, possible passive voice, -ly adverbs and repeated words, each only when the passage has some. Reframe, Tone and Transitions sit in one Tools row and open one at a time. With Apple Intelligence, a long sentence can be split and a passive one made active, and Replace puts the rewrite into your text.
+- **Grammar notes.** Notes on a passage list grammar mistakes that the macOS checker finds, each with its correction: "a apple" → an, "They was" → were, "should of" → have, "Its a nice day" → It's, "taller then" → than. They are fixed together with typos and wordy phrases. The checker misses many mistakes, and some only on a second look, so WordPop checks each passage twice; still, no note does not mean no mistake.
+- **Consistency.** Notes on a passage point out what the text does two ways: one word spelled with and without a hyphen ("e-mail" and "email"), British and American spelling together ("colour" and "center"), straight and curly quotes, one and two spaces after a sentence, and acronyms used before they are spelled out ("STE" with no "Simplified Technical English (STE)" first). Pick a spelling, or **British** or **American**, and the fix button makes the passage use it throughout. British and American spellings are not listed as typos.
+- **Wordy phrases and clichés.** Notes on a passage list wordy phrases with a shorter way to say each ("in order to" → to, "due to the fact that" → because, "needless to say" → remove) and clichés with a plainer one ("low-hanging fruit" → easy wins). Wordy fixes start chosen and clichés do not; click a fix to choose it or not, then the fix button puts them into your text, together with any other fixes you chose. The lists are in `scripts/wordy.txt` and `scripts/cliches.txt`.
+- **Sentence rhythm.** For three or more sentences, notes on a passage draw a bar for each sentence, as tall as it is long, with long sentences in red. When three or more sentences in a row are about the same length, the note says so, as that can read flat. Point at a bar to see its sentence.
+- **Reframe a sentence.** Select one sentence and open **Reframe** in the Tools row: Clearer, Shorter, Lead with the point and More confident. In apps that share the text around your selection, the on-device model also reads the sentences before and after it, so names, tense and terms stay the same. Replace puts the new sentence in place of the old one.
+- **Transitions.** Select one sentence and open **Transitions** in the Tools row: pick a job (Add, Contrast, Cause, Example, Sequence, Emphasis, Sum up), then a connector such as "However" or "As a result". The popup shows the sentence with it ("Even so, the new plan cut our costs by half."), and Replace puts it in your text. A connector the sentence already starts with is swapped, and names, acronyms and "I" keep their capital. Works offline.
+- **Tone check.** With Apple Intelligence, open **Tone** in the Tools row of the notes on a passage and click "How will this come across?". The on-device model says how a reader will most likely take the text (warm, neutral, formal, curt, defensive, uncertain and others) and which words make it read that way: "Reads as defensive. The phrase 'As I already explained' …". In tests the same text got the same reading in 20 of 21 runs.
+
+### Quick Search
+
+- **Quick Search.** Press `⌃⌥⌘S` to open a search bar and type a word directly, without selecting text first. Start with `?` to describe a meaning instead ("?the smell of rain on dry earth" → petrichor, "?a happy accident" → serendipity); this uses the on-device model and checks every suggestion against its dictionary definition.
+- **Spelling help.** Not sure how a word is spelled? Type your best guess in Quick Search: if it is misspelled, the close words are listed with their part of speech and first definition, so you can pick the right one by meaning. A misspelled word you select gets a "Did you mean" row in the popup. Click "Replace with" to fix it with the top suggestion, or `⌥`-click another pill to use that one. In a selected passage, the Spelling notes list each typo with its fixes; choose the ones you want and click the fix button. Suggestions come from the macOS spell checker and work offline.
+- **Pattern search.** In Quick Search, `*` stands for any letters and `?` or `_` for one: `b??t` lists best, beat, boat. Add `: meaning` to keep only synonyms of a word: `con* : agree` gives consent, concur.
+- **Lookup history and type-ahead.** Quick Search lists your recent lookups (kept for 30 days) under the field, then completes what you type from a 69,000-word list. Arrow keys and Return open a row. **Clear History** in the menu bar menu removes it.
+
+### Your words and settings
+
+- **Starred words.** Star a word in the popup (`⌘D`) to keep it in a personal word bank. Starred words come first in Quick Search, **Copy Starred Words** in the menu bar menu copies the list, and **Practice Starred Words** quizzes you on them: match the definition, or fill the blank in a fresh sentence.
+- **Services, Shortcuts and launchers.** Right-click selected text and choose **Services > Look Up in WordPop**, or open `wordpop://lookup?word=serendipity`, `wordpop://search`, `wordpop://practice` or `wordpop://preferences` from Shortcuts, Raycast, Alfred or a script.
+- **Keyboard-first.** Inside the popup: `←`/`→`/`Tab` move through the pills, `Return` follows one, `⌥Return` replaces your selection with it, `1`-`9` switch part of speech, `Space` speaks, `⌘[` goes back, `⌘D` stars the word, `⌘C` copies the word, `⌘⇧C` copies the first definition, `Esc` closes.
 - **Preferences** for the two shortcuts, text size, popup position (screen centre or next to the pointer), which sections show in the popup and in the notes on a passage, and Launch at Login. A hidden wordy-phrase, consistency or crutch-word section is not checked at all. If another app already holds a shortcut, WordPop says so at launch.
 - **100% offline.** Every lookup runs against local data, and the language model features use Apple's on-device model. Nothing you look up leaves your machine.
 
@@ -69,7 +83,7 @@ WordPop lives in the menu bar and stays out of the Dock.
 
 **After an update**, macOS treats the new build as a different app, so the old Accessibility permission stops working even though it still shows as on. Select WordPop in the Accessibility list, remove it with the **−** button, then open WordPop and grant permission again.
 
-The Apple Intelligence features need macOS 26 or later with Apple Intelligence turned on. On earlier versions they do not show, and everything else works.
+The Apple Intelligence features need macOS 26 or later on Apple silicon, with Apple Intelligence turned on. Without it they do not show, and everything else works.
 
 ### Build from source
 
@@ -111,14 +125,18 @@ Both shortcuts can be changed from the menu bar icon under **Preferences**.
 | `⌘C` / `⌘⇧C` | Copy the word / the first definition |
 | `Esc` | Close |
 
-To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`. `--describe "a strong desire to travel"` runs the describe search, `--compare stubborn obstinate` a comparison, `--collocations argument` the phrase search, `--tone "text"` the tone check, and `--model-check` every on-device model feature on sample inputs. `swift test` runs the parser tests against captured dictionary text in `Tests/WordPopTests/Fixtures`.
+To inspect what WordPop parses for a word without opening the popup: `.build/release/WordPop --lookup serendipity`. `--describe "a strong desire to travel"` runs the describe search, `--compare stubborn obstinate` a comparison, `--collocations argument` the phrase search, `--tone "text"` the tone check, and `--model-check` every on-device model feature on sample inputs. `swift test` runs the parser tests against captured dictionary text in `Tests/WordPopTests/Fixtures`, and tests for the passage notes, the fixes and the hand-written lists as the app loads them.
 
 ## How it works
 
 - **Definitions, pronunciation, etymology:** macOS Dictionary Services. WordPop reads the entry's own XHTML markup (`DCSRecordCopyData`), where every headword, sense, example, label, inflection, and phrase is tagged, and merges homographs such as "lead" (verb) and "lead" (metal). If no record matches, it falls back to parsing the flat text from `DCSCopyTextDefinition`.
 - **Synonyms and antonyms:** the Oxford American Writer's Thesaurus (or Oxford Thesaurus of English) installed with macOS, read from its markup the same way. When it has no entry, a bundled JSON dataset generated by `scripts/build_synonyms.py` from the [Open English WordNet](https://github.com/globalwordnet/english-wordnet), topped up with the public-domain [Moby Thesaurus II](https://github.com/words/moby), is used instead.
 - **Type-ahead:** `scripts/build_words.py` writes the WordNet lemma list ordered by `wordfreq` frequency.
-- All four datasets ship in one SQLite file (`scripts/build_db.py`) queried on demand, so launch does no decoding and the data costs a few megabytes of memory instead of ~100 MB.
+- **Hand-written lists:** often-confused words (`confusables.txt`), stronger words (`stronger.txt`), inclusive alternatives (`inclusive.txt`), wordy phrases (`wordy.txt`) and clichés (`cliches.txt`) in `scripts/`.
+- All the datasets and lists ship in one SQLite file (`scripts/build_db.py`) queried on demand, so launch does no decoding and the data costs a few megabytes of memory instead of ~100 MB.
+- **Spelling and grammar:** the macOS spell checker (`NSSpellChecker`), offline. British and American spelling are told apart by checking each word with the `en_GB` and `en_US` checkers. The grammar check runs in the background after the popup is up.
+- **Passage notes:** counts, reading grade (Flesch-Kincaid, with syllables from the CMU data), passive voice, adverbs (`NLTagger`) and the consistency checks are plain Swift in `TextStats.swift` and `Consistency.swift`.
+- **Apple Intelligence features:** Apple's on-device model through the Foundation Models framework (`WritingModel.swift`). Each answer is checked against the dictionary or the candidates it was given.
 - **Rhymes:** generated from the [CMU Pronouncing Dictionary](https://github.com/cmusphinx/cmudict) by `scripts/build_rhymes.py`, ranked by word frequency. Words with fewer than eight perfect rhymes also get near rhymes: same vowels from the last stressed syllable, consonants within one edit per syllable.
 - **Text capture:** reads the focused element's selected text through the Accessibility API, which native apps and Chromium browsers expose and which leaves the clipboard alone. Apps that expose nothing (many Electron apps, terminals) fall back to a simulated `⌘C`, reading the clipboard, then restoring it, the technique PopClip and Alfred use. Accessibility permission is required for both.
 
@@ -142,9 +160,9 @@ Synonyms within each part of speech are ranked by GloVe cosine similarity to the
 
 ```
 Sources/WordPop/       Swift sources (AppKit + SwiftUI)
-Sources/WordPop/Resources/  wordpop.sqlite: synonyms, antonyms, rhymes, and the type-ahead word list
+Sources/WordPop/Resources/  wordpop.sqlite: synonyms, antonyms, rhymes, syllables, the word list and the hand-written lists
 Resources/             App icon and Info.plist
-scripts/               Python scripts that build the datasets
+scripts/               Python scripts that build the datasets, and the hand-written lists
 build_app.sh           Builds and signs WordPop.app
 setup_signing.sh       One-time local signing certificate setup
 ```
