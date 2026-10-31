@@ -155,10 +155,11 @@ struct TextStats: Equatable {
     /// the phrase out with the commas and space around it, and capitalizes
     /// the next word when the phrase began the sentence: "Needless to
     /// say, it failed." -> "It failed."; "We were, needless to say, late."
-    /// -> "We were late."
+    /// -> "We were late." The longest phrase goes first, so "due to the
+    /// fact that" is fixed whole before "the fact that" can change it.
     static func tightened(_ text: String, fixes: [String: String]) -> String {
         var result = text
-        for (phrase, fix) in fixes {
+        for (phrase, fix) in fixes.sorted(by: { $0.key.count > $1.key.count }) {
             let (head, tail) = fix.isEmpty ? (",?\\s*", ",?\\s*") : ("", "")
             guard let pattern = try? NSRegularExpression(
                 pattern: "\(head)\\b\(NSRegularExpression.escapedPattern(for: phrase))\\b\(tail)", options: .caseInsensitive

@@ -90,6 +90,13 @@ final class TextStatsTests: XCTestCase {
             TextStats.tightened("Due to the fact that it rained, we left in order to rest.", fixes: ["due to the fact that": "because", "in order to": "to"]),
             "Because it rained, we left to rest."
         )
+        // Overlapping keys: without longest-first, about half of all runs
+        // (the dictionary's order changes per process) gave "Due to that".
+        XCTAssertEqual(
+            TextStats.tightened("Due to the fact that it rained, we stayed. The fact that she left hurt.",
+                                fixes: ["The fact that": "that", "Due to the fact that": "because"]),
+            "Because it rained, we stayed. That she left hurt."
+        )
         XCTAssertEqual(TextStats.tightened("Needless to say, it failed.", fixes: ["needless to say": ""]), "It failed.")
         XCTAssertEqual(TextStats.tightened("It failed, needless to say.", fixes: ["needless to say": ""]), "It failed.")
         XCTAssertEqual(TextStats.tightened("We were, needless to say, late.", fixes: ["needless to say": ""]), "We were late.")
