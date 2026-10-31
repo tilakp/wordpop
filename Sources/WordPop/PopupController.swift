@@ -66,11 +66,19 @@ final class PopupController: NSObject, NSWindowDelegate {
         viewModel.phraseFixes = Dictionary(stats.wordy.filter { !$0.isCliche }.map { ($0.phrase, $0.fix) }, uniquingKeysWith: { first, _ in first })
         wireViewModelActions()
         // The grammar check takes most of a second for a long passage, so
-        // its notes come in after the popup is up.
-        Spelling.requestGrammarIssues(in: passage) { [weak self] issues in
+        // its notes come in after the popup is up. The checker's agreement
+        // rule ("They was") often misses a sentence the first time it sees
+        // it and finds it when asked again, so a second check follows a
+        // second later and replaces the notes if it finds more.
+        Spelling.requestGrammarIssues(in: passage) { [weak self] first in
             guard let self, self.viewModel.textStats == stats else { return }
-            self.viewModel.grammar = issues
-            self.viewModel.grammarFixes = Dictionary(uniqueKeysWithValues: issues.enumerated().map { ($0.offset, $0.element.corrections[0]) })
+            self.showGrammar(first)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                Spelling.requestGrammarIssues(in: passage) { second in
+                    guard self.viewModel.textStats == stats, second.count > self.viewModel.grammar.count else { return }
+                    self.showGrammar(second)
+                }
+            }
         }
 
         let panel = ensurePanel()
@@ -83,6 +91,13 @@ final class PopupController: NSObject, NSWindowDelegate {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
         }
+    }
+
+    /// Shows the passage's grammar notes, each with its first correction
+    /// chosen.
+    private func showGrammar(_ issues: [GrammarIssue]) {
+        viewModel.grammar = issues
+        viewModel.grammarFixes = Dictionary(uniqueKeysWithValues: issues.enumerated().map { ($0.offset, $0.element.corrections[0]) })
     }
 
     func hide() {
