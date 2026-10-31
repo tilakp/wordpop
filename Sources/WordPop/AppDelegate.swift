@@ -60,14 +60,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// each take a moment; doing it on a background queue at launch keeps
     /// the first hotkey press instant. The grammar checker's first check
     /// in a process misses agreement mistakes ("They was"), so one is run
-    /// here.
+    /// here, through the checker's own background request: its other calls
+    /// are not documented as safe off the main thread.
     private func warmDatasetCachesInBackground() {
         DispatchQueue.global(qos: .utility).async {
             Database.warmUp()
             _ = SystemDictionaries.thesaurus
             _ = SystemDictionaries.english
-            _ = Spelling.grammarIssues(in: "They was right.")
         }
+        Spelling.requestGrammarIssues(in: "They was right.") { _ in }
     }
 
     private func handleHotkey() {
