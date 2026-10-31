@@ -313,7 +313,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             let text = TextStats.tightened(
                 Spelling.applying(
                     self.viewModel.consistencyFixes,
-                    to: Spelling.applying(self.viewModel.typoFixes, to: Spelling.applying(grammar, to: target.text))
+                    to: Spelling.applying(self.viewModel.typoFixes, to: Spelling.applying(grammar, to: target.text, offset: target.leadingSpace))
                 ),
                 fixes: self.viewModel.phraseFixes
             )

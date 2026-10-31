@@ -81,7 +81,20 @@ final class GrammarTests: XCTestCase {
     func testAppliesGrammarFixesInTheirSentence() {
         let text = "  I saw a apple. They left, and a owl said we should of known."
         let issues = Spelling.grammarIssues(in: text)
-        let fixed = Spelling.applying(issues.map { ($0, $0.corrections[0]) }, to: text.trimmingCharacters(in: .whitespaces))
-        XCTAssertEqual(fixed, "I saw an apple. They left, and an owl said we should have known.")
+        let fixed = Spelling.applying(issues.map { ($0, $0.corrections[0]) }, to: text)
+        XCTAssertEqual(fixed, "  I saw an apple. They left, and an owl said we should have known.")
+    }
+
+    func testFixesEveryCopyOfARepeatedSentence() {
+        let text = "Then I saw a apple. I saw a apple. I saw a apple."
+        let issues = Spelling.grammarIssues(in: text)
+        XCTAssertEqual(issues.count, 3)
+        XCTAssertEqual(Spelling.applying(issues.map { ($0, "an") }, to: text), "Then I saw an apple. I saw an apple. I saw an apple.")
+    }
+
+    func testFixesInTextWithLeadingSpaces() {
+        let text = "I saw a apple."
+        let issues = Spelling.grammarIssues(in: text)
+        XCTAssertEqual(Spelling.applying(issues.map { ($0, "an") }, to: "\n  " + text, offset: 3), "\n  I saw an apple.")
     }
 }

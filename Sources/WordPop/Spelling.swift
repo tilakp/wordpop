@@ -8,6 +8,8 @@ struct GrammarIssue: Equatable {
     let range: NSRange
     let message: String
     let corrections: [String]
+    /// Where the flagged words start in the checked text, in UTF-16 units.
+    var location = 0
 
     var flagged: String { (sentence as NSString).substring(with: range) }
 }
@@ -102,24 +104,26 @@ enum Spelling {
                       NSMaxRange(range) <= (sentence as NSString).length,
                       let corrections = detail[NSGrammarCorrections] as? [String], !corrections.isEmpty else { continue }
                 let message = detail[NSGrammarUserDescription] as? String ?? ""
-                issues.append(GrammarIssue(sentence: sentence, range: range, message: message, corrections: corrections))
+                issues.append(GrammarIssue(
+                    sentence: sentence, range: range, message: message, corrections: corrections, location: result.range.location + range.location
+                ))
             }
         }
         return Array(issues.prefix(limit))
     }
 
-    /// `text` with the chosen correction for each issue put in its
-    /// sentence. Fixes in one sentence are applied from the end, so the
-    /// earlier ranges still hold.
-    static func applying(_ fixes: [(issue: GrammarIssue, correction: String)], to text: String) -> String {
-        var result = text
-        for sentence in Set(fixes.map(\.issue.sentence)) {
-            var fixed = sentence as NSString
-            for fix in fixes.filter({ $0.issue.sentence == sentence }).sorted(by: { $0.issue.range.location > $1.issue.range.location }) {
-                fixed = fixed.replacingCharacters(in: fix.issue.range, with: fix.correction) as NSString
-            }
-            if let range = result.range(of: sentence) { result.replaceSubrange(range, with: fixed as String) }
+    /// `text` with the chosen correction for each issue put where it was
+    /// found, from the end so the earlier places still hold. `offset` is
+    /// where the checked text starts in `text` (after leading spaces the
+    /// check left out). A place that no longer holds the flagged words is
+    /// left as it is.
+    static func applying(_ fixes: [(issue: GrammarIssue, correction: String)], to text: String, offset: Int = 0) -> String {
+        var result = text as NSString
+        for fix in fixes.sorted(by: { $0.issue.location > $1.issue.location }) {
+            let range = NSRange(location: offset + fix.issue.location, length: fix.issue.range.length)
+            guard NSMaxRange(range) <= result.length, result.substring(with: range) == fix.issue.flagged else { continue }
+            result = result.replacingCharacters(in: range, with: fix.correction) as NSString
         }
-        return result
+        return result as String
     }
 }

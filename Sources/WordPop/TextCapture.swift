@@ -41,6 +41,8 @@ enum TextCapture {
         }
 
         var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        /// UTF-16 length of the whitespace `trimmed` leaves out at the start.
+        var leadingSpace: Int { (text.prefix { $0.isWhitespace || $0.isNewline } as Substring).utf16.count }
     }
 
     static func captureSelection() async -> Selection? {
