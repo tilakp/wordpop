@@ -230,7 +230,7 @@ struct TextStatsView: View {
     private var tools: [PopupViewModel.PassageTool] {
         PopupViewModel.PassageTool.allCases.filter { tool in
             switch tool {
-            case .reframe: reframeSentence != nil && WritingModel.isAvailable
+            case .reframe, .expand: reframeSentence != nil && WritingModel.isAvailable
             case .tone: WritingModel.isAvailable
             case .mainPoint: WritingModel.isAvailable && stats.sentences > 1
             case .transitions: reframeSentence != nil
@@ -257,7 +257,14 @@ struct TextStatsView: View {
             }
         }
         switch viewModel.openTool {
-        case .reframe: if let sentence = reframeSentence { reframeControls(for: sentence) }
+        case .reframe: if let sentence = reframeSentence { reframeControls(for: sentence, kinds: WritingModel.Rewrite.reframes) }
+        case .expand:
+            if let sentence = reframeSentence {
+                reframeControls(for: sentence, kinds: WritingModel.Rewrite.expansions)
+                Text("Each adds a sentence after yours. Check any fact it adds.")
+                    .font(.recentMeta)
+                    .foregroundStyle(.tertiary)
+            }
         case .tone: toneControls
         case .mainPoint: mainPointControls
         case .transitions: if let sentence = reframeSentence { transitionControls(for: sentence) }
@@ -327,8 +334,7 @@ struct TextStatsView: View {
     /// A button for each way to reframe the sentence, then the answers
     /// in the order of the buttons.
     @ViewBuilder
-    private func reframeControls(for sentence: String) -> some View {
-        let kinds = WritingModel.Rewrite.reframes
+    private func reframeControls(for sentence: String, kinds: [WritingModel.Rewrite]) -> some View {
         FlowLayout(spacing: 6) {
             ForEach(kinds, id: \.self) { rewrite in
                 let key = RewriteKey(sentence: sentence, rewrite: rewrite)

@@ -201,10 +201,17 @@ enum WritingModel {
     /// What a rewrite should do to a sentence: the passage notes' fixes,
     /// and the ways to reframe a selected sentence.
     enum Rewrite {
-        case split, active, clearer, shorter, point, confident
+        case split, active, clearer, shorter, point, confident, example, analogy, counterpoint, explain
+
+        static let all: [Rewrite] = [.split, .active, .clearer, .shorter, .point, .confident, .example, .analogy, .counterpoint, .explain]
 
         /// The reframings offered for a selected sentence.
         static let reframes: [Rewrite] = [.clearer, .shorter, .point, .confident]
+        /// The ways to expand a selected sentence: each adds a sentence
+        /// after it and leaves it as it is.
+        static let expansions: [Rewrite] = [.example, .analogy, .counterpoint, .explain]
+
+        var isExpansion: Bool { Self.expansions.contains(self) }
 
         var title: String {
             switch self {
@@ -214,6 +221,10 @@ enum WritingModel {
             case .shorter: "Shorter"
             case .point: "Lead with the point"
             case .confident: "More confident"
+            case .example: "Add an example"
+            case .analogy: "Add an analogy"
+            case .counterpoint: "Add a counterpoint"
+            case .explain: "Explain more"
             }
         }
 
@@ -225,6 +236,10 @@ enum WritingModel {
             case .shorter: "Rewrite this sentence with fewer words. Keep every point it makes."
             case .point: "Rewrite this sentence so it starts with its main point."
             case .confident: "Rewrite this sentence so it sounds more confident and direct. Remove hedging words."
+            case .example: "Write one short sentence to follow this sentence that gives a concrete, everyday example of it."
+            case .analogy: "Write one short sentence to follow this sentence that explains it with a simple analogy."
+            case .counterpoint: "Write one short sentence to follow this sentence that fairly states the main objection to it."
+            case .explain: "Write one short sentence to follow this sentence that explains why it is true or what it means. Start it with \"This is because\" or \"In other words\"."
             }
         }
     }
@@ -237,6 +252,7 @@ enum WritingModel {
     static func rewrite(_ sentence: String, _ rewrite: Rewrite, in paragraph: String? = nil) async -> String? {
         let (before, after) = paragraph.map { neighbors(of: sentence, in: $0) } ?? (nil, nil)
         let context = (before.map { "\nSentence before it: \($0)" } ?? "") + (after.map { "\nSentence after it: \($0)" } ?? "")
+        if rewrite.isExpansion { return await expand(sentence, rewrite, context: context) }
         let only = rewrite == .split ? "" : " Answer with the one rewritten sentence only."
         guard let answer = await ask(
             "You are an editor. You change only what is asked, keep the writer's meaning, tone and wording where you can, and answer with the rewritten text only. The sentences around it are context; never copy them into your answer.",
@@ -246,6 +262,20 @@ enum WritingModel {
         for neighbor in [before, after].compactMap({ $0 }) { text = text.replacingOccurrences(of: neighbor, with: "") }
         text = text.trimmingCharacters(in: CharacterSet(charactersIn: " \n\"\u{201C}\u{201D}"))
         return text.isEmpty || text == sentence ? nil : text
+    }
+
+    /// The sentence with one new sentence after it, as `rewrite` asks.
+    /// Only the new sentence is asked for, so the writer's sentence stays
+    /// word for word.
+    private static func expand(_ sentence: String, _ rewrite: Rewrite, context: String) async -> String? {
+        guard let answer = await ask(
+            "You help a writer develop a point. You write in the writer's tone and tense, add no facts you are unsure of, and answer with the one new sentence only. The sentences around it are context; never copy them.",
+            "\(rewrite.instruction)\nSentence: \(sentence)\(context)"
+        ) else { return nil }
+        var new = answer.replacingOccurrences(of: sentence, with: "")
+            .trimmingCharacters(in: CharacterSet(charactersIn: " \n\"\u{201C}\u{201D}"))
+        if let line = new.split(separator: "\n").first { new = String(line) }
+        return new.isEmpty ? nil : sentence + " " + new
     }
 
     /// The sentences just before and after `sentence` in `paragraph`.

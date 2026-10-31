@@ -46,6 +46,16 @@ if let index = CommandLine.arguments.firstIndex(of: "--describing"), index + 1 <
     dispatchMain()
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--rewrite"), index + 2 < CommandLine.arguments.count,
+   let rewrite = WritingModel.Rewrite.all.first(where: { "\($0)" == CommandLine.arguments[index + 1] }) {
+    let sentence = CommandLine.arguments[(index + 2)...].joined(separator: " ")
+    Task {
+        print(await WritingModel.rewrite(sentence, rewrite) ?? "-")
+        exit(0)
+    }
+    dispatchMain()
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--tone"), index + 1 < CommandLine.arguments.count {
     let text = CommandLine.arguments[(index + 1)...].joined(separator: " ")
     Task {
@@ -87,6 +97,7 @@ if CommandLine.arguments.contains("--model-check") {
         print("explain:", await WritingModel.explain(phrase: "touch base", in: "Let's touch base next week.") ?? "-")
         print("rewrite:", await WritingModel.rewrite("The report was written by the committee.", .active) ?? "-")
         print("tone:", await WritingModel.tone(of: "Send me the file by noon. I asked twice already.").map { "\($0.tone): \($0.reason)" } ?? "-")
+        print("expand:", await WritingModel.rewrite("Short sentences are easier to read.", .example) ?? "-")
         print("describing:", await WritingModel.describingWords(for: "rain", partOfSpeech: "noun"),
               await WritingModel.describingWords(for: "eerie", partOfSpeech: "adjective"))
         print("main point:", await WritingModel.mainPoint(of: [

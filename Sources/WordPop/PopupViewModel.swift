@@ -113,7 +113,7 @@ final class PopupViewModel: ObservableObject {
     @Published var openTool: PassageTool?
 
     enum PassageTool: String, CaseIterable {
-        case reframe = "Reframe", tone = "Tone", mainPoint = "Main point", transitions = "Transitions", text = "Text"
+        case reframe = "Reframe", expand = "Expand", tone = "Tone", mainPoint = "Main point", transitions = "Transitions", text = "Text"
     }
     /// The selected text, for the text tools, and the tool being
     /// previewed.
