@@ -10,13 +10,19 @@ enum Database {
     /// In the app bundle the file sits in Contents/Resources; when run from
     /// `swift build` output it is inside SwiftPM's resource bundle next to
     /// the binary, flat with the Command Line Tools and in
-    /// Contents/Resources with Xcode's build system.
+    /// Contents/Resources with Xcode's build system. Under `swift test` the
+    /// resource bundle is next to the test bundle that holds this code.
     private static var url: URL? {
         if let url = Bundle.main.url(forResource: "wordpop", withExtension: "sqlite") { return url }
-        return ["WordPop_WordPop.bundle/wordpop.sqlite", "WordPop_WordPop.bundle/Contents/Resources/wordpop.sqlite"]
-            .map { Bundle.main.bundleURL.appendingPathComponent($0) }
-            .first { FileManager.default.fileExists(atPath: $0.path) }
+        let folders = [Bundle.main.bundleURL, Bundle(for: BundleToken.self).bundleURL.deletingLastPathComponent()]
+        return folders.flatMap { folder in
+            ["WordPop_WordPop.bundle/wordpop.sqlite", "WordPop_WordPop.bundle/Contents/Resources/wordpop.sqlite"]
+                .map { folder.appendingPathComponent($0) }
+        }
+        .first { FileManager.default.fileExists(atPath: $0.path) }
     }
+
+    private final class BundleToken {}
 
     private static let connection: OpaquePointer? = {
         guard let url else { return nil }
