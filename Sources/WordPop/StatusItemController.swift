@@ -33,7 +33,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         quickSearchItem.target = self
         menu.addItem(quickSearchItem)
         menu.addItem(.separator())
-        let preferencesItem = NSMenuItem(title: "Preferences\u{2026}", action: #selector(preferencesClicked), keyEquivalent: ",")
+        let preferencesItem = NSMenuItem(title: "Settings\u{2026}", action: #selector(preferencesClicked), keyEquivalent: ",")
         preferencesItem.target = self
         menu.addItem(preferencesItem)
         let practiceItem = NSMenuItem(title: "Practice Starred Words\u{2026}", action: #selector(practiceClicked), keyEquivalent: "")

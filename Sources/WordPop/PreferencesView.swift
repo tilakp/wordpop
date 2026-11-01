@@ -12,84 +12,125 @@ struct PreferencesView: View {
     let onLookupShortcutChanged: (HotkeyShortcut) -> String?
     let onQuickSearchShortcutChanged: (HotkeyShortcut) -> String?
 
+    @State private var rulesStatus = StyleRules.fileStatus()
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            ShortcutSettingRow(
-                title: "Lookup Shortcut",
-                subtitle: "Select a word anywhere on your Mac, then press this shortcut to look it up.",
-                current: HotkeySettings.current,
-                defaultShortcut: .default,
-                onChange: { newValue in
-                    if let error = onLookupShortcutChanged(newValue) { return error }
-                    HotkeySettings.current = newValue
-                    return nil
-                }
-            )
+        TabView {
+            generalTab.tabItem { Label("General", systemImage: "gearshape") }
+            wordPopupTab.tabItem { Label("Word Popup", systemImage: "character.book.closed") }
+            passageTab.tabItem { Label("Passage Notes", systemImage: "text.alignleft") }
+            styleTab.tabItem { Label("Style Rules", systemImage: "checklist") }
+        }
+        // Grouped forms scroll and have no height of their own.
+        .frame(width: 500, height: 560)
+    }
 
-            Divider()
-
-            ShortcutSettingRow(
-                title: "Quick Search Shortcut",
-                subtitle: "Opens a search bar to look up any word directly, without selecting text first.",
-                current: HotkeySettings.quickSearch,
-                defaultShortcut: .defaultQuickSearch,
-                onChange: { newValue in
-                    if let error = onQuickSearchShortcutChanged(newValue) { return error }
-                    HotkeySettings.quickSearch = newValue
-                    return nil
-                }
-            )
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Text Size").font(.headline)
-                Picker("Text Size", selection: $textSize) {
+    private var generalTab: some View {
+        Form {
+            Section("Shortcuts") {
+                ShortcutSettingRow(
+                    title: "Look up the selection",
+                    subtitle: "Select a word or a passage anywhere on your Mac, then press this shortcut.",
+                    current: HotkeySettings.current,
+                    defaultShortcut: .default,
+                    onChange: { newValue in
+                        if let error = onLookupShortcutChanged(newValue) { return error }
+                        HotkeySettings.current = newValue
+                        return nil
+                    }
+                )
+                ShortcutSettingRow(
+                    title: "Quick Search",
+                    subtitle: "Opens a search bar to look up any word, without selecting text first.",
+                    current: HotkeySettings.quickSearch,
+                    defaultShortcut: .defaultQuickSearch,
+                    onChange: { newValue in
+                        if let error = onQuickSearchShortcutChanged(newValue) { return error }
+                        HotkeySettings.quickSearch = newValue
+                        return nil
+                    }
+                )
+            }
+            Section("Appearance") {
+                Picker("Text size", selection: $textSize) {
                     ForEach(TextSize.allCases) { Text($0.label).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Popup Position").font(.headline)
-                Picker("Popup Position", selection: $popupPlacement) {
+                Picker("Popup position", selection: $popupPlacement) {
                     ForEach(PopupPlacement.allCases) { Text($0.label).tag($0) }
                 }
-                .pickerStyle(.radioGroup)
-                .labelsHidden()
             }
+            Section {
+                Toggle("Launch at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, newValue in
+                        LoginItemManager.setEnabled(newValue)
+                        // Reflect what actually happened: registration can
+                        // fail (e.g. running from an unstable build
+                        // location), and this keeps the toggle honest.
+                        launchAtLogin = LoginItemManager.isEnabled
+                    }
+            }
+        }
+        .formStyle(.grouped)
+    }
 
-            Divider()
+    /// The popup's sections in the groups the popup shows them in.
+    private static let popupGroups: [(String, [PopupSection])] = [
+        ("Main card", [.fits, .synonyms, .tone]),
+        ("Word choice", [.antonyms, .specific, .family, .stronger, .inclusive, .confused, .soundsLike]),
+        ("Usage", [.describing, .collocations, .examples, .usage, .phrases, .origin]),
+        ("Sound", [.rhymes]),
+    ]
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Popup Sections").font(.headline)
-                Text("Hide the parts of the popup you don\u{2019}t use. Hidden sections that use Apple Intelligence also skip their work.")
-                    .font(.caption)
+    private var wordPopupTab: some View {
+        Form {
+            Section {
+                Text("Turn off the parts you do not use. Parts that use Apple Intelligence also skip their work when off.")
+                    .font(.callout)
                     .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 4) {
-                    ForEach(PopupSection.allCases) { section in
+            }
+            ForEach(Self.popupGroups, id: \.0) { title, sections in
+                Section(title) {
+                    ForEach(sections) { section in
                         Toggle(section.label, isOn: shows(section.rawValue))
                     }
                 }
-                Text("Notes on a passage").font(.subheadline).padding(.top, 6)
-                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 4) {
-                    ForEach(PassageSection.allCases) { section in
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private static let passageGroups: [(String, [PassageSection])] = [
+        ("Mistakes", [.consistency, .wordy]),
+        ("Clarity", [.longSentences, .passive, .rhythm]),
+        ("Style", [.adverbs, .hedges, .repeated, .crutches]),
+    ]
+
+    private var passageTab: some View {
+        Form {
+            Section {
+                Text("Spelling and grammar always show. A part that is off is not checked at all, so none of its fixes go in unseen.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Toggle("Tools row (Rewrite, Check, Text, Translate)", isOn: shows(PassageSection.tools.id))
+            }
+            ForEach(Self.passageGroups, id: \.0) { title, sections in
+                Section(title) {
+                    ForEach(sections) { section in
                         Toggle(section.label, isOn: shows(section.id))
                     }
+                    if title == "Style" {
+                        Toggle("Fiction: dialogue tags, filter words, emotions told", isOn: $fictionNotes)
+                    }
                 }
-                Toggle("Fiction: dialogue tags, filter words, emotions told", isOn: $fictionNotes)
             }
+        }
+        .formStyle(.grouped)
+    }
 
-            Divider()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Style Rules").font(.headline)
-                Text("Notes on a passage list the words, long sentences and paragraphs that break these rules. Your own rules add to the preset.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+    private var styleTab: some View {
+        Form {
+            Section {
                 Picker("Preset", selection: $stylePreset) {
                     ForEach(StyleRules.Preset.allCases) { Text($0.label).tag($0) }
                 }
@@ -97,22 +138,27 @@ struct PreferencesView: View {
                     Text("None").tag(0)
                     ForEach(5...12, id: \.self) { Text("Grade \($0)").tag($0) }
                 }
-                Button("Edit My Rules\u{2026}", action: StyleRules.openFile)
+            } footer: {
+                Text("Notes on a passage list what breaks these rules, and sentences above the target grade.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            Divider()
-
-            Toggle("Launch at Login", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { _, newValue in
-                    LoginItemManager.setEnabled(newValue)
-                    // Reflect what actually happened — registration can
-                    // fail (e.g. running from an unstable build location),
-                    // and this keeps the toggle from lying about it.
-                    launchAtLogin = LoginItemManager.isEnabled
+            Section("Your own rules") {
+                LabeledContent("Rules file") {
+                    HStack {
+                        Button("Edit\u{2026}") { StyleRules.openFile() }
+                        Button("Check Again") { rulesStatus = StyleRules.fileStatus() }
+                    }
                 }
+                Text(rulesStatus)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(20)
-        .frame(width: 380)
+        .formStyle(.grouped)
+        .onAppear { rulesStatus = StyleRules.fileStatus() }
     }
 
     /// Whether the section with this key shows, saved as it changes.
@@ -135,7 +181,7 @@ final class PreferencesWindowController: NSWindowController {
         )
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "WordPop Preferences"
+        window.title = "WordPop Settings"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         self.init(window: window)

@@ -10,7 +10,7 @@ enum Guides {
         "Spelling": "Words the macOS spell checker does not know, with its best guesses. A name or a term is often not a typo: click Not a typo to teach it to your Mac.",
         "Grammar": "Mistakes the macOS grammar checker finds, such as \u{201C}a apple\u{201D} or \u{201C}should of\u{201D}. It misses many mistakes, so no note does not mean no mistake.",
         "Consistency": "Things the text does two ways. Readers notice \u{201C}email\u{201D} next to \u{201C}e-mail\u{201D}, or \u{201C}colour\u{201D} next to \u{201C}center\u{201D}. Pick one and use it throughout.",
-        "Style rules": "What breaks your style rules or the preset you chose in Preferences. Edit My Rules in Preferences opens your own list.",
+        "Style rules": "What breaks your style rules or the preset you chose in Settings > Style Rules, where Edit opens your own list.",
         "Wordy phrases and clich\u{E9}s": "Phrases that take more words than they need (\u{201C}in order to\u{201D} \u{2192} to), formal words with a plain one (\u{201C}utilize\u{201D} \u{2192} use), hidden verbs (\u{201C}made a decision\u{201D} \u{2192} decided), and clich\u{E9}s readers skim over.",
         "Sentence rhythm": "One bar per sentence, as tall as it is long. Text reads best when long and short sentences mix; many of the same length, or the same first word again and again, reads flat.",
         "Hard sentences": "Sentences of more than 25 words, above your target grade, or over your style rules' limit. Readers lose the thread; most plain-language guides aim for 15 to 20 words on average. Split them, or use shorter words.",

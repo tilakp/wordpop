@@ -15,12 +15,15 @@ struct StyleRules: Equatable {
     var maxSentenceWords: Int?
     var maxParagraphSentences: Int?
     var flagsIngWords = false
+    /// Lines that look like a setting but could not be read, with their
+    /// line numbers, for the status in Settings.
+    var problems: [String] = []
 
-    var isEmpty: Bool { self == StyleRules() }
+    var isEmpty: Bool { avoid.isEmpty && maxSentenceWords == nil && maxParagraphSentences == nil && !flagsIngWords }
 
     static func parse(_ text: String) -> StyleRules {
         var rules = StyleRules()
-        for line in text.components(separatedBy: .newlines) {
+        for (number, line) in text.components(separatedBy: .newlines).enumerated() {
             let line = line.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty, !line.hasPrefix("#") else { continue }
             let lower = line.lowercased()
@@ -30,6 +33,8 @@ struct StyleRules: Equatable {
                 rules.maxParagraphSentences = number
             } else if lower == "flag -ing words" {
                 rules.flagsIngWords = true
+            } else if lower.hasPrefix("max ") || lower.hasPrefix("flag ") {
+                rules.problems.append("line \(number + 1): \u{201C}\(line)\u{201D}")
             } else {
                 let parts = line.components(separatedBy: "|")
                 let phrase = parts[0].trimmingCharacters(in: .whitespaces).lowercased()
@@ -89,6 +94,22 @@ struct StyleRules: Equatable {
         let base = preset == .none ? StyleRules() : parse(Database.preset(named: preset.rawValue) ?? "")
         let own = (try? String(contentsOf: fileURL, encoding: .utf8)).map(parse) ?? StyleRules()
         return base.merged(with: own)
+    }
+
+    /// What the user's rules file holds, in a sentence for Settings.
+    static func fileStatus() -> String {
+        guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else {
+            return "No rules of your own yet. Edit creates the file with examples."
+        }
+        let rules = parse(text)
+        var parts: [String] = []
+        if !rules.avoid.isEmpty { parts.append("\(rules.avoid.count) word rule\(rules.avoid.count == 1 ? "" : "s")") }
+        if let limit = rules.maxSentenceWords { parts.append("sentences up to \(limit) words") }
+        if let limit = rules.maxParagraphSentences { parts.append("paragraphs up to \(limit) sentences") }
+        if rules.flagsIngWords { parts.append("-ing forms flagged") }
+        var status = parts.isEmpty ? "The file has no rules yet." : "In use: " + parts.joined(separator: ", ") + "."
+        if !rules.problems.isEmpty { status += " Not understood: " + rules.problems.joined(separator: "; ") + "." }
+        return status
     }
 
     static let template = """

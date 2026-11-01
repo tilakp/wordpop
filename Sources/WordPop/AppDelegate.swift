@@ -114,8 +114,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "WordPop Couldn\u{2019}t Set Up Its Shortcut"
-        alert.informativeText = "The \(names.joined(separator: " and the ")) may be in use by another app. Choose a different one in Preferences."
-        alert.addButton(withTitle: "Open Preferences")
+        alert.informativeText = "The \(names.joined(separator: " and the ")) may be in use by another app. Choose a different one in Settings."
+        alert.addButton(withTitle: "Open Settings")
         alert.addButton(withTitle: "Not Now")
         if alert.runModal() == .alertFirstButtonReturn { showPreferences() }
     }

@@ -50,3 +50,13 @@ final class StyleRulesTests: XCTestCase {
         XCTAssertEqual(TextStats.tightened("Verify the seal prior to use.", fixes: fixes), "Make sure the seal before use.")
     }
 }
+
+final class StyleRulesFileTests: XCTestCase {
+    func testReportsLinesItCannotRead() {
+        let rules = StyleRules.parse("leverage | use\nmax sentence words: twenty\nflag adverbs")
+        XCTAssertEqual(rules.avoid.map(\.phrase), ["leverage"])
+        XCTAssertEqual(rules.problems.count, 2)
+        XCTAssertTrue(rules.problems[0].hasPrefix("line 2"))
+        XCTAssertFalse(rules.isEmpty)
+    }
+}
