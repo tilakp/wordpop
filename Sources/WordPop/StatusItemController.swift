@@ -7,12 +7,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let lookUpHintItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let quickSearchItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let onQuickSearch: () -> Void
+    private let onWelcome: () -> Void
     private let onPreferences: () -> Void
     private let onPractice: () -> Void
     private let onQuit: () -> Void
 
-    init(onQuickSearch: @escaping () -> Void, onPreferences: @escaping () -> Void, onPractice: @escaping () -> Void, onQuit: @escaping () -> Void) {
+    init(onQuickSearch: @escaping () -> Void, onWelcome: @escaping () -> Void, onPreferences: @escaping () -> Void, onPractice: @escaping () -> Void, onQuit: @escaping () -> Void) {
         self.onQuickSearch = onQuickSearch
+        self.onWelcome = onWelcome
         self.onPreferences = onPreferences
         self.onPractice = onPractice
         self.onQuit = onQuit
@@ -45,6 +47,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let clearHistoryItem = NSMenuItem(title: "Clear History", action: #selector(clearHistoryClicked), keyEquivalent: "")
         clearHistoryItem.target = self
         menu.addItem(clearHistoryItem)
+        let welcomeItem = NSMenuItem(title: "Welcome & Tips\u{2026}", action: #selector(welcomeClicked), keyEquivalent: "")
+        welcomeItem.target = self
+        menu.addItem(welcomeItem)
         menu.addItem(.separator())
         let quitItem = NSMenuItem(title: "Quit WordPop", action: #selector(quitClicked), keyEquivalent: "q")
         quitItem.target = self
@@ -55,6 +60,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     @objc private func quickSearchClicked() { onQuickSearch() }
+    @objc private func welcomeClicked() { onWelcome() }
     @objc private func preferencesClicked() { onPreferences() }
     @objc private func practiceClicked() { onPractice() }
     @objc private func copyStarredClicked() { StarredWords.shared.copyToClipboard() }

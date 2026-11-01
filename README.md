@@ -14,6 +14,8 @@ WordPop lives in the menu bar and stays out of the Dock.
 
 ## Features
 
+On first launch a welcome window shows both shortcuts with a sample word and passage to try, the clicks worth knowing, and a writer profile (Everyday, Student, Technical, Fiction) that sets the style preset, target grade and fiction notes in one choice. **Welcome & Tips…** in the menu bar menu opens it again.
+
 ### Look up a word
 
 The popup puts the answer first: the definitions (for a long entry, the first senses with "Show all"), then the best words for your sentence and the tone buttons. Everything else sits in three groups that open with a click and stay as you left them: **Word choice** (more synonyms, stronger words, antonyms, more specific words, word family, often confused, sounds like), **Usage** (describing words, phrases with the word, more examples, usage notes, idioms, origin) and **Sound** (rhymes). A closed group names what is inside.

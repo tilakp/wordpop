@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController!
     private var preferencesWindowController: PreferencesWindowController?
     private var practiceWindowController: PracticeWindowController?
+    private var welcomeWindowController: WelcomeWindowController?
 
     /// The controllers exist before launch finishes: a wordpop:// URL that
     /// launches the app is delivered before applicationDidFinishLaunching.
@@ -46,10 +47,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItemController = StatusItemController(
             onQuickSearch: { [weak self] in self?.quickSearchController.show() },
+            onWelcome: { [weak self] in self?.showWelcome() },
             onPreferences: { [weak self] in self?.showPreferences() },
             onPractice: { [weak self] in self?.showPractice() },
             onQuit: { NSApp.terminate(nil) }
         )
+
+        if !UserDefaults.standard.bool(forKey: WelcomeWindowController.shownKey) {
+            DispatchQueue.main.async { [weak self] in self?.showWelcome() }
+        }
     }
 
     private func requestAccessibilityPermissionIfNeeded() {
@@ -119,6 +125,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "Not Now")
         if alert.runModal() == .alertFirstButtonReturn { showPreferences() }
     }
+
+    /// The first-run window, with a sample word and passage to try.
+    private func showWelcome() {
+        if welcomeWindowController == nil {
+            welcomeWindowController = WelcomeWindowController(
+                onSampleWord: { [weak self] in self?.showLookup("serendipity") },
+                onSamplePassage: { [weak self] in
+                    self?.popupController.show(passage: Self.samplePassage, near: NSEvent.mouseLocation)
+                },
+                onQuickSearch: { [weak self] in self?.quickSearchController.show() }
+            )
+        }
+        welcomeWindowController?.show()
+    }
+
+    private static let samplePassage = "In order to finish the report, we made a decision to utilize the new template. The draft was written by the team and I think it is really very good. I recieve feedback tomorrow."
 
     private func showPractice() {
         if practiceWindowController == nil { practiceWindowController = PracticeWindowController() }
