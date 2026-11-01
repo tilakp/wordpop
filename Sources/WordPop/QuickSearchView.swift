@@ -228,7 +228,7 @@ struct QuickSearchView: View {
     private var modeHelp: some View {
         HStack(spacing: 6) {
             Text("Also:").font(.recentMeta).foregroundStyle(.secondary)
-            ForEach([("? Describe", "?"), ("\" Phrase", "\""), ("* Pattern", "con*")], id: \.1) { title, prefix in
+            ForEach([("? Describe", "?"), ("\" Phrase", "\""), ("* Pattern", "*")], id: \.1) { title, prefix in
                 Button(action: {
                     model.query = prefix
                     isFocused = true
@@ -243,7 +243,7 @@ struct QuickSearchView: View {
     private static let modeHelpText = [
         "?": "Type ? and a meaning, then Return: \u{201C}?the smell of rain\u{201D} finds petrichor.",
         "\"": "Type a quote mark and a phrase to see how often it is used. Compare two with |.",
-        "con*": "* stands for any letters and ? for one. Add \u{201C}: meaning\u{201D} to keep words with that meaning.",
+        "*": "* stands for any letters and ? for one (con*, b??t). Add \u{201C}: meaning\u{201D} to keep words with that meaning.",
     ]
 
     /// The mode the query is in, shown as a chip at the start of the field.
@@ -262,12 +262,8 @@ struct QuickSearchView: View {
                 .accessibilityHidden(true)
 
             if let modeName {
-                Text(modeName)
-                    .font(.link)
-                    .foregroundStyle(Color.accentColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                ActionChip(title: modeName, isOn: true)
+                    .padding(.trailing, 2)
                     .accessibilityLabel("\(modeName) mode")
             }
 
@@ -402,7 +398,13 @@ struct QuickSearchView: View {
     private func move(by delta: Int) -> KeyPress.Result {
         guard !rows.isEmpty else { return .ignored }
         let current = model.selection ?? -1
-        model.selection = min(max(current + delta, 0), rows.count - 1)
+        let index = min(max(current + delta, 0), rows.count - 1)
+        model.selection = index
+        // Focus stays in the field, so VoiceOver hears the row this way.
+        let row = rows[index]
+        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
+                             userInfo: [.announcement: [row.word, row.detail].compactMap { $0 }.joined(separator: ", "),
+                                        .priority: NSAccessibilityPriorityLevel.medium.rawValue])
         return .handled
     }
 

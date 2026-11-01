@@ -94,7 +94,7 @@ struct PopupContentView: View {
             header
                 .padding(.horizontal, 22)
                 .padding(.top, 20)
-                .padding(.bottom, 14)
+                .padding(.bottom, 10)
 
             // When the definitions (capped at maxListHeight) and the pill
             // sections together are taller than the screen allows, the
@@ -114,11 +114,11 @@ struct PopupContentView: View {
                     .id(viewModel.entry.word)
             }
 
-            if Settings.showsPillHint, !viewModel.sections.isEmpty {
+            if Settings.showsPillHint, viewModel.entry.found, !viewModel.sections.isEmpty {
                 Divider().padding(.horizontal, 22)
                 Text(viewModel.canReplace
-                     ? "Click a word to look it up \u{B7} \u{2325}-click to put it in your text \u{B7} \u{21E7}-click to compare"
-                     : "Click a word to look it up \u{B7} \u{21E7}-click to compare")
+                     ? "Click: look up \u{B7} \u{2325}-click: put in your text \u{B7} \u{21E7}-click: compare"
+                     : "Click: look up \u{B7} \u{21E7}-click: compare")
                     .font(.recentMeta)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -126,7 +126,7 @@ struct PopupContentView: View {
                     .padding(.vertical, 9)
             }
 
-            if isEmpty {
+            if isEmpty, viewModel.selectedPhrase == nil {
                 Text("No definition found for \u{201C}\(viewModel.entry.word)\u{201D}.")
                     .font(.example)
                     .foregroundStyle(.secondary)
@@ -221,11 +221,11 @@ struct PopupContentView: View {
     private var usageExtras: [String] {
         var extras: [String] = []
         if viewModel.describingWords == nil, viewModel.describingPartOfSpeech != nil, WritingModel.isAvailable, Settings.shows(.describing) {
-            extras.append("describing words")
+            extras.append("describing")
         }
-        if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable, Settings.shows(.collocations) { extras.append("phrases with it") }
+        if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable, Settings.shows(.collocations) { extras.append("phrases") }
         if WritingModel.isAvailable, Settings.shows(.examples), viewModel.exampleSense != nil { extras.append("examples") }
-        if !viewModel.entry.usageNotes.isEmpty, Settings.shows(.usage) { extras.append("usage notes") }
+        if !viewModel.entry.usageNotes.isEmpty, Settings.shows(.usage) { extras.append("usage") }
         if !viewModel.entry.phrases.isEmpty, Settings.shows(.phrases) { extras.append("idioms") }
         if viewModel.entry.origin != nil, Settings.shows(.origin) { extras.append("origin") }
         return extras
@@ -259,6 +259,7 @@ struct PopupContentView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(.isHeader)
         .accessibilityLabel(group.title)
         .accessibilityValue(open ? "expanded" : "collapsed")
         .accessibilityHint(open ? "" : contents.joined(separator: ", "))
@@ -355,7 +356,7 @@ struct PopupContentView: View {
                 Button(action: { viewModel.comparison = nil }) {
                     Image(systemName: "xmark")
                         .font(.icon(10, weight: .semibold))
-                        .frame(minWidth: 20, minHeight: 20)
+                        .frame(minWidth: 24, minHeight: 24)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -433,19 +434,22 @@ struct PopupContentView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                if viewModel.canGoBack {
-                    Button(action: viewModel.onGoBack) {
-                        Image(systemName: "chevron.left")
-                            .frame(minWidth: 20, minHeight: 20)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .help("Back (\u{2318}[)")
-                    .accessibilityLabel("Back")
+            if viewModel.canGoBack {
+                Button(action: viewModel.onGoBack) {
+                    Label(viewModel.previousWord ?? "Back", systemImage: "chevron.left")
+                        .labelStyle(.titleAndIcon)
+                        .font(.link)
+                        .lineLimit(1)
+                        .frame(minHeight: 20, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help("Back (\u{2318}[)")
+                .accessibilityLabel("Back to \(viewModel.previousWord ?? "the previous word")")
+            }
 
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(viewModel.entry.syllables ?? viewModel.entry.word)
                     .font(.headword)
                     .tracking(-0.3)
@@ -496,7 +500,7 @@ struct PopupContentView: View {
                     Button(action: viewModel.onSpeak) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.icon(11))
-                            .frame(minWidth: 20, minHeight: 18)
+                            .frame(minWidth: 24, minHeight: 24)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -689,7 +693,7 @@ struct PopupContentView: View {
 
     private var phrasesDisclosure: some View {
         VStack(alignment: .leading, spacing: 10) {
-            DisclosureRow(title: "Phrases (\(viewModel.entry.phrases.count))", expanded: viewModel.showPhrases) { viewModel.showPhrases.toggle() }
+            DisclosureRow(title: "Idioms (\(viewModel.entry.phrases.count))", expanded: viewModel.showPhrases) { viewModel.showPhrases.toggle() }
 
             if viewModel.showPhrases {
                 ForEach(Array(viewModel.entry.phrases.enumerated()), id: \.offset) { _, phrase in

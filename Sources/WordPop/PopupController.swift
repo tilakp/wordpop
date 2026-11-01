@@ -18,6 +18,17 @@ final class PopupController: NSObject, NSWindowDelegate {
     private var replaceEntry: WordEntry?
 
     func show(entry: WordEntry, near point: NSPoint, replacing selection: TextCapture.Selection? = nil) {
+        var entry = entry
+        var phraseOnly = false
+        // "a guide to plain writing" is looked up as "a": with no idiom to
+        // show, the popup is about the phrase, not about the article.
+        if let selection, PhraseMatch.isPhrase(selection.trimmed, lookedUpAs: entry.word),
+           Self.functionWords.contains(entry.word.lowercased()),
+           PhraseMatch.find(selection.trimmed, in: entry, lookup: { DictionaryLookup.lookup($0) }) == nil {
+            entry = WordEntry(word: selection.trimmed, syllables: nil, pronunciation: nil, forms: [], blocks: [], rhymes: [], nearRhymes: [],
+                              origin: nil, phrases: [], source: nil, found: false)
+            phraseOnly = true
+        }
         remember(entry)
         replaceTarget = selection
         replaceEntry = entry
@@ -35,6 +46,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         if Settings.shows(.fits) { findSense(of: entry, for: selection, in: contextBlock ?? 0) }
         if Settings.shows(.rhymes) { rankRhymes(of: entry, for: selection) }
         findPhrase(of: entry, for: selection)
+        if phraseOnly, let selection { viewModel.selectedPhrase = selection.trimmed }
         wireViewModelActions()
 
         let panel = ensurePanel()
@@ -225,6 +237,11 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.phraseMatch = match
         }
     }
+
+    private static let functionWords: Set<String> = [
+        "a", "an", "the", "of", "to", "in", "on", "at", "by", "for", "with", "and", "or", "but", "as", "is", "it", "be",
+        "i", "we", "you", "he", "she", "they", "my", "our", "your", "this", "that", "from",
+    ]
 
     private func remember(_ entry: WordEntry) {
         guard entry.found else { return }
@@ -457,6 +474,16 @@ final class PopupController: NSObject, NSWindowDelegate {
         if flags.contains(.command) {
             switch event.charactersIgnoringModifiers {
             case "[": viewModel.onGoBack()
+            // ⌘Return puts the chosen fixes into a passage.
+            case "\r": if viewModel.textStats != nil, viewModel.canReplace, viewModel.hasFixes { viewModel.onApplyFixes() } else { return false }
+            // ⌘1 to ⌘3 open and close the groups: Word choice, Usage and
+            // Sound in the word popup, Style in the notes.
+            case "1", "2", "3":
+                if viewModel.textStats != nil {
+                    viewModel.toggleNotesGroup("style")
+                } else if let digit = event.charactersIgnoringModifiers.flatMap(Int.init) {
+                    viewModel.toggle([PillGroup.choice, .usage, .sound][digit - 1])
+                }
             case "d": viewModel.toggleStar()
             case "c": viewModel.copyWord()
             case "C": viewModel.copyDefinition()
@@ -468,7 +495,10 @@ final class PopupController: NSObject, NSWindowDelegate {
         case 49: viewModel.onSpeak() // Space
         case 124: viewModel.moveFocus(by: 1) // →
         case 123: viewModel.moveFocus(by: -1) // ←
-        case 48: viewModel.moveFocus(by: flags.contains(.shift) ? -1 : 1) // Tab
+        case 48: // Tab moves through the pills, or, with Full Keyboard
+            // Access on, through every control as the system does.
+            if NSApp.isFullKeyboardAccessEnabled { return false }
+            viewModel.moveFocus(by: flags.contains(.shift) ? -1 : 1)
         case 36, 76: // Return, Enter; with ⌥, replace the selection; with ⇧, compare
             if flags.contains(.option) {
                 viewModel.replaceWithFocusedPill()

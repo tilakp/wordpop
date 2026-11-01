@@ -1,15 +1,16 @@
 import Foundation
 
 enum TextSize: String, CaseIterable, Identifiable {
-    case small, medium, large
+    case small, medium, large, extraLarge
 
     var id: String { rawValue }
-    var label: String { rawValue.capitalized }
+    var label: String { self == .extraLarge ? "Extra Large" : rawValue.capitalized }
     var scale: CGFloat {
         switch self {
         case .small: 0.9
         case .medium: 1.0
         case .large: 1.15
+        case .extraLarge: 1.35
         }
     }
 }

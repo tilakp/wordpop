@@ -22,7 +22,7 @@ struct PreferencesView: View {
             styleTab.tabItem { Label("Style Rules", systemImage: "checklist") }
         }
         // Grouped forms scroll and have no height of their own.
-        .frame(width: 500, height: 560)
+        .frame(width: 500, height: 640)
     }
 
     private var generalTab: some View {
@@ -131,6 +131,17 @@ struct PreferencesView: View {
     private var styleTab: some View {
         Form {
             Section {
+                Picker("Writer profile", selection: Binding(
+                    get: { WriterProfile.current },
+                    set: { profile in
+                        profile.apply()
+                        stylePreset = StyleRules.preset
+                        targetGrade = Settings.targetGrade ?? 0
+                        fictionNotes = Settings.showsFiction
+                    }
+                )) {
+                    ForEach(WriterProfile.allCases) { Text($0.title).tag($0) }
+                }
                 Picker("Preset", selection: $stylePreset) {
                     ForEach(StyleRules.Preset.allCases) { Text($0.label).tag($0) }
                 }
@@ -142,6 +153,7 @@ struct PreferencesView: View {
                 Text("Notes on a passage list what breaks these rules, and sentences above the target grade.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section("Your own rules") {

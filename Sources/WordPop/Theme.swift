@@ -17,6 +17,9 @@ extension Color {
     /// the dark one. Words to use are blue-teal, what fits is green, what
     /// to review is amber, and opposites and removals are red. Actions use
     /// the system accent color.
+    /// Gray for labels and tags, darker than the system's secondary label
+    /// on the paper background so small text reaches 4.5:1.
+    static let secondaryInk = dynamic(light: 0x5E5A55, dark: 0xA8A49E)
     static let wordTint = dynamic(light: 0x1F6F8B, dark: 0x7CC4D9)
     static let fitTint = dynamic(light: 0x1E7F34, dark: 0x6FD38A)
     static let reviewTint = dynamic(light: 0xA05500, dark: 0xF2B04C)
@@ -85,7 +88,7 @@ struct SectionLabel: View {
         Text(title)
             .font(.sectionLabel)
             .tracking(0.8)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.secondaryInk)
             .textCase(.uppercase)
             .accessibilityAddTraits(.isHeader)
     }
@@ -95,6 +98,7 @@ struct SectionLabel: View {
 /// focused chips get a stronger fill and a border; a chosen fix also gets
 /// a checkmark, so the choice does not rest on color alone.
 struct WordChip: View {
+    @Environment(\.colorScheme) private var colorScheme
     let text: String
     var tint: Color = .wordTint
     /// A register or "rare" tag after the word, in small italics.
@@ -118,12 +122,14 @@ struct WordChip: View {
             if let label {
                 Text(label)
                     .font(.pillLabel)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryInk)
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
-        .background(tint.opacity(selected ? 0.22 : 0.10), in: Capsule())
+        // Stronger in dark mode, where a light fill on near-black made
+        // the tints look the same.
+        .background(tint.opacity(selected ? 0.3 : colorScheme == .dark ? 0.2 : 0.10), in: Capsule())
         .overlay(Capsule().strokeBorder(selected ? tint : Color.clear, lineWidth: 1))
         .contentShape(Capsule())
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -139,13 +145,12 @@ struct ActionChip: View {
     var body: some View {
         Text(title)
             .font(.link)
-            .foregroundStyle(.primary)
+            .foregroundStyle(isOn ? Color.accentColor : Color.primary)
             .lineLimit(1)
             .fixedSize()
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Color.primary.opacity(isOn ? 0.13 : 0.06), in: Capsule())
-            .overlay(Capsule().strokeBorder(isOn ? Color.primary.opacity(0.3) : Color.clear, lineWidth: 1))
+            .background(isOn ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.06), in: Capsule())
             .contentShape(Capsule())
             .accessibilityAddTraits(isOn ? .isSelected : [])
     }
@@ -215,11 +220,13 @@ struct NoteSectionHeader: View {
                     Image(systemName: isOpen ? "info.circle.fill" : "info.circle")
                         .font(.icon(11))
                         .foregroundStyle(.secondary)
-                        .frame(minWidth: 20, minHeight: 16)
+                        .frame(minWidth: 24, minHeight: 20)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .opacity(hovering || isOpen ? 1 : 0)
+                // Faint until the pointer is over the title, but never
+                // invisible: VoiceOver and the keyboard must reach it.
+                .opacity(hovering || isOpen ? 1 : 0.35)
                 .help("What this note means")
                 .accessibilityLabel("About \(title)")
             }

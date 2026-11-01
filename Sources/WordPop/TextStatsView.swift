@@ -22,7 +22,7 @@ struct TextStatsView: View {
             .padding(.top, 20)
             .padding(.bottom, 6)
 
-            Text(summary)
+            (Text(summary) + gradeTarget)
                 .font(.forms)
                 .foregroundStyle(.secondary)
                 // Wraps instead of being cut short when a tool opens below.
@@ -36,7 +36,7 @@ struct TextStatsView: View {
 
             // Mistakes: what the Fix button corrects, with the button first.
             if hasMistakes {
-                groupHeader("Mistakes", count: mistakeCount, open: true)
+                groupHeader("Mistakes", count: nil, open: true)
                 if viewModel.canReplace, viewModel.hasFixes {
                     applyFixesButton
                         .padding(.horizontal, 22)
@@ -61,7 +61,7 @@ struct TextStatsView: View {
 
             // Clarity: sentences that are hard to read.
             if hasClarityNotes {
-                groupHeader("Clarity", count: hardSentenceNotes.count + stats.passives.count, open: true)
+                groupHeader("Clarity", count: nil, open: true)
                 if !hardSentenceNotes.isEmpty {
                     section("Hard sentences", divider: false) {
                         ForEach(Array(hardSentenceNotes.prefix(4).enumerated()), id: \.offset) { _, sentence in
@@ -121,7 +121,7 @@ struct TextStatsView: View {
                         }
                     }
                     if !viewModel.style.longParagraphs.isEmpty || !viewModel.style.ingWords.isEmpty {
-                        section("Style rules", divider: false) { styleOtherControls }
+                        section("Paragraphs and -ing forms", divider: false) { styleOtherControls }
                     }
                     if !viewModel.fiction.isEmpty {
                         section("Fiction", divider: false) { fictionControls }
@@ -174,7 +174,7 @@ struct TextStatsView: View {
         HStack(alignment: .bottom, spacing: 3) {
             ForEach(Array(lengths.enumerated()), id: \.offset) { index, length in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(length > TextStats.longSentenceWords ? Color.reviewTint : Color.wordTint.opacity(run?.contains(index) == true ? 0.35 : 0.7))
+                    .fill(length > TextStats.longSentenceWords ? Color.reviewTint : Color.secondary.opacity(run?.contains(index) == true ? 0.2 : 0.4))
                     .frame(maxWidth: 14)
                     .frame(height: max(3, 44 * Settings.textScale * CGFloat(length) / CGFloat(longest)))
                     .help("\(length) words: \(stats.sentenceTexts[index])")
@@ -240,6 +240,15 @@ struct TextStatsView: View {
         return items
     }
 
+    /// "Above your target of 8" in amber, or "within your target of 8" in
+    /// green, after the summary when a target is set.
+    private var gradeTarget: Text {
+        guard let target = Settings.targetGrade else { return Text("") }
+        return stats.grade > Double(target)
+            ? Text(" \u{B7} above your target of \(target)").foregroundColor(.reviewTint)
+            : Text(" \u{B7} within your target of \(target)").foregroundColor(.fitTint)
+    }
+
     /// The sentences above the target grade, if one is set.
     private var hardSentences: [(text: String, grade: Double)] {
         Settings.targetGrade.map { stats.sentences(above: Double($0)) } ?? []
@@ -253,8 +262,7 @@ struct TextStatsView: View {
         case ..<13: "fairly difficult, high-school level"
         default: "difficult, college level"
         }
-        let target = Settings.targetGrade.map { ", target \($0)" } ?? ""
-        return "grade \(String(format: "%.1f", grade))\(target), \(reader)"
+        return "grade \(String(format: "%.1f", grade)), \(reader)"
     }
 
     /// Why a tool cannot run on this selection, or nil when it can.
@@ -284,10 +292,18 @@ struct TextStatsView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(reason != nil)
-                .opacity(reason == nil ? 1 : 0.4)
+                .opacity(reason == nil ? 1 : 0.55)
                 .help(reason ?? Self.toolHelp[tool] ?? "")
-                .accessibilityHint(reason ?? "")
+                .accessibilityValue(reason ?? "")
             }
+        }
+        // Why a tool is dimmed, in words and not only in a tooltip.
+        let reasons = PopupViewModel.PassageTool.allCases.compactMap { tool in unavailableReason(tool).map { "\(tool.rawValue): \($0)" } }
+        if viewModel.openTool == nil, !reasons.isEmpty {
+            Text(reasons.joined(separator: " "))
+                .font(.recentMeta)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         switch viewModel.openTool {
         case .rewrite:
@@ -376,11 +392,6 @@ struct TextStatsView: View {
 
     private var hasMistakes: Bool {
         !viewModel.typos.isEmpty || !viewModel.grammar.isEmpty || !viewModel.consistency.isEmpty || !viewModel.style.words.isEmpty || !stats.wordy.isEmpty
-    }
-
-    private var mistakeCount: Int {
-        viewModel.typos.count + viewModel.grammar.count + viewModel.style.words.count + stats.wordy.count
-            + viewModel.consistency.variants.count + (viewModel.consistency.british.isEmpty ? 0 : 1)
     }
 
     private var hasClarityNotes: Bool {
@@ -627,7 +638,7 @@ struct TextStatsView: View {
                     .font(.pill)
                     .strikethrough(viewModel.typoFixes[typo.word] != nil)
                     .foregroundStyle(.secondary)
-                Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
+                Text("\u{2192}").font(.recentMeta).foregroundStyle(.secondary).accessibilityHidden(true)
                 FlowLayout(spacing: 6) {
                     ForEach(typo.suggestions, id: \.self) { suggestion in
                         let chosen = viewModel.typoFixes[typo.word] == suggestion
@@ -654,7 +665,7 @@ struct TextStatsView: View {
                     Text(Self.excerpt(of: issue))
                         .font(.pill)
                         .foregroundStyle(.secondary)
-                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.secondary).accessibilityHidden(true)
                     FlowLayout(spacing: 6) {
                         ForEach(issue.corrections.prefix(3), id: \.self) { correction in
                             let chosen = viewModel.grammarFixes[index] == correction
@@ -775,7 +786,7 @@ struct TextStatsView: View {
                 if flag.fix.isEmpty {
                     Text("avoid").font(.pillLabel).foregroundStyle(.secondary)
                 } else {
-                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.secondary).accessibilityHidden(true)
                     Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
                         WordChip(text: flag.fix, tint: .reviewTint, selected: chosen, checked: chosen)
                     }
@@ -817,7 +828,7 @@ struct TextStatsView: View {
                     Text(flag.isCliche ? "clich\u{E9}" : "hidden verb").font(.pillLabel).foregroundStyle(.secondary)
                 }
                 if !flag.isCliche || !flag.fix.isEmpty {
-                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.secondary).accessibilityHidden(true)
                     Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
                         WordChip(text: flag.fix.isEmpty ? "remove" : flag.fix, tint: .reviewTint, selected: chosen, checked: chosen, italic: flag.fix.isEmpty)
                     }
@@ -857,6 +868,7 @@ struct TextStatsView: View {
 /// dictionary, so it is not flagged again here or in other apps.
 func notATypoButton(action: @escaping () -> Void) -> some View {
     TextLink("Not a typo", muted: true, action: action)
+        .frame(minHeight: 24)
         .help("Adds the word to your Mac\u{2019}s spelling dictionary, so no app flags it again")
 }
 

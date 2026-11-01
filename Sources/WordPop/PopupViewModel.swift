@@ -497,6 +497,9 @@ final class PopupViewModel: ObservableObject {
         }
     }
 
+    /// The word the back button returns to.
+    var previousWord: String? { history.last?.word }
+
     func goBack() {
         guard let previous = history.popLast() else { return }
         withAnimation(.easeOut(duration: 0.15)) {

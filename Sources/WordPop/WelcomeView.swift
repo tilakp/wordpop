@@ -49,7 +49,8 @@ struct WelcomeView: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Welcome to WordPop")
-                    .font(.system(size: 26, weight: .semibold, design: .serif))
+                    .font(.largeTitle.weight(.semibold))
+                    .fontDesign(.serif)
                 Text("A dictionary, a thesaurus and an editor that come to the text you are writing, in any app. Everything runs on your Mac.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -61,7 +62,7 @@ struct WelcomeView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("In the popup").font(.headline)
-                Text("Click a word to look it up \u{B7} \u{2325}-click to put it in your text \u{B7} \u{21E7}-click to compare \u{B7} Space to hear it \u{B7} \u{2318}D to star it \u{B7} Esc to close")
+                Text("Click a word to look it up \u{B7} \u{2325}-click to put it in your text \u{B7} \u{21E7}-click to compare \u{B7} Space to hear it \u{B7} \u{2318}D to star it \u{B7} \u{2318}1 to \u{2318}3 to open the groups \u{B7} \u{2318}Return to apply fixes \u{B7} Esc to close")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -74,6 +75,7 @@ struct WelcomeView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .accessibilityLabel("What do you write most?")
                 .onChange(of: profile) { _, new in new.apply() }
                 Text(profile.summary + " You can change this in Settings.")
                     .font(.callout)
@@ -95,7 +97,7 @@ struct WelcomeView: View {
                     }
                 }
                 Spacer()
-                Button("Start Writing", action: onDone)
+                Button("Start writing", action: onDone)
                     .keyboardShortcut(.defaultAction)
             }
             .font(.callout)
@@ -108,7 +110,7 @@ struct WelcomeView: View {
     private func step(_ number: String, _ title: String, _ detail: String, button: String, action: @escaping () -> Void) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(number)
-                .font(.system(size: 13, weight: .bold))
+                .font(.callout.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: 22, height: 22)
                 .background(Color.accentColor, in: Circle())
@@ -122,6 +124,7 @@ struct WelcomeView: View {
             }
             Spacer(minLength: 8)
             Button(button, action: action)
+                .accessibilityLabel("\(button): \(title)")
         }
         .accessibilityElement(children: .contain)
     }

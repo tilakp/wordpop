@@ -132,13 +132,15 @@ Both shortcuts can be changed from the menu bar icon under **Settings**.
 
 | In the popup | |
 | --- | --- |
-| `←` `→` `Tab` `⇧Tab` | Move through the pills |
+| `←` `→` `Tab` `⇧Tab` | Move through the pills (with Full Keyboard Access on, Tab reaches every control) |
 | `Return` | Look up the focused pill |
 | `⌥Return` or `⌥`-click | Replace your selection with the pill |
 | `⇧Return` or `⇧`-click | Compare the pill with the word |
 | `1` … `9` | Switch part of speech |
 | `Space` | Pronounce |
-| `⌘[` | Back to the previous word |
+| `⌘[` | Back to the previous word (also named above the headword) |
+| `⌘1` `⌘2` `⌘3` | Open or close Word choice, Usage and Sound (Style in the notes) |
+| `⌘Return` | Apply the chosen fixes in the notes on a passage |
 | `⌘D` | Star or unstar the word |
 | `⌘C` / `⌘⇧C` | Copy the word / the first definition |
 | `Esc` | Close |

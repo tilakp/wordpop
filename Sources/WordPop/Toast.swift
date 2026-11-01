@@ -37,14 +37,21 @@ enum Toast {
         panel.alphaValue = 1
         panel.orderFrontRegardless()
         Self.panel = panel
-        NSAccessibility.post(element: hosting, notification: .announcementRequested,
+        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
                              userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.high.rawValue])
 
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let work = DispatchWorkItem {
-            NSAnimationContext.runAnimationGroup({ $0.duration = 0.3; panel.animator().alphaValue = 0 },
-                                                 completionHandler: { panel.orderOut(nil) })
+            if reduceMotion {
+                panel.orderOut(nil)
+            } else {
+                NSAnimationContext.runAnimationGroup({ $0.duration = 0.3; panel.animator().alphaValue = 0 },
+                                                     completionHandler: { panel.orderOut(nil) })
+            }
         }
         hideWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: work)
+        // Long enough to read; longer still with VoiceOver speaking it.
+        let seconds = NSWorkspace.shared.isVoiceOverEnabled ? 8.0 : max(3.0, Double(message.count) / 15)
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
     }
 }
