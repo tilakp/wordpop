@@ -283,7 +283,7 @@ final class PopupViewModel: ObservableObject {
 
     private var history: [WordEntry] = []
 
-    private static let collapsedSenseCount = 3
+    private static let collapsedSenseCount = 2
     private static let pillsPerRow = 10
     private static let pillsPerSense = 8
     /// Rank in the frequency-ordered word list from which a word counts as

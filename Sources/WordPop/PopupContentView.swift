@@ -550,15 +550,17 @@ struct PopupContentView: View {
         }
     }
 
-    /// The first three numbered senses, each with at most two of its
-    /// sub-senses: enough to see what the word means without scrolling
+    /// The first three numbered senses, with at most two sub-senses of
+    /// the first: enough to see what the word means without scrolling
     /// past ten uses of "run" in racing and cricket.
     private static func firstSenses(of items: [DefinitionItem]) -> [DefinitionItem] {
         var numbered = 0, subItems = 0
         return items.filter { item in
             if item.isSubItem {
                 subItems += 1
-                return numbered <= 3 && subItems <= 2
+                // Sub-senses only under the first sense (the one the
+                // sentence uses, when known), so "run" is not screen-tall.
+                return numbered == 1 && subItems <= 2
             }
             if item.number != nil { numbered += 1 }
             subItems = 0
