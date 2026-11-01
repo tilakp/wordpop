@@ -218,6 +218,8 @@ struct QuickSearchView: View {
         // Any change to the rows can change the height, not only their
         // count: spelling corrections carry a second line.
         .onChange(of: rows.map(\.id)) { _, _ in onLayoutChange() }
+        // The field wraps a long query onto more lines.
+        .onChange(of: model.query) { _, _ in onLayoutChange() }
         .onChange(of: describeNote) { _, _ in onLayoutChange() }
         .onChange(of: patternNote) { _, _ in onLayoutChange() }
         .onChange(of: model.usage.map { "\($0.phrase)\($0.count)" }) { _, _ in onLayoutChange() }
@@ -267,7 +269,10 @@ struct QuickSearchView: View {
                     .accessibilityLabel("\(modeName) mode")
             }
 
-            TextField("Look up a word", text: $model.query)
+            // Wraps a long query ("?a word for the smell of rain") onto up
+            // to three lines instead of scrolling it out of sight.
+            TextField("Look up a word", text: $model.query, axis: .vertical)
+                .lineLimit(1...3)
                 .textFieldStyle(.plain)
                 .font(.searchField)
                 .focused($isFocused)
