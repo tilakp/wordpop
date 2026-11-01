@@ -30,103 +30,106 @@ struct TextStatsView: View {
                 .padding(.horizontal, 22)
                 .padding(.bottom, 14)
 
-            if Settings.shows(.tools), !tools.isEmpty {
+            if Settings.shows(.tools) {
                 section("Tools") { toolControls }
             }
-            if !viewModel.typos.isEmpty {
-                section("Spelling") {
-                    typoControls
-                    if viewModel.grammar.isEmpty, viewModel.consistency.isEmpty, !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
-                }
-            }
-            if !viewModel.grammar.isEmpty {
-                section("Grammar") {
-                    grammarControls
-                    if viewModel.consistency.isEmpty, !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
-                }
-            }
-            if !viewModel.consistency.isEmpty {
-                section("Consistency") {
-                    consistencyControls
-                    if !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
-                }
-            }
-            if !viewModel.style.words.isEmpty || !viewModel.style.longParagraphs.isEmpty || !viewModel.style.ingWords.isEmpty {
-                section("Style rules") {
-                    styleControls
-                    if hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
-                }
-            }
-            if !stats.wordy.isEmpty {
-                section("Wordy phrases and clich\u{E9}s") {
-                    phraseControls
+
+            // Mistakes: what the Fix button corrects, with the button first.
+            if hasMistakes {
+                groupHeader("Mistakes", count: mistakeCount, open: true)
+                if viewModel.canReplace, viewModel.hasFixes {
                     applyFixesButton
+                        .padding(.horizontal, 22)
+                        .padding(.bottom, 4)
+                }
+                if !viewModel.typos.isEmpty {
+                    section("Spelling", divider: false) { typoControls }
+                }
+                if !viewModel.grammar.isEmpty {
+                    section("Grammar", divider: false) { grammarControls }
+                }
+                if !viewModel.consistency.isEmpty {
+                    section("Consistency", divider: false) { consistencyControls }
+                }
+                if !viewModel.style.words.isEmpty {
+                    section("Style rules", divider: false) { styleWordControls }
+                }
+                if !stats.wordy.isEmpty {
+                    section("Wordy phrases and clich\u{E9}s", divider: false) { phraseControls }
                 }
             }
-            if stats.sentences >= 3, Settings.shows(.rhythm) {
-                section("Sentence rhythm") { rhythm }
-            }
-            if !hardSentenceNotes.isEmpty {
-                section("Hard sentences") {
-                    ForEach(Array(hardSentenceNotes.prefix(4).enumerated()), id: \.offset) { _, sentence in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(sentence.reasons.joined(separator: " \u{B7} "))
-                                .font(.recentMeta.weight(.medium))
-                                .foregroundStyle(Color.reviewTint)
-                            Text("\u{201C}\(sentence.text.prefix(110))\(sentence.text.count > 110 ? "\u{2026}" : "")\u{201D}")
-                                .font(.example)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            rewriteControls(for: sentence.text, rewrite: .split, label: "Split it")
-                        }
-                    }
-                }
-            }
-            if !stats.passives.isEmpty, Settings.shows(.passive) {
-                section("Possible passive voice") {
-                    ForEach(stats.passives, id: \.self) { phrase in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(phrase).font(.pill)
-                            if let sentence = stats.sentence(containing: phrase) {
-                                rewriteControls(for: sentence, rewrite: .active, label: "Make it active")
+
+            // Clarity: sentences that are hard to read.
+            if hasClarityNotes {
+                groupHeader("Clarity", count: hardSentenceNotes.count + stats.passives.count, open: true)
+                if !hardSentenceNotes.isEmpty {
+                    section("Hard sentences", divider: false) {
+                        ForEach(Array(hardSentenceNotes.prefix(4).enumerated()), id: \.offset) { _, sentence in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(sentence.reasons.joined(separator: " \u{B7} "))
+                                    .font(.recentMeta.weight(.medium))
+                                    .foregroundStyle(Color.reviewTint)
+                                Text("\u{201C}\(sentence.text.prefix(110))\(sentence.text.count > 110 ? "\u{2026}" : "")\u{201D}")
+                                    .font(.example)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                rewriteControls(for: sentence.text, rewrite: .split, label: "Split it")
                             }
                         }
                     }
                 }
-            }
-            if !viewModel.fiction.isEmpty {
-                section("Fiction") { fictionControls }
-            }
-            if !viewModel.crutches.isEmpty {
-                section("Your crutch words") {
-                    wordList(viewModel.crutches.map { "\($0.word) (replaced \($0.count)\u{D7})" })
-                    Text("Words you often replace with a synonym. Select one to vary it.")
-                        .font(.recentMeta)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            if !weakWords.isEmpty {
-                section("Weak words") {
-                    weakWords.enumerated().reduce(Text("")) { text, element in
-                        let (index, item) = element
-                        return text + Text(index == 0 ? "" : "  \u{B7}  ").foregroundColor(.secondary)
-                            + Text(item.word).font(.pill) + Text(" " + item.tags.joined(separator: ", ")).font(.pillLabel).foregroundColor(.secondary)
+                if !stats.passives.isEmpty, Settings.shows(.passive) {
+                    section("Possible passive voice", divider: false) {
+                        ForEach(stats.passives, id: \.self) { phrase in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(phrase).font(.pill)
+                                if let sentence = stats.sentence(containing: phrase) {
+                                    rewriteControls(for: sentence, rewrite: .active, label: "Make it active")
+                                }
+                            }
+                        }
                     }
-                    .fixedSize(horizontal: false, vertical: true)
-                    Text("Adverbs that prop up a weak verb, and hedges that soften a point or add nothing. Keep the ones you mean.")
-                        .font(.recentMeta)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if stats.sentences >= 3, Settings.shows(.rhythm) {
+                    section("Sentence rhythm", divider: false) { rhythm }
                 }
             }
-            if !stats.repeated.isEmpty, Settings.shows(.repeated) {
-                section("Repeated words") {
-                    wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
+
+            // Style: habits worth a look, closed until opened.
+            if hasStyleNotes {
+                let open = viewModel.isOpenNotesGroup("style")
+                groupHeader("Style", count: nil, open: open, summary: styleSummary) { viewModel.toggleNotesGroup("style") }
+                if open {
+                    if !weakWords.isEmpty {
+                        section("Weak words", divider: false) {
+                            weakWords.enumerated().reduce(Text("")) { text, element in
+                                let (index, item) = element
+                                return text + Text(index == 0 ? "" : "  \u{B7}  ").foregroundColor(.secondary)
+                                    + Text(item.word).font(.pill) + Text(" " + item.tags.joined(separator: ", ")).font(.pillLabel).foregroundColor(.secondary)
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    if !stats.repeated.isEmpty, Settings.shows(.repeated) {
+                        section("Repeated words", divider: false) {
+                            wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
+                        }
+                    }
+                    if !viewModel.crutches.isEmpty {
+                        section("Your crutch words", divider: false) {
+                            wordList(viewModel.crutches.map { "\($0.word) (replaced \($0.count)\u{D7})" })
+                        }
+                    }
+                    if !viewModel.style.longParagraphs.isEmpty || !viewModel.style.ingWords.isEmpty {
+                        section("Style rules", divider: false) { styleOtherControls }
+                    }
+                    if !viewModel.fiction.isEmpty {
+                        section("Fiction", divider: false) { fictionControls }
+                    }
                 }
             }
-            if hardSentenceNotes.isEmpty, stats.passives.isEmpty, weakWords.isEmpty, stats.repeated.isEmpty, viewModel.style.isEmpty, viewModel.typos.isEmpty,
-               stats.wordy.isEmpty, viewModel.grammar.isEmpty, viewModel.consistency.isEmpty {
+
+            if !hasMistakes, !hasClarityNotes, !hasStyleNotes {
                 VStack(alignment: .leading, spacing: 0) {
                     Divider().padding(.horizontal, 22)
                     Label("No issues found", systemImage: "checkmark.circle.fill")
@@ -134,7 +137,7 @@ struct TextStatsView: View {
                         .foregroundStyle(Color.fitTint)
                         .padding(.horizontal, 22)
                         .padding(.vertical, 14)
-                        .help("Checked for typos, grammar, mixed spellings, wordy phrases, long sentences, passive voice, adverbs, hedges and repeated words.")
+                        .help("Checked for typos, grammar, mixed spellings, wordy phrases, hard sentences, passive voice, weak words and repeated words.")
                 }
             }
             Divider().padding(.horizontal, 22)
@@ -254,57 +257,157 @@ struct TextStatsView: View {
         return "grade \(String(format: "%.1f", grade))\(target), \(reader)"
     }
 
-    /// The tools this selection can use: Reframe and Transitions need one
-    /// sentence, Reframe and Tone the on-device model.
-    private var tools: [PopupViewModel.PassageTool] {
-        PopupViewModel.PassageTool.allCases.filter { tool in
-            switch tool {
-            case .reframe, .expand: reframeSentence != nil && WritingModel.isAvailable
-            case .tone: WritingModel.isAvailable
-            case .mainPoint: WritingModel.isAvailable && stats.sentences > 1
-            case .transitions: reframeSentence != nil
-            case .text: viewModel.canReplace && !TextTool.useful(for: viewModel.selectionText ?? "").isEmpty
-            case .translate: Translator.isAvailable
-            }
+    /// Why a tool cannot run on this selection, or nil when it can.
+    /// Rewrite needs one sentence (its transitions work without the
+    /// model), Check and Translate the on-device frameworks.
+    private func unavailableReason(_ tool: PopupViewModel.PassageTool) -> String? {
+        switch tool {
+        case .rewrite: reframeSentence == nil ? "Select one sentence to rewrite it." : nil
+        case .check: WritingModel.isAvailable ? nil : "Needs Apple Intelligence (macOS 26 or later)."
+        case .text: viewModel.canReplace && !TextTool.useful(for: viewModel.selectionText ?? "").isEmpty
+            ? nil : "Nothing to change: the case and quotes are already consistent."
+        case .translate: Translator.isAvailable ? nil : "Needs macOS 26 or later."
         }
     }
 
-    /// A chip per tool; the open one shows its controls below the row.
+    /// A chip per tool; one that cannot run here is shown dimmed with the
+    /// reason, so the row does not change from one selection to the next.
+    /// The open tool shows its controls below the row.
     @ViewBuilder
     private var toolControls: some View {
-        // Wraps to a second line when the chips do not fit in one.
-        FlowLayout(spacing: 6) {
-            ForEach(tools, id: \.self) { tool in
+        HStack(spacing: 6) {
+            ForEach(PopupViewModel.PassageTool.allCases, id: \.self) { tool in
                 let open = viewModel.openTool == tool
+                let reason = unavailableReason(tool)
                 Button(action: { viewModel.openTool = open ? nil : tool }) {
                     ActionChip(title: tool.rawValue, isOn: open)
                 }
                 .buttonStyle(.plain)
+                .disabled(reason != nil)
+                .opacity(reason == nil ? 1 : 0.4)
+                .help(reason ?? Self.toolHelp[tool] ?? "")
+                .accessibilityHint(reason ?? "")
             }
         }
         switch viewModel.openTool {
-        case .reframe: if let sentence = reframeSentence { reframeControls(for: sentence, kinds: WritingModel.Rewrite.reframes) }
-        case .expand:
+        case .rewrite:
             if let sentence = reframeSentence {
-                reframeControls(for: sentence, kinds: WritingModel.Rewrite.expansions)
-                Text("Each adds a sentence after yours. Check any fact it adds.")
-                    .font(.recentMeta)
-                    .foregroundStyle(.secondary)
+                if WritingModel.isAvailable {
+                    toolLabel("Reframe")
+                    reframeControls(for: sentence, kinds: WritingModel.Rewrite.reframes)
+                    toolLabel("Add a sentence after it")
+                    reframeControls(for: sentence, kinds: WritingModel.Rewrite.expansions)
+                    Text("Check any fact it adds.").font(.recentMeta).foregroundStyle(.secondary)
+                }
+                toolLabel("Start with a transition")
+                transitionControls(for: sentence)
             }
-        case .tone: toneControls
-        case .mainPoint: mainPointControls
-        case .transitions: if let sentence = reframeSentence { transitionControls(for: sentence) }
+        case .check:
+            toolLabel("How it reads")
+            toneControls
+            if stats.sentences > 1 {
+                toolLabel("Main point")
+                mainPointControls
+            }
         case .text: TextToolControls(viewModel: viewModel)
         case .translate: translateControls
         case nil: EmptyView()
         }
     }
 
-    private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
+    private static let toolHelp: [PopupViewModel.PassageTool: String] = [
+        .rewrite: "Reframe the sentence, add one after it, or start it with a transition",
+        .check: "How the text reads to others, and its main point",
+        .text: "Title case, sentence case, quotes and line breaks",
+        .translate: "Translate the selection on this Mac",
+    ]
+
+    private func toolLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.recentMeta.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.top, 6)
+    }
+
+    /// A group's title row: Mistakes, Clarity, Style. Style opens and
+    /// closes; while closed it names what is inside.
+    private func groupHeader(_ title: String, count: Int?, open: Bool, summary: String? = nil, toggle: (() -> Void)? = nil) -> some View {
+        let row = HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(title)
+                .font(.phrase)
+                .foregroundStyle(.primary)
+            if let count, count > 0 {
+                Text("\(count)")
+                    .font(.recentMeta.weight(.semibold))
+                    .foregroundStyle(Color.reviewTint)
+            }
+            if !open, let summary {
+                Text(summary)
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 4)
+            if toggle != nil {
+                Image(systemName: open ? "chevron.down" : "chevron.right")
+                    .font(.icon(10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+        }
+        .contentShape(Rectangle())
+        return VStack(alignment: .leading, spacing: 0) {
+            Divider().padding(.horizontal, 22)
+            Group {
+                if let toggle {
+                    Button(action: toggle) { row }
+                        .buttonStyle(.plain)
+                        .accessibilityValue(open ? "expanded" : "collapsed")
+                } else {
+                    row.accessibilityElement(children: .combine)
+                }
+            }
+            .accessibilityAddTraits(.isHeader)
+            .padding(.horizontal, 22)
+            .padding(.top, 14)
+            .padding(.bottom, 4)
+        }
+    }
+
+    private var hasMistakes: Bool {
+        !viewModel.typos.isEmpty || !viewModel.grammar.isEmpty || !viewModel.consistency.isEmpty || !viewModel.style.words.isEmpty || !stats.wordy.isEmpty
+    }
+
+    private var mistakeCount: Int {
+        viewModel.typos.count + viewModel.grammar.count + viewModel.style.words.count + stats.wordy.count
+            + viewModel.consistency.variants.count + (viewModel.consistency.british.isEmpty ? 0 : 1)
+    }
+
+    private var hasClarityNotes: Bool {
+        !hardSentenceNotes.isEmpty || (!stats.passives.isEmpty && Settings.shows(.passive)) || (stats.sentences >= 3 && Settings.shows(.rhythm))
+    }
+
+    private var hasStyleNotes: Bool { !styleParts.isEmpty }
+
+    /// The kinds of style note the passage has, named for the closed
+    /// Style group's summary.
+    private var styleParts: [String] {
+        var parts: [String] = []
+        if !weakWords.isEmpty { parts.append("weak words") }
+        if !stats.repeated.isEmpty, Settings.shows(.repeated) { parts.append("repeated words") }
+        if !viewModel.crutches.isEmpty { parts.append("crutch words") }
+        if !viewModel.style.longParagraphs.isEmpty || !viewModel.style.ingWords.isEmpty { parts.append("style rules") }
+        if !viewModel.fiction.isEmpty { parts.append("fiction") }
+        return parts
+    }
+
+    private var styleSummary: String { styleParts.joined(separator: ", ") }
+
+    private func section(_ title: String, divider: Bool = true, @ViewBuilder content: () -> some View) -> some View {
         let guide = Guides.text(for: title)
         let guideOpen = viewModel.openGuides.contains(title)
         return VStack(alignment: .leading, spacing: 0) {
-            Divider().padding(.horizontal, 22)
+            if divider { Divider().padding(.horizontal, 22) }
             VStack(alignment: .leading, spacing: 8) {
                 NoteSectionHeader(title: title, guide: guide, isOpen: guideOpen) {
                     if guideOpen { viewModel.openGuides.remove(title) } else { viewModel.openGuides.insert(title) }
@@ -656,14 +759,11 @@ struct TextStatsView: View {
         }
     }
 
-    private var hasStyleFixes: Bool { viewModel.style.words.contains { !$0.fix.isEmpty } }
-
-    /// What breaks the user's style rules: each word to avoid with its fix,
-    /// chosen or not like a wordy phrase's (or only marked when the rule
-    /// gives none), then the sentences and paragraphs over the limits and
-    /// the -ing forms.
+    /// The words that break the user's style rules, each with its fix,
+    /// chosen or not like a wordy phrase's, or only marked when the rule
+    /// gives none.
     @ViewBuilder
-    private var styleControls: some View {
+    private var styleWordControls: some View {
         let style = viewModel.style
         ForEach(style.words, id: \.phrase) { flag in
             let chosen = viewModel.phraseFixes[flag.phrase] != nil
@@ -684,6 +784,12 @@ struct TextStatsView: View {
                 }
             }
         }
+    }
+
+    /// Paragraphs over the style rules' limit and -ing forms.
+    @ViewBuilder
+    private var styleOtherControls: some View {
+        let style = viewModel.style
         ForEach(style.longParagraphs, id: \.number) { paragraph in
             Text("Paragraph \(paragraph.number) has \(paragraph.sentences) sentences.").font(.definition).foregroundStyle(.secondary)
         }

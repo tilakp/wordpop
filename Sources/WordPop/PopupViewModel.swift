@@ -142,8 +142,7 @@ final class PopupViewModel: ObservableObject {
     @Published var openTool: PassageTool?
 
     enum PassageTool: String, CaseIterable {
-        case reframe = "Reframe", expand = "Expand", tone = "Tone", mainPoint = "Main point", transitions = "Transitions", text = "Text",
-             translate = "Translate"
+        case rewrite = "Rewrite", check = "Check", text = "Text", translate = "Translate"
     }
     /// The selected text, for the text tools, and the tool being
     /// previewed.
@@ -466,6 +465,14 @@ final class PopupViewModel: ObservableObject {
     /// open at first.
     @Published var openGroups: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "WordPop.openGroups") ?? [PillGroup.choice.rawValue]) {
         didSet { UserDefaults.standard.set(Array(openGroups).sorted(), forKey: "WordPop.openGroups") }
+    }
+
+    /// The closable groups of the notes on a passage ("style"), kept in
+    /// the same saved set as the popup's groups.
+    func isOpenNotesGroup(_ name: String) -> Bool { openGroups.contains("notes." + name) }
+
+    func toggleNotesGroup(_ name: String) {
+        if openGroups.contains("notes." + name) { openGroups.remove("notes." + name) } else { openGroups.insert("notes." + name) }
     }
 
     func isOpen(_ group: PillGroup) -> Bool {
