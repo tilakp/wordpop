@@ -72,6 +72,27 @@ enum TextCapture {
         return (value as? String).map { ($0, element) }
     }
 
+    /// Whether the focused element of `app` is known to be read-only, such
+    /// as the text of a web page. Text roles always count as editable,
+    /// since a terminal (Warp) reports its text as not settable and still
+    /// takes a paste; no answer (Emacs, Firefox) also counts as editable,
+    /// so the paste is tried as before.
+    static func focusIsReadOnly(in app: NSRunningApplication) -> Bool {
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(app.processIdentifier), kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else { return false }
+        let element = focused as! AXUIElement
+        var role: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+        let textRoles: Set<String> = [kAXTextAreaRole, kAXTextFieldRole, kAXComboBoxRole]
+        if let role = role as? String, textRoles.contains(role) { return false }
+        for attribute in [kAXSelectedTextAttribute, kAXValueAttribute] {
+            var settable: DarwinBoolean = false
+            guard AXUIElementIsAttributeSettable(element, attribute as CFString, &settable) == .success, !settable.boolValue else { return false }
+        }
+        return true
+    }
+
     /// Reads up to 1500 characters on each side of the selection and keeps
     /// the sentence, the line and the paragraph that contain it.
     private static func context(around element: AXUIElement) -> (sentence: String?, line: String?, paragraph: String?)? {

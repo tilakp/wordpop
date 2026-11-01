@@ -38,8 +38,9 @@ enum TextReplacer {
         return word
     }
 
-    /// Pastes `text` into `app` if it is still frontmost. If the user has
-    /// moved to another app since the lookup, the text stays on the
+    /// Pastes `text` into `app` if it is still frontmost and the focused
+    /// text can be changed. If not (the user moved to another app since
+    /// the lookup, or the text is read-only), the text stays on the
     /// clipboard instead and a message says so, so the change is not lost.
     @MainActor
     static func paste(_ text: String, into app: NSRunningApplication?) async {
@@ -51,6 +52,11 @@ enum TextReplacer {
             try? await Task.sleep(nanoseconds: 250_000_000)
         }
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { return copyInstead(text) }
+        // A paste into read-only text (a web page) does nothing and gives
+        // no sign of it, so the text goes on the clipboard instead.
+        if TextCapture.focusIsReadOnly(in: app) {
+            return copyInstead(text, message: "Copied, as this text cannot be changed here. Paste it with \u{2318}V.")
+        }
         let pasteboard = NSPasteboard.general
         let saved = Clipboard.snapshot()
         pasteboard.clearContents()
@@ -72,9 +78,9 @@ enum TextReplacer {
     }
 
     @MainActor
-    private static func copyInstead(_ text: String) {
+    private static func copyInstead(_ text: String, message: String = "Copied, as the app is no longer in front. Paste it with \u{2318}V.") {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
-        Toast.show("Copied, as the app is no longer in front. Paste it with \u{2318}V.")
+        Toast.show(message)
     }
 }
