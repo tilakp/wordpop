@@ -43,6 +43,8 @@ final class PopupController: NSObject, NSWindowDelegate {
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         panel.makeKey()
+        NSAccessibility.post(element: panel, notification: .announcementRequested,
+                             userInfo: [.announcement: viewModel.textStats == nil ? viewModel.entry.word : "Notes on the selected text", .priority: NSAccessibilityPriorityLevel.high.rawValue])
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.12
@@ -102,6 +104,8 @@ final class PopupController: NSObject, NSWindowDelegate {
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         panel.makeKey()
+        NSAccessibility.post(element: panel, notification: .announcementRequested,
+                             userInfo: [.announcement: viewModel.textStats == nil ? viewModel.entry.word : "Notes on the selected text", .priority: NSAccessibilityPriorityLevel.high.rawValue])
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.12
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)

@@ -101,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "Accessibility Permission Needed"
-        alert.informativeText = "WordPop needs Accessibility access to read your selected text. Grant it in System Settings > Privacy & Security > Accessibility, then try again."
+        alert.informativeText = "WordPop needs Accessibility access to read your selected text. In System Settings, open Privacy & Security (called Device Control and Data Access on newer macOS), then Accessibility, and turn on WordPop. Then try again."
         alert.addButton(withTitle: "Open System Settings")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn,

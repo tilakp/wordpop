@@ -173,11 +173,14 @@ struct TextStatsView: View {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(length > TextStats.longSentenceWords ? Color.reviewTint : Color.wordTint.opacity(run?.contains(index) == true ? 0.35 : 0.7))
                     .frame(maxWidth: 14)
-                    .frame(height: max(3, 44 * CGFloat(length) / CGFloat(longest)))
+                    .frame(height: max(3, 44 * Settings.textScale * CGFloat(length) / CGFloat(longest)))
                     .help("\(length) words: \(stats.sentenceTexts[index])")
             }
         }
-        .frame(height: 44, alignment: .bottom)
+        .frame(height: 44 * Settings.textScale, alignment: .bottom)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sentence lengths in words")
+        .accessibilityValue(lengths.map(String.init).joined(separator: ", "))
         Text(rhythmNote(lengths, run: run))
             .font(.recentMeta)
             .foregroundStyle(.secondary)
@@ -528,6 +531,7 @@ struct TextStatsView: View {
                         Button(action: { viewModel.typoFixes[typo.word] = chosen ? nil : suggestion }) {
                             WordChip(text: suggestion, tint: .reviewTint, selected: chosen, checked: chosen)
                         }
+                        .accessibilityLabel("Change \(typo.word) to \(suggestion)")
                         .buttonStyle(.plain)
                     }
                     notATypoButton { viewModel.learn(typo: typo.word) }
@@ -554,6 +558,7 @@ struct TextStatsView: View {
                             Button(action: { viewModel.grammarFixes[index] = chosen ? nil : correction }) {
                                 WordChip(text: correction, tint: .reviewTint, selected: chosen, checked: chosen)
                             }
+                            .accessibilityLabel("Change \(issue.flagged) to \(correction)")
                             .buttonStyle(.plain)
                         }
                     }
@@ -674,6 +679,7 @@ struct TextStatsView: View {
                     Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
                         WordChip(text: flag.fix, tint: .reviewTint, selected: chosen, checked: chosen)
                     }
+                    .accessibilityLabel("Change \(flag.phrase) to \(flag.fix)")
                     .buttonStyle(.plain)
                 }
             }
@@ -709,6 +715,7 @@ struct TextStatsView: View {
                     Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
                         WordChip(text: flag.fix.isEmpty ? "remove" : flag.fix, tint: .reviewTint, selected: chosen, checked: chosen, italic: flag.fix.isEmpty)
                     }
+                    .accessibilityLabel(flag.fix.isEmpty ? "Remove \(flag.phrase)" : "Change \(flag.phrase) to \(flag.fix)")
                     .buttonStyle(.plain)
                 }
             }

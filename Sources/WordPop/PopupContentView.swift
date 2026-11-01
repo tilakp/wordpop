@@ -610,6 +610,10 @@ struct PopupContentView: View {
             WordChip(text: word, tint: tint, label: viewModel.registerLabels[word.lowercased()] ?? (isRare ? "rare" : nil), selected: focused)
         }
         .buttonStyle(.plain)
+        .accessibilityHint("Looks up \(word)")
+        // VoiceOver cannot send the option and shift clicks.
+        .accessibilityAction(named: "Compare") { viewModel.onCompare(word) }
+        .modifier(ReplaceAction(enabled: viewModel.canReplace) { viewModel.onReplace(word) })
         .help([isRare ? "Less common word." : nil, viewModel.canReplace ? "\u{2325}-click to replace your selection." : nil,
                "\u{21E7}-click to compare."]
             .compactMap { $0 }.joined(separator: " "))
@@ -706,5 +710,20 @@ private struct CappedHeight: Layout {
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let capped = ProposedViewSize(width: bounds.width, height: min(bounds.height, maxHeight))
         subviews[0].place(at: bounds.origin, anchor: .topLeading, proposal: capped)
+    }
+}
+
+/// A VoiceOver action that puts a word in place of the selection, when
+/// the popup can replace it.
+private struct ReplaceAction: ViewModifier {
+    let enabled: Bool
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.accessibilityAction(named: "Replace selection", action)
+        } else {
+            content
+        }
     }
 }

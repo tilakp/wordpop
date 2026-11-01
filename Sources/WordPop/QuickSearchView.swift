@@ -317,6 +317,7 @@ struct QuickSearchView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(model.selection == index ? .isSelected : [])
             }
         }
     }
