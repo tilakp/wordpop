@@ -357,7 +357,15 @@ final class PopupController: NSObject, NSWindowDelegate {
         }
         viewModel.onReplaceSentence = { [weak self] sentence, new in
             // The passage goes back with only that sentence changed.
-            guard let self, let target = self.replaceTarget, let range = target.text.range(of: sentence) else { return }
+            guard let self, let target = self.replaceTarget else { return }
+            guard let range = target.text.range(of: sentence) else {
+                // The sentence was not found as it was: give the new one to
+                // the user rather than drop it.
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(new, forType: .string)
+                Task { @MainActor in Toast.show("Copied the new sentence. Paste it with \u{2318}V.") }
+                return
+            }
             self.replaceTarget = nil
             self.hide()
             Task { @MainActor in

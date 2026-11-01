@@ -38,18 +38,19 @@ enum TextReplacer {
         return word
     }
 
-    /// Pastes `text` into `app` if it is still frontmost; does nothing if
-    /// the user has moved to another app since the lookup.
+    /// Pastes `text` into `app` if it is still frontmost. If the user has
+    /// moved to another app since the lookup, the text stays on the
+    /// clipboard instead and a message says so, so the change is not lost.
     @MainActor
     static func paste(_ text: String, into app: NSRunningApplication?) async {
-        guard let app else { return }
+        guard let app else { return copyInstead(text) }
         // If WordPop took focus (a Preferences or Practice window was in
         // front), hand it back to the app the selection came from.
         if NSWorkspace.shared.frontmostApplication?.processIdentifier == NSRunningApplication.current.processIdentifier {
             app.activate()
             try? await Task.sleep(nanoseconds: 250_000_000)
         }
-        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { return }
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { return copyInstead(text) }
         let pasteboard = NSPasteboard.general
         let saved = Clipboard.snapshot()
         pasteboard.clearContents()
@@ -68,5 +69,12 @@ enum TextReplacer {
         if pasteboard.changeCount == changeCount {
             Clipboard.restore(saved)
         }
+    }
+
+    @MainActor
+    private static func copyInstead(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        Toast.show("Copied, as the app is no longer in front. Paste it with \u{2318}V.")
     }
 }
