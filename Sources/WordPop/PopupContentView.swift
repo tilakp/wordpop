@@ -160,7 +160,7 @@ struct PopupContentView: View {
                     .padding(.vertical, 10)
             }
 
-            if hasScrollableContent {
+            if !items.isEmpty {
                 Divider().padding(.horizontal, 22)
 
                 if definitionsCapped {
@@ -180,7 +180,9 @@ struct PopupContentView: View {
                 }
             }
 
-            ForEach(viewModel.sections) { section in
+            let sections = viewModel.sections
+            // The main card: the best words to use, then the tone buttons.
+            ForEach(sections.filter { $0.group == .main }) { section in
                 Divider().padding(.horizontal, 22)
                 pillSection(section)
                     .padding(.horizontal, 22)
@@ -194,40 +196,111 @@ struct PopupContentView: View {
                     .padding(.vertical, 12)
             }
 
+            ForEach([PillGroup.choice, .usage, .sound], id: \.self) { group in
+                let groupSections = sections.filter { $0.group == group }
+                let extras = group == .usage ? usageExtras : []
+                if !groupSections.isEmpty || !extras.isEmpty {
+                    Divider().padding(.horizontal, 22)
+                    groupHeader(group, contents: groupSections.map(\.title) + extras)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 12)
+                    if viewModel.isOpen(group) {
+                        ForEach(groupSections) { section in
+                            pillSection(section)
+                                .padding(.horizontal, 22)
+                                .padding(.bottom, 16)
+                        }
+                        if group == .usage { usageGroupExtras }
+                    }
+                }
+            }
+        }
+    }
+
+    /// The other parts of the Usage group, named for its summary line.
+    private var usageExtras: [String] {
+        var extras: [String] = []
+        if viewModel.describingWords == nil, viewModel.describingPartOfSpeech != nil, WritingModel.isAvailable, Settings.shows(.describing) {
+            extras.append("describing words")
+        }
+        if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable, Settings.shows(.collocations) { extras.append("phrases with it") }
+        if WritingModel.isAvailable, Settings.shows(.examples), viewModel.exampleSense != nil { extras.append("examples") }
+        if !viewModel.entry.usageNotes.isEmpty, Settings.shows(.usage) { extras.append("usage notes") }
+        if !viewModel.entry.phrases.isEmpty, Settings.shows(.phrases) { extras.append("idioms") }
+        if viewModel.entry.origin != nil, Settings.shows(.origin) { extras.append("origin") }
+        return extras
+    }
+
+    /// A group's title row: a click opens or closes it, and while closed
+    /// it names what is inside.
+    private func groupHeader(_ group: PillGroup, contents: [String]) -> some View {
+        let open = viewModel.isOpen(group)
+        return Button(action: { viewModel.toggle(group) }) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                // A group title is a level above the section labels inside
+                // it: larger, darker and not in capitals.
+                Text(group.title)
+                    .font(.phrase)
+                    .foregroundStyle(.primary)
+                    .accessibilityAddTraits(.isHeader)
+                if !open {
+                    Text(contents.map { $0.lowercased() }.joined(separator: ", "))
+                        .font(.recentMeta)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: open ? "chevron.down" : "chevron.right")
+                    .font(.icon(10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(group.title)
+        .accessibilityValue(open ? "expanded" : "collapsed")
+        .accessibilityHint(open ? "" : contents.joined(separator: ", "))
+    }
+
+    /// The links and notes of the Usage group after its pill sections:
+    /// describing words, phrases with the word, more examples, usage
+    /// notes, idioms and origin.
+    @ViewBuilder
+    private var usageGroupExtras: some View {
+        VStack(alignment: .leading, spacing: 12) {
             if viewModel.describingWords == nil, let partOfSpeech = viewModel.describingPartOfSpeech, WritingModel.isAvailable, Settings.shows(.describing) {
-                Divider().padding(.horizontal, 22)
                 TextLink(viewModel.isLoadingDescribing
                          ? "Finding words\u{2026}"
                          : partOfSpeech == "noun"
                          ? "Words that describe \u{201C}\(viewModel.entry.word)\u{201D}"
                          : "Nouns \u{201C}\(viewModel.entry.word)\u{201D} describes", action: viewModel.onLoadDescribing)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
             } else if viewModel.describingWords?.isEmpty == true {
-                Divider().padding(.horizontal, 22)
-                Text("No describing words found.")
-                    .font(.recentMeta)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 12)
+                Text("No describing words found.").font(.recentMeta).foregroundStyle(.secondary)
             }
-
             if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable, Settings.shows(.collocations) {
-                Divider().padding(.horizontal, 22)
                 TextLink(viewModel.isLoadingCollocations
                          ? "Finding phrases\u{2026}"
                          : "Phrases with \u{201C}\(viewModel.entry.word)\u{201D}", action: viewModel.onLoadCollocations)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
             } else if viewModel.collocations?.isEmpty == true {
-                Divider().padding(.horizontal, 22)
-                Text("No common phrases found.")
-                    .font(.recentMeta)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 12)
+                Text("No common phrases found.").font(.recentMeta).foregroundStyle(.secondary)
+            }
+            if WritingModel.isAvailable, Settings.shows(.examples), viewModel.exampleSense != nil {
+                moreExamplesView
+            }
+            if !viewModel.entry.usageNotes.isEmpty, Settings.shows(.usage) {
+                usageDisclosure
+            }
+            if !viewModel.entry.phrases.isEmpty, Settings.shows(.phrases) {
+                phrasesDisclosure
+            }
+            if let origin = viewModel.entry.origin, Settings.shows(.origin) {
+                originDisclosure(origin)
             }
         }
+        .padding(.horizontal, 22)
+        .padding(.bottom, 16)
     }
 
     /// The selected idiom: its dictionary phrase entry and where it is
@@ -351,19 +424,7 @@ struct PopupContentView: View {
             }
             if shown.count < items.count {
                 let senses = items.filter { $0.number != nil }.count
-                TextLink("Show all \(senses) senses") { viewModel.showAllDefinitions = true }
-            }
-            if WritingModel.isAvailable, Settings.shows(.examples), viewModel.exampleSense != nil {
-                moreExamplesView
-            }
-            if !viewModel.entry.usageNotes.isEmpty, Settings.shows(.usage) {
-                usageDisclosure
-            }
-            if !viewModel.entry.phrases.isEmpty, Settings.shows(.phrases) {
-                phrasesDisclosure
-            }
-            if let origin = viewModel.entry.origin, Settings.shows(.origin) {
-                originDisclosure(origin)
+                TextLink(senses > 3 ? "Show all \(senses) senses" : "Show all uses") { viewModel.showAllDefinitions = true }
             }
         }
         .padding(.horizontal, 22)
@@ -485,13 +546,20 @@ struct PopupContentView: View {
         }
     }
 
-    /// The items up to the start of the fourth numbered sense.
+    /// The first three numbered senses, each with at most two of its
+    /// sub-senses: enough to see what the word means without scrolling
+    /// past ten uses of "run" in racing and cricket.
     private static func firstSenses(of items: [DefinitionItem]) -> [DefinitionItem] {
-        var numbered = 0
-        return Array(items.prefix { item in
+        var numbered = 0, subItems = 0
+        return items.filter { item in
+            if item.isSubItem {
+                subItems += 1
+                return numbered <= 3 && subItems <= 2
+            }
             if item.number != nil { numbered += 1 }
+            subItems = 0
             return numbered <= 3
-        })
+        }
     }
 
     private func itemsList(_ items: [DefinitionItem]) -> some View {

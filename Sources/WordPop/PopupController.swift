@@ -541,6 +541,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             viewModel.$isFindingMainPoint.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$typos.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$openGuides.map { _ in () }.eraseToAnyPublisher(),
+            viewModel.$openGroups.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$translation.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$isTranslating.map { _ in () }.eraseToAnyPublisher(),
             viewModel.$translationTargets.map { _ in () }.eraseToAnyPublisher(),

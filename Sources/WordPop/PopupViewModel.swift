@@ -5,8 +5,36 @@ struct PillRow: Identifiable {
     let id: Int
     let example: String?
     let words: [String]
-    /// Index of the first word in the flattened, keyboard-navigable pill list.
-    let firstPillIndex: Int
+    /// Index of the first word in the flattened, keyboard-navigable pill
+    /// list; the pills of a closed group come after all open ones.
+    var firstPillIndex: Int
+}
+
+/// Where a pill section sits in the popup: the main card, always shown,
+/// or one of the groups that open and close.
+enum PillGroup: String, CaseIterable {
+    case main, choice, usage, sound
+
+    var title: String {
+        switch self {
+        case .main: ""
+        case .choice: "Word choice"
+        case .usage: "Usage"
+        case .sound: "Sound"
+        }
+    }
+
+    /// The group of a section. Synonyms are in the main card unless
+    /// "Fits your sentence" is there already.
+    static func of(_ id: String, withFits: Bool) -> PillGroup {
+        switch id {
+        case "spelling", "tone", "fits": .main
+        case "synonyms": withFits ? .choice : .main
+        case "describing", "collocations": .usage
+        case "lineRhymes", "rhymes": .sound
+        default: .choice
+        }
+    }
 }
 
 /// A tone a writer can shift a word toward.
@@ -46,7 +74,8 @@ struct PillSection: Identifiable {
     let id: String
     let title: String
     let tint: Color
-    let rows: [PillRow]
+    var rows: [PillRow]
+    var group: PillGroup = .main
 }
 
 final class PopupViewModel: ObservableObject {
@@ -409,11 +438,43 @@ final class PopupViewModel: ObservableObject {
         if !rhymeRows.isEmpty {
             sections.append(PillSection(id: "rhymes", title: "Rhymes", tint: .rhymeTint, rows: rhymeRows))
         }
-        return sections.filter { section in PopupSection(pillSectionID: section.id).map(Settings.shows) ?? true }
+        var shown = sections.filter { section in PopupSection(pillSectionID: section.id).map(Settings.shows) ?? true }
+        let withFits = shown.contains { $0.id == "fits" }
+        for index in shown.indices { shown[index].group = PillGroup.of(shown[index].id, withFits: withFits) }
+        // In the order they are drawn, and numbered for the keyboard so
+        // that focus moves through the open groups only.
+        shown = PillGroup.allCases.flatMap { group in shown.filter { $0.group == group } }
+        var next = 0
+        for open in [true, false] {
+            for sectionIndex in shown.indices where isOpen(shown[sectionIndex].group) == open {
+                for rowIndex in shown[sectionIndex].rows.indices {
+                    shown[sectionIndex].rows[rowIndex].firstPillIndex = next
+                    next += shown[sectionIndex].rows[rowIndex].words.count
+                }
+            }
+        }
+        return shown
     }
 
+    /// The words the keyboard moves through: those in the main card and
+    /// the open groups, in order.
     var pills: [String] {
-        sections.flatMap { $0.rows.flatMap(\.words) }
+        sections.filter { isOpen($0.group) }.flatMap { $0.rows.flatMap(\.words) }
+    }
+
+    /// The groups the user has open, kept between popups. Word choice is
+    /// open at first.
+    @Published var openGroups: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "WordPop.openGroups") ?? [PillGroup.choice.rawValue]) {
+        didSet { UserDefaults.standard.set(Array(openGroups).sorted(), forKey: "WordPop.openGroups") }
+    }
+
+    func isOpen(_ group: PillGroup) -> Bool {
+        group == .main || openGroups.contains(group.rawValue)
+    }
+
+    func toggle(_ group: PillGroup) {
+        if openGroups.contains(group.rawValue) { openGroups.remove(group.rawValue) } else { openGroups.insert(group.rawValue) }
+        focusedPill = nil
     }
 
     func reset(with newEntry: WordEntry) {

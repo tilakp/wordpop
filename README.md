@@ -16,6 +16,8 @@ WordPop lives in the menu bar and stays out of the Dock.
 
 ### Look up a word
 
+The popup puts the answer first: the definitions (for a long entry, the first senses with "Show all"), then the best words for your sentence and the tone buttons. Everything else sits in three groups that open with a click and stay as you left them: **Word choice** (more synonyms, stronger words, antonyms, more specific words, word family, often confused, sounds like), **Usage** (describing words, phrases with the word, more examples, usage notes, idioms, origin) and **Sound** (rhymes). A closed group names what is inside.
+
 - **Lookup from any app.** Select text in a browser, editor, PDF, chat window, or anywhere else, then press `⌃⌥⌘D`. The popup appears in the centre of the screen, or next to the mouse pointer if you choose that in Preferences.
 - **Definitions and examples** from the built-in macOS dictionary (the same data as Dictionary.app), parsed into numbered senses and sub-senses. Words with several parts of speech get a verb/noun/adjective switcher.
 - **Pronunciation** shown as IPA (per part of speech for words like "project" and "record"), plus a speaker button that reads the word aloud with the system voice. Syllable breaks ("me·tic·u·lous") and inflected forms ("runs, running, past ran") come along with it.
