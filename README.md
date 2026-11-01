@@ -5,11 +5,11 @@ A writer's dictionary for the Mac. Select a word anywhere, press a hotkey, and g
 WordPop lives in the menu bar and stays out of the Dock.
 
 <p align="center">
-  <img src="docs/popup.png" width="300" alt="WordPop popup for meticulous, selected in a sentence: the definition, synonyms that fit the sentence, tagged synonyms, antonyms, rhymes and tone buttons" valign="top">
+  <img src="docs/popup.png" width="300" alt="WordPop popup for meticulous, selected in a sentence: the definition, the synonyms that fit the sentence, tone buttons, the open Word choice group with more synonyms, antonyms and word family, and the closed Usage and Sound groups" valign="top">
   &nbsp;
   <img src="docs/quick-search.png" width="300" alt="Quick Search with the pattern con* : agree, listing consent, conform, concede, concord, consort and concur with their meanings" valign="top">
   &nbsp;
-  <img src="docs/passage.png" width="300" alt="Notes on a selected passage: counts and reading grade, a Tools row, a grammar fix (should of to have), e-mail spelled two ways, wordy phrases with fixes, and sentence rhythm bars" valign="top">
+  <img src="docs/passage.png" width="300" alt="Notes on a selected passage: counts and reading grade, the Tools row, Mistakes with one Fix button (a typo, email spelled two ways, wordy phrases and a hidden verb), Clarity with a hard sentence, passive voice and rhythm bars, and the closed Style group" valign="top">
 </p>
 
 ## Features
