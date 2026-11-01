@@ -35,4 +35,9 @@ final class TextToolsTests: XCTestCase {
         XCTAssertFalse(TextTool.useful(for: "Hi Sam, please send it before Friday. Thanks.").contains(.sentenceCase))
         XCTAssertEqual(TextTool.sentenceCase.apply(to: "Plans For Friday And June"), "Plans for Friday and June")
     }
+
+    func testASentenceIsNotAHeadline() {
+        XCTAssertTrue(TextTool.useful(for: "Remote work makes teams more productive.").isEmpty)
+        XCTAssertEqual(TextTool.useful(for: "remote work makes teams more productive"), [.titleCase])
+    }
 }

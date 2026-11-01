@@ -24,12 +24,13 @@ enum TextTool: String, CaseIterable {
     }
 
     /// The tools that would change `text`: title case only for a short
-    /// headline, never for a passage of sentences, and sentence case only
+    /// headline (no closing period), never for a sentence or a passage, and sentence case only
     /// for text that looks title-cased or is in capitals, not for prose
     /// whose capitals are names.
     static func useful(for text: String) -> [TextTool] {
         let words = text.split(whereSeparator: \.isWhitespace)
-        let headline = words.count <= 15 && !text.contains("\n")
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        let headline = words.count <= 15 && !text.contains("\n") && !".!?".contains(trimmed.last ?? ".")
         let capitalized = words.filter { $0.first?.isUppercase == true }.count
         let looksTitled = capitalized * 2 >= words.count || !text.contains(where: \.isLowercase)
         return allCases.filter { tool in

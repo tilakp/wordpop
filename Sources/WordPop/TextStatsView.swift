@@ -243,7 +243,8 @@ struct TextStatsView: View {
     /// A chip per tool; the open one shows its controls below the row.
     @ViewBuilder
     private var toolControls: some View {
-        HStack(spacing: 6) {
+        // Wraps to a second line when the chips do not fit in one.
+        FlowLayout(spacing: 6) {
             ForEach(tools, id: \.self) { tool in
                 let open = viewModel.openTool == tool
                 Button(action: { viewModel.openTool = open ? nil : tool }) {

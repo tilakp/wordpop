@@ -383,7 +383,9 @@ final class PopupViewModel: ObservableObject {
         // headword's.
         let spoken = selectionText.map { $0.lowercased().trimmingCharacters(in: .punctuationCharacters) }.flatMap { $0.contains(" ") ? nil : $0 }
         let homophones = spoken.map(Database.homophones) ?? []
-        let soundsLike = homophones.isEmpty ? Database.homophones(of: entry.word) : homophones
+        // Words already in "Often confused with" are not listed twice.
+        let confused = Set(entry.confusedWith.map { $0.lowercased() })
+        let soundsLike = (homophones.isEmpty ? Database.homophones(of: entry.word) : homophones).filter { !confused.contains($0.lowercased()) }
         if !soundsLike.isEmpty {
             sections.append(PillSection(id: "soundsLike", title: "Sounds like", tint: .confusedTint, rows: [row(nil, soundsLike)]))
         }
