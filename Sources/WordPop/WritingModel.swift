@@ -290,14 +290,23 @@ enum WritingModel {
 
     /// Which of `definitions` (0-based) matches how `word` is used in
     /// `sentence`: "She runs a small bakery" -> "be in charge of; manage".
-    static func senseIndex(of word: String, in sentence: String, definitions: [String]) async -> Int? {
+    /// `meaning`, when known, is the word's definition in the sentence.
+    static func senseIndex(of word: String, in sentence: String, definitions: [String], meaning: String? = nil) async -> Int? {
         guard definitions.count > 1 else { return nil }
         let list = definitions.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
-        let instructions = "You pick which dictionary definition of a word matches its use in a sentence."
-        let prompt = "Sentence: \(sentence)\nWord: \(word)\nDefinitions:\n\(list)"
+        let instructions: String
+        let prompt: String
+        if let meaning {
+            instructions = "You pick which group of synonyms has the same meaning as a given definition of a word."
+            prompt = "Word: \(word)\nDefinition: \(meaning)\nExample: \(sentence)\nGroups:\n\(list)"
+        } else {
+            instructions = "You pick which dictionary definition of a word matches its use in a sentence."
+            prompt = "Sentence: \(sentence)\nWord: \(word)\nDefinitions:\n\(list)"
+        }
         var number: Int?
         #if canImport(FoundationModels)
-        if #available(macOS 26, *) { number = await structured(SensePick.self, instructions, prompt)?.number }
+        // Greedy, so the same sentence always gets the same sense.
+        if #available(macOS 26, *) { number = await structured(SensePick.self, instructions, prompt, options: GenerationOptions(sampling: .greedy))?.number }
         #endif
         if number == nil, let answer = await ask(instructions, prompt + "\nAnswer with the number of the matching definition and nothing else.") {
             number = numbers(answer).first
@@ -423,8 +432,9 @@ enum WritingModel {
 
     #if canImport(FoundationModels)
     @available(macOS 26, *)
-    private static func structured<T: Generable>(_ type: T.Type, _ instructions: String, _ prompt: String) async -> T? {
-        try? await LanguageModelSession(instructions: instructions).respond(to: prompt, generating: type).content
+    private static func structured<T: Generable>(_ type: T.Type, _ instructions: String, _ prompt: String,
+                                                 options: GenerationOptions = GenerationOptions()) async -> T? {
+        try? await LanguageModelSession(instructions: instructions).respond(to: prompt, generating: type, options: options).content
     }
     #endif
 

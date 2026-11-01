@@ -15,6 +15,20 @@ if let index = CommandLine.arguments.firstIndex(of: "--describe"), index + 1 < C
     dispatchMain()
 }
 
+if let index = CommandLine.arguments.firstIndex(of: "--fits"), index + 2 < CommandLine.arguments.count {
+    let (word, sentence) = (CommandLine.arguments[index + 1], CommandLine.arguments[index + 2])
+    let entry = DictionaryLookup.lookup(word)
+    let block = PopupController.contextBlockIndex(in: entry, word: word, sentence: sentence)
+    Task {
+        let match = await PopupController.contextMatch(of: entry, word: word, sentence: sentence, in: block)
+        let definition = match.senseNumber.flatMap { number in entry.blocks[block ?? 0].items.first { $0.number == number }?.text }
+        print("sense:", definition ?? "-")
+        print("fits:", match.synonyms.prefix(8).joined(separator: ", "))
+        exit(0)
+    }
+    dispatchMain()
+}
+
 if let index = CommandLine.arguments.firstIndex(of: "--compare"), index + 2 < CommandLine.arguments.count {
     let (first, second) = (CommandLine.arguments[index + 1], CommandLine.arguments[index + 2])
     let firstDefinition = DictionaryLookup.firstDefinition(of: first)

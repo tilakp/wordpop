@@ -42,8 +42,7 @@ final class PopupController: NSObject, NSWindowDelegate {
         if selection != nil, entry.found { viewModel.replacedCount = ReplacedWords.shared.crutchCount(of: entry.word) }
         let contextBlock = contextBlockIndex(in: entry, for: selection)
         if let contextBlock { viewModel.selectedBlock = contextBlock }
-        if Settings.shows(.fits) { rankSynonyms(of: entry, for: selection, in: contextBlock) }
-        if Settings.shows(.fits) { findSense(of: entry, for: selection, in: contextBlock ?? 0) }
+        if Settings.shows(.fits) { matchContext(of: entry, for: selection, in: contextBlock) }
         if Settings.shows(.rhymes) { rankRhymes(of: entry, for: selection) }
         findPhrase(of: entry, for: selection)
         if phraseOnly, let selection { viewModel.selectedPhrase = selection.trimmed }
@@ -147,68 +146,86 @@ final class PopupController: NSObject, NSWindowDelegate {
         })
     }
 
-    /// Asks the on-device model which synonyms fit the sentence the word
-    /// was selected in, and shows them when it answers (about a second),
-    /// provided the popup still shows the same entry.
     /// The block for the part of speech the selected word has in its
     /// sentence ("raced" in "She raced home" is a verb). A first block
     /// that already covers it ("modal verb" for "will") is kept.
-    private func contextBlockIndex(in entry: WordEntry, for selection: TextCapture.Selection?) -> Int? {
-        guard let selection, let sentence = selection.sentence,
-              let partOfSpeech = TextCapture.partOfSpeech(of: selection.trimmed, in: sentence) else { return nil }
+    static func contextBlockIndex(in entry: WordEntry, word: String, sentence: String) -> Int? {
+        guard let partOfSpeech = TextCapture.partOfSpeech(of: word, in: sentence) else { return nil }
         if entry.blocks.first?.partOfSpeech?.contains(partOfSpeech) == true { return 0 }
         return entry.blocks.firstIndex { $0.partOfSpeech == partOfSpeech }
     }
 
-    private func rankSynonyms(of entry: WordEntry, for selection: TextCapture.Selection?, in contextBlock: Int?) {
-        guard let selection, let sentence = selection.sentence, WritingModel.isAvailable else { return }
+    private func contextBlockIndex(in entry: WordEntry, for selection: TextCapture.Selection?) -> Int? {
+        guard let selection, let sentence = selection.sentence else { return nil }
+        return Self.contextBlockIndex(in: entry, word: selection.trimmed, sentence: sentence)
+    }
+
+    /// What the word means in its sentence: the numbered dictionary sense
+    /// (the model picks it) and the synonyms that fit. The thesaurus sense
+    /// is picked with that definition as a hint, so the "Fits your
+    /// sentence" words agree with the sense marked "In your sentence"
+    /// (two separate questions once gave "run" in "She runs a bakery"
+    /// the sense "manage" and the fits "be valid, last").
+    static func contextMatch(of entry: WordEntry, word: String, sentence: String, in contextBlock: Int?) async -> (senseNumber: Int?, synonyms: [String], fromSense: Bool) {
+        let blockIndex = contextBlock ?? 0
+        var senseNumber: Int?
+        var meaning: String?
+        if entry.blocks.indices.contains(blockIndex) {
+            // Sub-senses too when the list stays short: "bright" in "a
+            // bright future" is one ("of someone's future"); picking it
+            // marks its numbered parent. A long list ("run" has 43 items)
+            // makes the model pick worse, so then only numbered senses.
+            let all = entry.blocks[blockIndex].items
+            let items = all.count <= 12 ? all : all.filter { $0.number != nil }
+            if items.count > 1, let index = await WritingModel.senseIndex(of: word, in: sentence, definitions: items.map(\.text)) {
+                senseNumber = items[...index].last { $0.number != nil }?.number
+                meaning = items[index].text
+            } else if items.count == 1 {
+                meaning = items[0].text
+            }
+        }
         // Only the part of speech the word has in the sentence: "will" in
         // "I will go" must not get the noun's synonyms (determination).
         let matching = contextBlock.map { [entry.blocks[$0]] } ?? []
         var candidates: [String] = []
         for block in matching.isEmpty ? entry.blocks : matching {
-            for word in block.senses.flatMap(\.synonyms) + block.synonyms where !candidates.contains(word) {
-                candidates.append(word)
+            for synonym in block.senses.flatMap(\.synonyms) + block.synonyms where !candidates.contains(synonym) {
+                candidates.append(synonym)
             }
         }
-        guard candidates.count > 1 else { return }
+        guard candidates.count > 1 else { return (senseNumber, [], false) }
         // A word with many thesaurus senses ("run" has 22) puts most of its
         // synonyms past any candidate list the model can take, so first
         // the model picks the sense the sentence uses, from each sense's
         // example and leading synonyms; its synonyms are the fit.
         let senses = (matching.first ?? entry.blocks.first)?.senses.filter { !$0.synonyms.isEmpty } ?? []
-        Task { @MainActor in
-            var fits: [String]
-            if senses.count > 1 {
-                let descriptions = senses.map { sense in
-                    (sense.example.map { "(\($0)) " } ?? "") + sense.synonyms.prefix(4).joined(separator: ", ")
-                }
-                guard let index = await WritingModel.senseIndex(of: selection.trimmed, in: sentence, definitions: descriptions) else { return }
-                guard viewModel.entry.word == entry.word else { return }
-                viewModel.contextSynonyms = senses[index].synonyms
-                fits = senses[index].synonyms
-            } else {
-                fits = await WritingModel.bestFits(for: selection.trimmed, in: sentence, candidates: Array(candidates.prefix(40)))
+        if senses.count > 1 {
+            let descriptions = senses.map { sense in
+                (sense.example.map { "(\($0)) " } ?? "") + sense.synonyms.prefix(4).joined(separator: ", ")
             }
-            guard viewModel.entry.word == entry.word, viewModel.bestFits.isEmpty else { return }
+            guard let index = await WritingModel.senseIndex(of: word, in: sentence, definitions: descriptions, meaning: meaning) else {
+                return (senseNumber, [], false)
+            }
+            return (senseNumber, senses[index].synonyms, true)
+        }
+        return (senseNumber, await WritingModel.bestFits(for: word, in: sentence, candidates: Array(candidates.prefix(40))), false)
+    }
+
+    /// Shows the sense and the synonyms that fit the selection's sentence
+    /// when the model answers (about a second), provided the popup still
+    /// shows the same entry.
+    private func matchContext(of entry: WordEntry, for selection: TextCapture.Selection?, in contextBlock: Int?) {
+        guard let selection, let sentence = selection.sentence, WritingModel.isAvailable else { return }
+        Task { @MainActor in
+            let match = await Self.contextMatch(of: entry, word: selection.trimmed, sentence: sentence, in: contextBlock)
+            guard viewModel.entry.word == entry.word else { return }
+            if let number = match.senseNumber { viewModel.contextSense = (contextBlock ?? 0, number) }
+            guard !match.synonyms.isEmpty, viewModel.bestFits.isEmpty else { return }
+            if match.fromSense { viewModel.contextSynonyms = match.synonyms }
             // The new section comes first, so a focused pill's index would
             // now point at another word.
             viewModel.focusedPill = nil
-            viewModel.bestFits = Array(fits.prefix(8))
-        }
-    }
-
-    /// Asks the on-device model which numbered sense of the block matches
-    /// the selection's sentence, and moves that sense to the top.
-    private func findSense(of entry: WordEntry, for selection: TextCapture.Selection?, in blockIndex: Int) {
-        guard let selection, let sentence = selection.sentence, WritingModel.isAvailable,
-              entry.blocks.indices.contains(blockIndex) else { return }
-        let senses = entry.blocks[blockIndex].items.filter { $0.number != nil }
-        guard senses.count > 1 else { return }
-        Task { @MainActor in
-            guard let index = await WritingModel.senseIndex(of: selection.trimmed, in: sentence, definitions: senses.map(\.text)),
-                  viewModel.entry.word == entry.word, let number = senses[index].number else { return }
-            viewModel.contextSense = (blockIndex, number)
+            viewModel.bestFits = Array(match.synonyms.prefix(8))
         }
     }
 
