@@ -2,13 +2,17 @@ import AppKit
 
 /// The menu bar icon that gives this accessory (Dock-less) app a way to reach
 /// Preferences and Quit.
-final class StatusItemController: NSObject {
+final class StatusItemController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem?
+    private let lookUpHintItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let quickSearchItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let onQuickSearch: () -> Void
     private let onPreferences: () -> Void
     private let onPractice: () -> Void
     private let onQuit: () -> Void
 
-    init(onPreferences: @escaping () -> Void, onPractice: @escaping () -> Void, onQuit: @escaping () -> Void) {
+    init(onQuickSearch: @escaping () -> Void, onPreferences: @escaping () -> Void, onPractice: @escaping () -> Void, onQuit: @escaping () -> Void) {
+        self.onQuickSearch = onQuickSearch
         self.onPreferences = onPreferences
         self.onPractice = onPractice
         self.onQuit = onQuit
@@ -21,6 +25,14 @@ final class StatusItemController: NSObject {
         item.button?.image = NSImage(systemSymbolName: "character.book.closed.fill", accessibilityDescription: "WordPop")
 
         let menu = NSMenu()
+        menu.delegate = self
+        // Filled in each time the menu opens, as the shortcuts can change.
+        lookUpHintItem.isEnabled = false
+        menu.addItem(lookUpHintItem)
+        quickSearchItem.action = #selector(quickSearchClicked)
+        quickSearchItem.target = self
+        menu.addItem(quickSearchItem)
+        menu.addItem(.separator())
         let preferencesItem = NSMenuItem(title: "Preferences\u{2026}", action: #selector(preferencesClicked), keyEquivalent: ",")
         preferencesItem.target = self
         menu.addItem(preferencesItem)
@@ -42,6 +54,7 @@ final class StatusItemController: NSObject {
         statusItem = item
     }
 
+    @objc private func quickSearchClicked() { onQuickSearch() }
     @objc private func preferencesClicked() { onPreferences() }
     @objc private func practiceClicked() { onPractice() }
     @objc private func copyStarredClicked() { StarredWords.shared.copyToClipboard() }
@@ -51,4 +64,10 @@ final class StatusItemController: NSObject {
         ReplacedWords.shared.clear()
     }
     @objc private func quitClicked() { onQuit() }
+
+    /// The two shortcuts, as they are set now.
+    func menuWillOpen(_ menu: NSMenu) {
+        lookUpHintItem.title = "Look up: select text and press \(HotkeySettings.current.displayString)"
+        quickSearchItem.title = "Quick Search (\(HotkeySettings.quickSearch.displayString))"
+    }
 }

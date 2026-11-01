@@ -98,6 +98,15 @@ enum Settings {
     static let fictionNotesKey = "WordPop.fictionNotes"
     static var showsFiction: Bool { UserDefaults.standard.bool(forKey: fictionNotesKey) }
 
+    /// How many times the user has replaced a word from the popup; the
+    /// footer that explains ⌥-click goes once they have done it a few
+    /// times.
+    static let replaceCountKey = "WordPop.replaceCount"
+    static var showsPillHint: Bool { UserDefaults.standard.integer(forKey: replaceCountKey) < 3 }
+    static func countReplace() {
+        UserDefaults.standard.set(UserDefaults.standard.integer(forKey: replaceCountKey) + 1, forKey: replaceCountKey)
+    }
+
     static var targetGrade: Int? {
         let grade = UserDefaults.standard.integer(forKey: targetGradeKey)
         return grade > 0 ? grade : nil

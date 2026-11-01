@@ -114,6 +114,18 @@ struct PopupContentView: View {
                     .id(viewModel.entry.word)
             }
 
+            if Settings.showsPillHint, !viewModel.sections.isEmpty {
+                Divider().padding(.horizontal, 22)
+                Text(viewModel.canReplace
+                     ? "Click a word to look it up \u{B7} \u{2325}-click to put it in your text \u{B7} \u{21E7}-click to compare"
+                     : "Click a word to look it up \u{B7} \u{21E7}-click to compare")
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 9)
+            }
+
             if isEmpty {
                 Text("No definition found for \u{201C}\(viewModel.entry.word)\u{201D}.")
                     .font(.example)

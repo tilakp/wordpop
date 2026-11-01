@@ -140,6 +140,8 @@ struct ActionChip: View {
         Text(title)
             .font(.link)
             .foregroundStyle(.primary)
+            .lineLimit(1)
+            .fixedSize()
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(Color.primary.opacity(isOn ? 0.13 : 0.06), in: Capsule())

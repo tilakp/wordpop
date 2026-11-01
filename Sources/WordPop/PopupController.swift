@@ -247,6 +247,7 @@ final class PopupController: NSObject, NSWindowDelegate {
             self.replaceTarget = nil
             self.hide()
             if let replaced = self.replaceEntry?.word { ReplacedWords.shared.record(replaced) }
+            Settings.countReplace()
             Task { @MainActor in
                 // Let the panel give up key status so the paste lands in
                 // the app the selection came from.

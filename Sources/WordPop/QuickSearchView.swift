@@ -192,6 +192,12 @@ struct QuickSearchView: View {
                     .padding(.horizontal, 18)
                     .padding(.vertical, 12)
             }
+            if model.query.isEmpty {
+                Divider().padding(.horizontal, 18)
+                modeHelp
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+            }
         }
         .frame(width: Self.width)
         .background(Color.popupPage)
@@ -217,6 +223,37 @@ struct QuickSearchView: View {
         .onChange(of: model.usage.map { "\($0.phrase)\($0.count)" }) { _, _ in onLayoutChange() }
     }
 
+    /// The search modes, shown while the field is empty: a click starts
+    /// one, so nobody has to know the prefixes by heart.
+    private var modeHelp: some View {
+        HStack(spacing: 6) {
+            Text("Also:").font(.recentMeta).foregroundStyle(.secondary)
+            ForEach([("? Describe", "?"), ("\" Phrase", "\""), ("* Pattern", "con*")], id: \.1) { title, prefix in
+                Button(action: {
+                    model.query = prefix
+                    isFocused = true
+                }) { ActionChip(title: title) }
+                .buttonStyle(.plain)
+                .help(Self.modeHelpText[prefix] ?? "")
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private static let modeHelpText = [
+        "?": "Type ? and a meaning, then Return: \u{201C}?the smell of rain\u{201D} finds petrichor.",
+        "\"": "Type a quote mark and a phrase to see how often it is used. Compare two with |.",
+        "con*": "* stands for any letters and ? for one. Add \u{201C}: meaning\u{201D} to keep words with that meaning.",
+    ]
+
+    /// The mode the query is in, shown as a chip at the start of the field.
+    private var modeName: String? {
+        if model.describedMeaning != nil { return "Describe" }
+        if model.usagePhrases != nil { return "Phrase" }
+        if model.pattern != nil { return "Pattern" }
+        return nil
+    }
+
     private var searchField: some View {
         HStack(spacing: 12) {
             Image(systemName: "character.book.closed")
@@ -224,7 +261,17 @@ struct QuickSearchView: View {
                 .font(.icon(17))
                 .accessibilityHidden(true)
 
-            TextField("Look up a word, ?describe one, or \"check a phrase\u{2026}", text: $model.query)
+            if let modeName {
+                Text(modeName)
+                    .font(.link)
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                    .accessibilityLabel("\(modeName) mode")
+            }
+
+            TextField("Look up a word", text: $model.query)
                 .textFieldStyle(.plain)
                 .font(.searchField)
                 .focused($isFocused)

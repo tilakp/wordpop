@@ -45,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSUpdateDynamicServices()
 
         statusItemController = StatusItemController(
+            onQuickSearch: { [weak self] in self?.quickSearchController.show() },
             onPreferences: { [weak self] in self?.showPreferences() },
             onPractice: { [weak self] in self?.showPractice() },
             onQuit: { NSApp.terminate(nil) }
