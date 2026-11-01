@@ -105,6 +105,9 @@ struct PopupContentView: View {
                 body(definitionsCapped: true)
                 ScrollView { body(definitionsCapped: false).padding(.bottom, Self.scrollFadeHeight) }
                     .overlay(alignment: .bottom) { scrollFade }
+                    // Text scrolling up under the header fades out instead
+                    // of being cut at a hard edge.
+                    .overlay(alignment: .top) { topFade }
                     // A new entry starts at the top; without a new identity
                     // the scroll view kept the previous word's position and
                     // could open past the definitions.
@@ -181,16 +184,11 @@ struct PopupContentView: View {
 
             if viewModel.describingWords == nil, let partOfSpeech = viewModel.describingPartOfSpeech, WritingModel.isAvailable, Settings.shows(.describing) {
                 Divider().padding(.horizontal, 22)
-                Button(action: viewModel.onLoadDescribing) {
-                    Text(viewModel.isLoadingDescribing
+                TextLink(viewModel.isLoadingDescribing
                          ? "Finding words\u{2026}"
                          : partOfSpeech == "noun"
                          ? "Words that describe \u{201C}\(viewModel.entry.word)\u{201D}"
-                         : "What is often \u{201C}\(viewModel.entry.word)\u{201D}?")
-                        .font(.recentMeta)
-                        .foregroundStyle(Color.collocationTint)
-                }
-                .buttonStyle(.plain)
+                         : "Nouns \u{201C}\(viewModel.entry.word)\u{201D} describes", action: viewModel.onLoadDescribing)
                 .padding(.horizontal, 22)
                 .padding(.vertical, 12)
             } else if viewModel.describingWords?.isEmpty == true {
@@ -204,14 +202,9 @@ struct PopupContentView: View {
 
             if viewModel.collocations == nil, viewModel.entry.found, WritingModel.isAvailable, Settings.shows(.collocations) {
                 Divider().padding(.horizontal, 22)
-                Button(action: viewModel.onLoadCollocations) {
-                    Text(viewModel.isLoadingCollocations
-                         ? "Finding words that go with \u{201C}\(viewModel.entry.word)\u{201D}\u{2026}"
-                         : "What goes with \u{201C}\(viewModel.entry.word)\u{201D}?")
-                        .font(.recentMeta)
-                        .foregroundStyle(Color.collocationTint)
-                }
-                .buttonStyle(.plain)
+                TextLink(viewModel.isLoadingCollocations
+                         ? "Finding phrases\u{2026}"
+                         : "Phrases with \u{201C}\(viewModel.entry.word)\u{201D}", action: viewModel.onLoadCollocations)
                 .padding(.horizontal, 22)
                 .padding(.vertical, 12)
             } else if viewModel.collocations?.isEmpty == true {
@@ -230,11 +223,7 @@ struct PopupContentView: View {
     /// has none, marked as such.
     private func phraseView(_ phrase: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Phrase")
-                .font(.sectionLabel)
-                .tracking(1.2)
-                .foregroundStyle(Color.fitTint)
-                .textCase(.uppercase)
+            SectionLabel(title: "Phrase")
             if let match = viewModel.phraseMatch {
                 Text(match.phrase.phrase).font(.phrase)
                 Text(match.phrase.definition)
@@ -248,7 +237,7 @@ struct PopupContentView: View {
                 }
                 Text("From the entry for \u{201C}\(match.source)\u{201D}")
                     .font(.recentMeta)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             } else if let explanation = viewModel.phraseExplanation {
                 Text(phrase).font(.phrase)
                 Text(explanation)
@@ -256,16 +245,12 @@ struct PopupContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text("From Apple Intelligence, not the dictionary; it may be wrong.")
                     .font(.recentMeta)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             } else if WritingModel.isAvailable {
-                Button(action: viewModel.onExplainPhrase) {
-                    Text(viewModel.isExplainingPhrase
-                         ? "Explaining \u{201C}\(phrase)\u{201D}\u{2026}"
-                         : "\u{201C}\(phrase)\u{201D} is not in the dictionary. Explain it?")
-                        .font(.recentMeta)
-                        .foregroundStyle(Color.accentColor)
-                }
-                .buttonStyle(.plain)
+                Text("\u{201C}\(phrase)\u{201D} is not in the dictionary as a phrase.")
+                    .font(.recentMeta)
+                    .foregroundStyle(.secondary)
+                TextLink(viewModel.isExplainingPhrase ? "Explaining\u{2026}" : "Explain it with Apple Intelligence", action: viewModel.onExplainPhrase)
             } else {
                 Text("\u{201C}\(phrase)\u{201D} is not in the dictionary as a phrase.")
                     .font(.recentMeta)
@@ -280,19 +265,18 @@ struct PopupContentView: View {
     private func comparisonView(_ comparison: Comparison) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Compare")
-                    .font(.sectionLabel)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.compareTint)
-                    .textCase(.uppercase)
+                SectionLabel(title: "Compare")
                 Spacer()
                 Button(action: { viewModel.comparison = nil }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.icon(10, weight: .semibold))
+                        .frame(minWidth: 20, minHeight: 20)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .help("Close the comparison")
+                .accessibilityLabel("Close the comparison")
             }
             ForEach([(comparison.word, comparison.definition), (comparison.other, comparison.otherDefinition)], id: \.0) { word, definition in
                 (Text(word).font(.phrase) + Text("  " + (definition ?? "no definition")).font(.definition).foregroundColor(.secondary))
@@ -305,7 +289,7 @@ struct PopupContentView: View {
             } else if WritingModel.isAvailable {
                 Text("Comparing\u{2026}")
                     .font(.recentMeta)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -314,26 +298,26 @@ struct PopupContentView: View {
     /// in that tone as a pill row. Simpler needs no model; the others
     /// appear only with Apple Intelligence.
     private var toneButtons: some View {
-        HStack(spacing: 10) {
-            Text("Tone")
-                .font(.sectionLabel)
-                .tracking(1.2)
-                .foregroundStyle(Color.toneTint)
-                .textCase(.uppercase)
+        HStack(spacing: 6) {
+            SectionLabel(title: "Tone").padding(.trailing, 4)
             ForEach(Tone.allCases.filter { $0 == .simpler || WritingModel.isAvailable }) { tone in
                 Button(action: { viewModel.onTone(tone) }) {
-                    Text(viewModel.loadingTone == tone ? "\(tone.button)\u{2026}" : tone.button)
-                        .font(.recentMeta)
-                        .foregroundStyle(viewModel.toneChoices?.tone == tone ? Color.toneTint : Color.secondary)
+                    ActionChip(title: viewModel.loadingTone == tone ? "\(tone.button)\u{2026}" : tone.button, isOn: viewModel.toneChoices?.tone == tone)
                 }
                 .buttonStyle(.plain)
             }
             if let choices = viewModel.toneChoices, choices.words.isEmpty {
                 Text("none found")
                     .font(.recentMeta)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var topFade: some View {
+        LinearGradient(colors: [.popupPage, .popupPage.opacity(0)], startPoint: .top, endPoint: .bottom)
+            .frame(height: 12)
+            .allowsHitTesting(false)
     }
 
     private var scrollFade: some View {
@@ -355,12 +339,7 @@ struct PopupContentView: View {
             }
             if shown.count < items.count {
                 let senses = items.filter { $0.number != nil }.count
-                Button(action: { viewModel.showAllDefinitions = true }) {
-                    Text("Show all \(senses) senses")
-                        .font(.recentMeta)
-                        .foregroundStyle(Color.accentColor)
-                }
-                .buttonStyle(.plain)
+                TextLink("Show all \(senses) senses") { viewModel.showAllDefinitions = true }
             }
             if WritingModel.isAvailable, Settings.shows(.examples), viewModel.exampleSense != nil {
                 moreExamplesView
@@ -385,9 +364,13 @@ struct PopupContentView: View {
                 if viewModel.canGoBack {
                     Button(action: viewModel.onGoBack) {
                         Image(systemName: "chevron.left")
+                            .frame(minWidth: 20, minHeight: 20)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
+                    .help("Back (\u{2318}[)")
+                    .accessibilityLabel("Back")
                 }
 
                 Text(viewModel.entry.syllables ?? viewModel.entry.word)
@@ -411,6 +394,7 @@ struct PopupContentView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(isStarred ? Color.yellow : Color.secondary)
                     .help(isStarred ? "Remove from starred words (\u{2318}D)" : "Star this word (\u{2318}D)")
+                    .accessibilityLabel(isStarred ? "Remove star" : "Star")
                 }
 
                 Button(action: viewModel.onTogglePin) {
@@ -419,12 +403,16 @@ struct PopupContentView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(viewModel.isPinned ? Color.accentColor : Color.secondary)
                 .help(viewModel.isPinned ? "Unpin" : "Pin (keep open)")
+                .accessibilityLabel("Pin")
+                .accessibilityValue(viewModel.isPinned ? "on" : "off")
 
                 Button(action: viewModel.onClose) {
                     Image(systemName: "xmark.circle.fill")
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .help("Close (Esc)")
+                .accessibilityLabel("Close")
             }
 
             if let pronunciation = viewModel.block?.pronunciation ?? viewModel.entry.pronunciation {
@@ -434,11 +422,14 @@ struct PopupContentView: View {
                         .foregroundStyle(.secondary)
                     Button(action: viewModel.onSpeak) {
                         Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 11))
+                            .font(.icon(11))
+                            .frame(minWidth: 20, minHeight: 18)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
                     .help("Pronounce (or press Space)")
+                    .accessibilityLabel("Pronounce")
                 }
             }
 
@@ -452,7 +443,7 @@ struct PopupContentView: View {
             if let source = viewModel.entry.source {
                 Text(source)
                     .font(.recentMeta)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
 
             if viewModel.entry.blocks.count > 1 {
@@ -503,9 +494,9 @@ struct PopupContentView: View {
         let inSentence = viewModel.isContextSense(item)
         return VStack(alignment: .leading, spacing: 3) {
             if inSentence {
-                Text("In your sentence")
+                Label("In your sentence", systemImage: "checkmark")
                     .font(.sectionLabel)
-                    .tracking(1.2)
+                    .tracking(0.8)
                     .foregroundStyle(Color.fitTint)
                     .textCase(.uppercase)
             }
@@ -514,12 +505,12 @@ struct PopupContentView: View {
                     Text("\(number)")
                         .font(.senseNumber)
                         .foregroundStyle(Color.accentColor)
-                        .frame(width: 14, alignment: .trailing)
+                        .frame(minWidth: 14 * Settings.textScale, alignment: .trailing)
                 } else if item.isSubItem {
                     Text("\u{2022}")
                         .font(.definition)
                         .foregroundStyle(.tertiary)
-                        .frame(width: 14, alignment: .trailing)
+                        .frame(minWidth: 14 * Settings.textScale, alignment: .trailing)
                 }
                 // fixedSize so a long single-paragraph entry reports its
                 // real height; otherwise Text truncates to the proposal and
@@ -548,11 +539,7 @@ struct PopupContentView: View {
 
     private func pillSection(_ section: PillSection) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(section.title)
-                .font(.sectionLabel)
-                .tracking(1.2)
-                .foregroundStyle(section.tint)
-                .textCase(.uppercase)
+            SectionLabel(title: section.title)
             ForEach(section.rows) { row in
                 VStack(alignment: .leading, spacing: 5) {
                     if let example = row.example {
@@ -570,17 +557,11 @@ struct PopupContentView: View {
                 .padding(.top, row.example != nil && row.id != section.rows.first?.id ? 4 : 0)
             }
             if section.id == "spelling" {
-                HStack(spacing: 8) {
+                HStack(spacing: 16) {
                     if viewModel.canReplace, let best = section.rows.first?.words.first {
-                        Button("Replace with \u{201C}\(best)\u{201D}") { viewModel.onReplace(best) }
-                            .font(.recentMeta)
+                        Button(action: { viewModel.onReplace(best) }) { ActionChip(title: "Replace with \u{201C}\(best)\u{201D}") }
                             .buttonStyle(.plain)
-                            .foregroundStyle(section.tint)
-                        if (section.rows.first?.words.count ?? 0) > 1 {
-                            Text("\u{2325}-click a pill to use another")
-                                .font(.recentMeta)
-                                .foregroundStyle(.tertiary)
-                        }
+                            .help((section.rows.first?.words.count ?? 0) > 1 ? "\u{2325}-click another word to use it instead" : "")
                     }
                     notATypoButton {
                         Spelling.learn(viewModel.entry.word)
@@ -590,12 +571,13 @@ struct PopupContentView: View {
                 .padding(.top, 2)
             }
             if section.id == "synonyms", viewModel.hiddenSenseCount > 0 {
-                Button(action: { withAnimation(.easeOut(duration: 0.15)) { viewModel.showAllSenses = true } }) {
-                    Text("\(viewModel.hiddenSenseCount) more sense\(viewModel.hiddenSenseCount == 1 ? "" : "s")")
-                        .font(.recentMeta)
-                        .foregroundStyle(section.tint)
+                TextLink("\(viewModel.hiddenSenseCount) more sense\(viewModel.hiddenSenseCount == 1 ? "" : "s")") {
+                    if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                        viewModel.showAllSenses = true
+                    } else {
+                        withAnimation(.easeOut(duration: 0.15)) { viewModel.showAllSenses = true }
+                    }
                 }
-                .buttonStyle(.plain)
                 .padding(.top, 2)
             }
         }
@@ -612,21 +594,8 @@ struct PopupContentView: View {
                 viewModel.onSelectWord(word)
             }
         }) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(word)
-                    .font(.pill)
-                    .foregroundStyle(isRare ? .secondary : .primary)
-                if let label = viewModel.registerLabels[word.lowercased()] {
-                    Text(label)
-                        .font(.pillLabel)
-                        .foregroundStyle(.secondary)
-                }
-            }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(tint.opacity(focused ? 0.28 : 0.12))
-                .clipShape(Capsule())
-                .overlay(Capsule().strokeBorder(focused ? tint : tint.opacity(0.25), lineWidth: focused ? 1.5 : 1))
+            // A rare word is tagged, not dimmed, so it does not look disabled.
+            WordChip(text: word, tint: tint, label: viewModel.registerLabels[word.lowercased()] ?? (isRare ? "rare" : nil), selected: focused)
         }
         .buttonStyle(.plain)
         .help([isRare ? "Less common word." : nil, viewModel.canReplace ? "\u{2325}-click to replace your selection." : nil,
@@ -634,25 +603,9 @@ struct PopupContentView: View {
             .compactMap { $0 }.joined(separator: " "))
     }
 
-    private func disclosureLabel(_ title: String, expanded: Bool) -> some View {
-        HStack(spacing: 4) {
-            Text(title)
-                .font(.sectionLabel)
-                .tracking(1.2)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-            Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.secondary)
-        }
-    }
-
     private var phrasesDisclosure: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Button(action: { viewModel.showPhrases.toggle() }) {
-                disclosureLabel("Phrases (\(viewModel.entry.phrases.count))", expanded: viewModel.showPhrases)
-            }
-            .buttonStyle(.plain)
+            DisclosureRow(title: "Phrases (\(viewModel.entry.phrases.count))", expanded: viewModel.showPhrases) { viewModel.showPhrases.toggle() }
 
             if viewModel.showPhrases {
                 ForEach(Array(viewModel.entry.phrases.enumerated()), id: \.offset) { _, phrase in
@@ -666,7 +619,7 @@ struct PopupContentView: View {
                         if let example = phrase.example {
                             Text("\u{201C}\(example)\u{201D}")
                                 .font(.example)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -680,13 +633,9 @@ struct PopupContentView: View {
     @ViewBuilder private var moreExamplesView: some View {
         if let examples = viewModel.moreExamples {
             VStack(alignment: .leading, spacing: 6) {
-                Text("More examples")
-                    .font(.sectionLabel)
-                    .tracking(1.2)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
+                SectionLabel(title: "More examples")
                 if examples.isEmpty {
-                    Text("No examples came back.").font(.recentMeta).foregroundStyle(.tertiary)
+                    Text("No examples came back.").font(.recentMeta).foregroundStyle(.secondary)
                 }
                 ForEach(examples, id: \.self) { sentence in
                     Text("\u{201C}\(sentence)\u{201D}")
@@ -696,21 +645,13 @@ struct PopupContentView: View {
                 }
             }
         } else {
-            Button(action: viewModel.onLoadExamples) {
-                Text(viewModel.isLoadingExamples ? "Writing examples\u{2026}" : "More examples")
-                    .font(.recentMeta)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
+            TextLink(viewModel.isLoadingExamples ? "Writing examples\u{2026}" : "More examples", action: viewModel.onLoadExamples)
         }
     }
 
     private var usageDisclosure: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Button(action: { viewModel.showUsage.toggle() }) {
-                disclosureLabel("Usage", expanded: viewModel.showUsage)
-            }
-            .buttonStyle(.plain)
+            DisclosureRow(title: "Usage notes", expanded: viewModel.showUsage) { viewModel.showUsage.toggle() }
 
             if viewModel.showUsage {
                 ForEach(viewModel.entry.usageNotes, id: \.self) { note in
@@ -726,10 +667,7 @@ struct PopupContentView: View {
 
     private func originDisclosure(_ origin: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Button(action: { viewModel.showOrigin.toggle() }) {
-                disclosureLabel("Origin", expanded: viewModel.showOrigin)
-            }
-            .buttonStyle(.plain)
+            DisclosureRow(title: "Origin", expanded: viewModel.showOrigin) { viewModel.showOrigin.toggle() }
 
             if viewModel.showOrigin {
                 Text(origin)

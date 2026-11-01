@@ -195,9 +195,9 @@ struct QuickSearchView: View {
         }
         .frame(width: Self.width)
         .background(Color.popupPage)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.08))
         )
         .onAppear { isFocused = true }
@@ -221,7 +221,8 @@ struct QuickSearchView: View {
         HStack(spacing: 12) {
             Image(systemName: "character.book.closed")
                 .foregroundStyle(.secondary)
-                .font(.system(size: 17))
+                .font(.icon(17))
+                .accessibilityHidden(true)
 
             TextField("Look up a word, ?describe one, or \"check a phrase\u{2026}", text: $model.query)
                 .textFieldStyle(.plain)
@@ -257,7 +258,7 @@ struct QuickSearchView: View {
                         } else if let date = row.date {
                             Text(Self.relativeDate.localizedString(for: date, relativeTo: Date()))
                                 .font(.recentMeta)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .padding(.horizontal, 10)
@@ -298,7 +299,7 @@ struct QuickSearchView: View {
             if !model.usage.isEmpty {
                 Text("Example sentences from Tatoeba (CC BY 2.0 FR). A count shows how common a phrase is, not whether it is correct.")
                     .font(.recentMeta)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

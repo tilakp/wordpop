@@ -31,43 +31,43 @@ struct TextStatsView: View {
                 .padding(.bottom, 14)
 
             if Settings.shows(.tools), !tools.isEmpty {
-                section("Tools", tint: .fitTint) { toolControls }
+                section("Tools") { toolControls }
             }
             if !viewModel.typos.isEmpty {
-                section("Spelling", tint: .spellingTint) {
+                section("Spelling") {
                     typoControls
                     if viewModel.grammar.isEmpty, viewModel.consistency.isEmpty, !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !viewModel.grammar.isEmpty {
-                section("Grammar", tint: .spellingTint) {
+                section("Grammar") {
                     grammarControls
                     if viewModel.consistency.isEmpty, !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !viewModel.consistency.isEmpty {
-                section("Consistency", tint: .confusedTint) {
+                section("Consistency") {
                     consistencyControls
                     if !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !viewModel.style.isEmpty {
-                section("Style rules", tint: .inclusiveTint) {
+                section("Style rules") {
                     styleControls
                     if hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
             if !stats.wordy.isEmpty {
-                section("Wordy phrases and clich\u{E9}s", tint: .strongerTint) {
+                section("Wordy phrases and clich\u{E9}s") {
                     phraseControls
                     applyFixesButton
                 }
             }
             if stats.sentences >= 3, Settings.shows(.rhythm) {
-                section("Sentence rhythm", tint: .synonymTint) { rhythm }
+                section("Sentence rhythm") { rhythm }
             }
             if let target = Settings.targetGrade, !hardSentences.isEmpty {
-                section("Above grade \(target)", tint: .antonymTint) {
+                section("Above grade \(target)") {
                     ForEach(Array(hardSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Grade \(String(format: "%.0f", sentence.grade)): \u{201C}\(sentence.text.prefix(90))\(sentence.text.count > 90 ? "\u{2026}" : "")\u{201D}")
@@ -80,7 +80,7 @@ struct TextStatsView: View {
                 }
             }
             if !stats.longSentences.isEmpty, Settings.shows(.longSentences) {
-                section("Long sentences (over \(TextStats.longSentenceWords) words)", tint: .antonymTint) {
+                section("Long sentences (over \(TextStats.longSentenceWords) words)") {
                     ForEach(Array(stats.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
                         VStack(alignment: .leading, spacing: 4) {
                             Text("\(sentence.words) words: \u{201C}\(sentence.text.prefix(90))\(sentence.text.count > 90 ? "\u{2026}" : "")\u{201D}")
@@ -93,7 +93,7 @@ struct TextStatsView: View {
                 }
             }
             if !stats.passives.isEmpty, Settings.shows(.passive) {
-                section("Possible passive voice", tint: .strongerTint) {
+                section("Possible passive voice") {
                     ForEach(stats.passives, id: \.self) { phrase in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(phrase).font(.pill)
@@ -105,47 +105,48 @@ struct TextStatsView: View {
                 }
             }
             if !viewModel.fiction.isEmpty {
-                section("Fiction", tint: .toneTint) { fictionControls }
+                section("Fiction") { fictionControls }
             }
             if !viewModel.crutches.isEmpty {
-                section("Your crutch words", tint: .confusedTint) {
+                section("Your crutch words") {
                     wordList(viewModel.crutches.map { "\($0.word) (replaced \($0.count)\u{D7})" })
                     Text("Words you often replace with a synonym. Select one to vary it.")
                         .font(.recentMeta)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             if !stats.adverbs.isEmpty, Settings.shows(.adverbs) {
-                section("Adverbs", tint: .rhymeTint) { wordList(stats.adverbs) }
+                section("Adverbs") { wordList(stats.adverbs) }
             }
             if !stats.hedges.isEmpty, Settings.shows(.hedges) {
-                section("Hedges and filler", tint: .antonymTint) {
+                section("Hedges and filler") {
                     wordList(stats.hedges.map { $0.count > 1 ? "\($0.word) \u{D7}\($0.count)" : $0.word })
                     Text("Words that soften a point or add nothing to it. Keep the ones you mean.")
                         .font(.recentMeta)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             if !stats.repeated.isEmpty, Settings.shows(.repeated) {
-                section("Repeated words", tint: .confusedTint) {
+                section("Repeated words") {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
             }
             if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, stats.hedges.isEmpty, hardSentences.isEmpty, viewModel.style.isEmpty, viewModel.typos.isEmpty,
                stats.wordy.isEmpty, viewModel.grammar.isEmpty, viewModel.consistency.isEmpty {
-                section("Notes", tint: .fitTint) {
-                    Text("No typos, grammar mistakes, mixed spellings, wordy phrases, long sentences, passive voice, -ly adverbs, hedges or repeated words.")
-                        .font(.definition)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 0) {
+                    Divider().padding(.horizontal, 22)
+                    Label("No issues found", systemImage: "checkmark.circle.fill")
+                        .font(.definition.weight(.medium))
+                        .foregroundStyle(Color.fitTint)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 14)
+                        .help("Checked for typos, grammar, mixed spellings, wordy phrases, long sentences, passive voice, adverbs, hedges and repeated words.")
                 }
             }
             Divider().padding(.horizontal, 22)
-            Button(action: copyNotes) {
-                Text(copiedNotes ? "Copied" : "Copy notes as Markdown")
-                    .font(.recentMeta)
-                    .foregroundStyle(copiedNotes ? Color.secondary : Color.accentColor)
-            }
-            .buttonStyle(.plain)
+            TextLink(copiedNotes ? "Copied" : "Copy notes as Markdown", muted: copiedNotes, action: copyNotes)
             .padding(.horizontal, 22)
             .padding(.vertical, 10)
         }
@@ -178,7 +179,7 @@ struct TextStatsView: View {
         HStack(alignment: .bottom, spacing: 3) {
             ForEach(Array(lengths.enumerated()), id: \.offset) { index, length in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(length > TextStats.longSentenceWords ? Color.antonymTint : Color.synonymTint.opacity(run?.contains(index) == true ? 0.4 : 0.8))
+                    .fill(length > TextStats.longSentenceWords ? Color.reviewTint : Color.wordTint.opacity(run?.contains(index) == true ? 0.35 : 0.7))
                     .frame(maxWidth: 14)
                     .frame(height: max(3, 44 * CGFloat(length) / CGFloat(longest)))
                     .help("\(length) words: \(stats.sentenceTexts[index])")
@@ -248,12 +249,7 @@ struct TextStatsView: View {
             ForEach(tools, id: \.self) { tool in
                 let open = viewModel.openTool == tool
                 Button(action: { viewModel.openTool = open ? nil : tool }) {
-                    Text(tool.rawValue)
-                        .font(.recentMeta)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(Color.fitTint.opacity(open ? 0.3 : 0.12))
-                        .clipShape(Capsule())
+                    ActionChip(title: tool.rawValue, isOn: open)
                 }
                 .buttonStyle(.plain)
             }
@@ -265,7 +261,7 @@ struct TextStatsView: View {
                 reframeControls(for: sentence, kinds: WritingModel.Rewrite.expansions)
                 Text("Each adds a sentence after yours. Check any fact it adds.")
                     .font(.recentMeta)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
         case .tone: toneControls
         case .mainPoint: mainPointControls
@@ -276,29 +272,14 @@ struct TextStatsView: View {
         }
     }
 
-    private func section(_ title: String, tint: Color, @ViewBuilder content: () -> some View) -> some View {
+    private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
         let guide = Guides.text(for: title)
         let guideOpen = viewModel.openGuides.contains(title)
         return VStack(alignment: .leading, spacing: 0) {
             Divider().padding(.horizontal, 22)
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 5) {
-                    Text(title)
-                        .font(.sectionLabel)
-                        .tracking(1.2)
-                        .foregroundStyle(tint)
-                        .textCase(.uppercase)
-                    if guide != nil {
-                        Button(action: {
-                            if guideOpen { viewModel.openGuides.remove(title) } else { viewModel.openGuides.insert(title) }
-                        }) {
-                            Image(systemName: guideOpen ? "info.circle.fill" : "info.circle")
-                                .font(.recentMeta)
-                                .foregroundStyle(tint.opacity(0.7))
-                        }
-                        .buttonStyle(.plain)
-                        .help("What this note means")
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                NoteSectionHeader(title: title, guide: guide, isOpen: guideOpen) {
+                    if guideOpen { viewModel.openGuides.remove(title) } else { viewModel.openGuides.insert(title) }
                 }
                 if guideOpen, let guide {
                     Text(guide)
@@ -310,7 +291,8 @@ struct TextStatsView: View {
                 content()
             }
             .padding(.horizontal, 22)
-            .padding(.vertical, 12)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
         }
     }
 
@@ -328,12 +310,7 @@ struct TextStatsView: View {
         if viewModel.rewrites[key] != nil {
             rewriteResult(key)
         } else if WritingModel.isAvailable {
-            Button(action: { viewModel.onRewrite(key) }) {
-                Text(viewModel.rewriting.contains(key) ? "Rewriting\u{2026}" : label)
-                    .font(.recentMeta)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
+            TextLink(viewModel.rewriting.contains(key) ? "Rewriting\u{2026}" : label) { viewModel.onRewrite(key) }
         }
     }
 
@@ -341,16 +318,13 @@ struct TextStatsView: View {
     private func rewriteResult(_ key: RewriteKey) -> some View {
         if let suggestion = viewModel.rewrites[key] {
             if suggestion.isEmpty {
-                Text("No rewrite came back.").font(.recentMeta).foregroundStyle(.tertiary)
+                Text("No rewrite came back.").font(.recentMeta).foregroundStyle(.secondary)
             } else {
                 Text(suggestion)
                     .font(.definition)
                     .fixedSize(horizontal: false, vertical: true)
                 if viewModel.canReplace {
-                    Button("Replace") { viewModel.onUseRewrite(key) }
-                        .font(.recentMeta)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Color.accentColor)
+                    TextLink("Replace") { viewModel.onUseRewrite(key) }
                 }
             }
         }
@@ -364,12 +338,7 @@ struct TextStatsView: View {
             ForEach(kinds, id: \.self) { rewrite in
                 let key = RewriteKey(sentence: sentence, rewrite: rewrite)
                 Button(action: { viewModel.onRewrite(key) }) {
-                    Text(viewModel.rewriting.contains(key) ? "\(rewrite.title)\u{2026}" : rewrite.title)
-                        .font(.recentMeta)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(Color.fitTint.opacity(viewModel.rewrites[key] != nil ? 0.28 : 0.12))
-                        .clipShape(Capsule())
+                    ActionChip(title: viewModel.rewriting.contains(key) ? "\(rewrite.title)\u{2026}" : rewrite.title, isOn: viewModel.rewrites[key] != nil)
                 }
                 .buttonStyle(.plain)
             }
@@ -391,18 +360,13 @@ struct TextStatsView: View {
     private var toneControls: some View {
         if let reading = viewModel.toneReading {
             if reading.tone.isEmpty {
-                Text(reading.reason).font(.recentMeta).foregroundStyle(.tertiary)
+                Text(reading.reason).font(.recentMeta).foregroundStyle(.secondary)
             } else {
                 (Text("Reads as \(reading.tone). ").font(.definition.weight(.semibold)) + Text(reading.reason).font(.definition))
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
-            Button(action: viewModel.onCheckTone) {
-                Text(viewModel.isCheckingTone ? "Reading\u{2026}" : "How will this come across?")
-                    .font(.recentMeta)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
+            TextLink(viewModel.isCheckingTone ? "Reading\u{2026}" : "How will this come across?", action: viewModel.onCheckTone)
         }
     }
 
@@ -420,12 +384,7 @@ struct TextStatsView: View {
             .pickerStyle(.menu)
             .fixedSize()
             .font(.recentMeta)
-            Button(action: viewModel.onTranslate) {
-                Text(viewModel.isTranslating ? "Translating\u{2026}" : "Translate")
-                    .font(.recentMeta)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
+            TextLink(viewModel.isTranslating ? "Translating\u{2026}" : "Translate", action: viewModel.onTranslate)
         }
         .task {
             if viewModel.translationTargets.isEmpty { viewModel.translationTargets = await Translator.targets() }
@@ -437,22 +396,16 @@ struct TextStatsView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 4)
             if viewModel.canReplace, let original = viewModel.selectionText {
-                Button("Replace") { viewModel.onReplaceSentence(original, text) }
-                    .font(.recentMeta)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.accentColor)
+                TextLink("Replace") { viewModel.onReplaceSentence(original, text) }
             }
         case .notInstalled(let languages):
             Text("Download \(languages) for translation once, in System Settings > General > Language & Region > Translation Languages. After that it works offline.")
                 .font(.recentMeta)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Open Language & Region", action: Translator.openLanguageSettings)
-                .font(.recentMeta)
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
+            TextLink("Open Language & Region", action: Translator.openLanguageSettings)
         case .failed(let reason):
-            Text(reason).font(.recentMeta).foregroundStyle(.tertiary)
+            Text(reason).font(.recentMeta).foregroundStyle(.secondary)
         case nil:
             EmptyView()
         }
@@ -464,7 +417,7 @@ struct TextStatsView: View {
     private var mainPointControls: some View {
         if let answer = viewModel.mainPoint {
             if answer.point.isEmpty {
-                Text("No answer came back.").font(.recentMeta).foregroundStyle(.tertiary)
+                Text("No answer came back.").font(.recentMeta).foregroundStyle(.secondary)
             } else {
                 (Text("Main point: ").font(.definition.weight(.semibold)) + Text(answer.point).font(.definition))
                     .fixedSize(horizontal: false, vertical: true)
@@ -474,12 +427,7 @@ struct TextStatsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
-            Button(action: viewModel.onFindMainPoint) {
-                Text(viewModel.isFindingMainPoint ? "Reading\u{2026}" : "What is the main point?")
-                    .font(.recentMeta)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
+            TextLink(viewModel.isFindingMainPoint ? "Reading\u{2026}" : "What is the main point?", action: viewModel.onFindMainPoint)
         }
     }
 
@@ -509,12 +457,7 @@ struct TextStatsView: View {
                     viewModel.transitionJob = chosen ? nil : group.job
                     viewModel.transition = nil
                 }) {
-                    Text(group.job)
-                        .font(.recentMeta)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(Color.collocationTint.opacity(chosen ? 0.3 : 0.12))
-                        .clipShape(Capsule())
+                    ActionChip(title: group.job, isOn: chosen)
                 }
                 .buttonStyle(.plain)
             }
@@ -524,13 +467,7 @@ struct TextStatsView: View {
                 ForEach(phrases, id: \.self) { phrase in
                     let chosen = viewModel.transition == phrase
                     Button(action: { viewModel.transition = chosen ? nil : phrase }) {
-                        Text(phrase)
-                            .font(.pill)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 2)
-                            .background(Color.collocationTint.opacity(chosen ? 0.28 : 0.08))
-                            .clipShape(Capsule())
-                            .overlay(Capsule().strokeBorder(chosen ? Color.collocationTint : Color.collocationTint.opacity(0.25)))
+                        WordChip(text: phrase, selected: chosen, checked: chosen)
                     }
                     .buttonStyle(.plain)
                 }
@@ -544,10 +481,7 @@ struct TextStatsView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 4)
             if viewModel.canReplace {
-                Button("Replace") { viewModel.onReplaceSentence(sentence, new) }
-                    .font(.recentMeta)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.accentColor)
+                TextLink("Replace") { viewModel.onReplaceSentence(sentence, new) }
             }
         }
     }
@@ -562,18 +496,12 @@ struct TextStatsView: View {
                     .font(.pill)
                     .strikethrough(viewModel.typoFixes[typo.word] != nil)
                     .foregroundStyle(.secondary)
-                Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
                 FlowLayout(spacing: 6) {
                     ForEach(typo.suggestions, id: \.self) { suggestion in
                         let chosen = viewModel.typoFixes[typo.word] == suggestion
                         Button(action: { viewModel.typoFixes[typo.word] = chosen ? nil : suggestion }) {
-                            Text(suggestion)
-                                .font(.pill)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 2)
-                                .background(Color.spellingTint.opacity(chosen ? 0.28 : 0.08))
-                                .clipShape(Capsule())
-                                .overlay(Capsule().strokeBorder(chosen ? Color.spellingTint : Color.spellingTint.opacity(0.25)))
+                            WordChip(text: suggestion, tint: .reviewTint, selected: chosen, checked: chosen)
                         }
                         .buttonStyle(.plain)
                     }
@@ -594,25 +522,19 @@ struct TextStatsView: View {
                     Text(Self.excerpt(of: issue))
                         .font(.pill)
                         .foregroundStyle(.secondary)
-                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
                     FlowLayout(spacing: 6) {
                         ForEach(issue.corrections.prefix(3), id: \.self) { correction in
                             let chosen = viewModel.grammarFixes[index] == correction
                             Button(action: { viewModel.grammarFixes[index] = chosen ? nil : correction }) {
-                                Text(correction)
-                                    .font(.pill)
-                                    .padding(.horizontal, 9)
-                                    .padding(.vertical, 2)
-                                    .background(Color.spellingTint.opacity(chosen ? 0.28 : 0.08))
-                                    .clipShape(Capsule())
-                                    .overlay(Capsule().strokeBorder(chosen ? Color.spellingTint : Color.spellingTint.opacity(0.25)))
+                                WordChip(text: correction, tint: .reviewTint, selected: chosen, checked: chosen)
                             }
                             .buttonStyle(.plain)
                         }
                     }
                 }
                 if !issue.message.hasPrefix("Consider") {
-                    Text(issue.message).font(.recentMeta).foregroundStyle(.tertiary)
+                    Text(issue.message).font(.recentMeta).foregroundStyle(.secondary)
                 }
             }
         }
@@ -673,13 +595,7 @@ struct TextStatsView: View {
 
     private func choicePill(_ title: String, chosen: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.pill)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 2)
-                .background(Color.confusedTint.opacity(chosen ? 0.28 : 0.08))
-                .clipShape(Capsule())
-                .overlay(Capsule().strokeBorder(chosen ? Color.confusedTint : Color.confusedTint.opacity(0.25)))
+            WordChip(text: title, tint: .reviewTint, selected: chosen, checked: chosen)
         }
         .buttonStyle(.plain)
     }
@@ -727,17 +643,11 @@ struct TextStatsView: View {
                     .strikethrough(chosen)
                     .foregroundStyle(.secondary)
                 if flag.fix.isEmpty {
-                    Text("avoid").font(.pillLabel).foregroundStyle(.tertiary)
+                    Text("avoid").font(.pillLabel).foregroundStyle(.secondary)
                 } else {
-                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
                     Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
-                        Text(flag.fix)
-                            .font(.pill)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 2)
-                            .background(Color.inclusiveTint.opacity(chosen ? 0.28 : 0.08))
-                            .clipShape(Capsule())
-                            .overlay(Capsule().strokeBorder(chosen ? Color.inclusiveTint : Color.inclusiveTint.opacity(0.25)))
+                        WordChip(text: flag.fix, tint: .reviewTint, selected: chosen, checked: chosen)
                     }
                     .buttonStyle(.plain)
                 }
@@ -776,19 +686,12 @@ struct TextStatsView: View {
                     .strikethrough(chosen)
                     .foregroundStyle(.secondary)
                 if flag.isCliche || flag.isHiddenVerb {
-                    Text(flag.isCliche ? "clich\u{E9}" : "hidden verb").font(.pillLabel).foregroundStyle(.tertiary)
+                    Text(flag.isCliche ? "clich\u{E9}" : "hidden verb").font(.pillLabel).foregroundStyle(.secondary)
                 }
                 if !flag.isCliche || !flag.fix.isEmpty {
-                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary)
+                    Text("\u{2192}").font(.recentMeta).foregroundStyle(.tertiary).accessibilityHidden(true)
                     Button(action: { viewModel.phraseFixes[flag.phrase] = chosen ? nil : flag.fix }) {
-                        Text(flag.fix.isEmpty ? "remove" : flag.fix)
-                            .font(.pill)
-                            .italic(flag.fix.isEmpty)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 2)
-                            .background(Color.strongerTint.opacity(chosen ? 0.28 : 0.08))
-                            .clipShape(Capsule())
-                            .overlay(Capsule().strokeBorder(chosen ? Color.strongerTint : Color.strongerTint.opacity(0.25)))
+                        WordChip(text: flag.fix.isEmpty ? "remove" : flag.fix, tint: .reviewTint, selected: chosen, checked: chosen, italic: flag.fix.isEmpty)
                     }
                     .buttonStyle(.plain)
                 }
@@ -801,11 +704,16 @@ struct TextStatsView: View {
     @ViewBuilder
     private var applyFixesButton: some View {
         if viewModel.canReplace, viewModel.hasFixes {
-            Button(viewModel.fixesLabel, action: viewModel.onApplyFixes)
-                .font(.recentMeta)
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
-                .padding(.top, 2)
+            Button(action: viewModel.onApplyFixes) {
+                Label(viewModel.fixesLabel, systemImage: "checkmark.circle.fill")
+                    .font(.link)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(Color.accentColor, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
         }
     }
 
@@ -819,10 +727,7 @@ struct TextStatsView: View {
 /// A link that adds a flagged word (a name, a term) to the Mac's spelling
 /// dictionary, so it is not flagged again here or in other apps.
 func notATypoButton(action: @escaping () -> Void) -> some View {
-    Button("Not a typo", action: action)
-        .font(.recentMeta)
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
+    TextLink("Not a typo", muted: true, action: action)
         .help("Adds the word to your Mac\u{2019}s spelling dictionary, so no app flags it again")
 }
 
@@ -838,12 +743,7 @@ struct TextToolControls: View {
                 ForEach(TextTool.useful(for: text), id: \.self) { tool in
                     let chosen = viewModel.textTool == tool
                     Button(action: { viewModel.textTool = chosen ? nil : tool }) {
-                        Text(tool.rawValue)
-                            .font(.recentMeta)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 3)
-                            .background(Color.collocationTint.opacity(chosen ? 0.3 : 0.12))
-                            .clipShape(Capsule())
+                        ActionChip(title: tool.rawValue, isOn: chosen)
                     }
                     .buttonStyle(.plain)
                 }
@@ -855,10 +755,7 @@ struct TextToolControls: View {
                     .lineLimit(6)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
-                Button("Replace") { viewModel.onReplaceSentence(text, new) }
-                    .font(.recentMeta)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.accentColor)
+                TextLink("Replace") { viewModel.onReplaceSentence(text, new) }
             }
         }
     }
