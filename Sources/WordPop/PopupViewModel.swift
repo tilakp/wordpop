@@ -330,18 +330,23 @@ final class PopupViewModel: ObservableObject {
             let rows = entry.hints.filter { $0.kind == kind }.map { row($0.caption, $0.words) }
             if !rows.isEmpty { sections.append(PillSection(id: kind, title: title, tint: tint, rows: rows)) }
         }
+        // Words already shown under "Fits your sentence" are not repeated
+        // under Synonyms.
+        let fits = Settings.shows(.fits) ? Set(bestFits.map { $0.lowercased() }) : []
         if let block {
             if !block.senses.isEmpty {
                 let shown = showAllSenses ? block.senses : Array(block.senses.prefix(Self.collapsedSenseCount))
-                let synonymRows = shown.filter { !$0.synonyms.isEmpty }.map { sense in
+                let synonymRows = shown.compactMap { sense -> PillRow? in
+                    let synonyms = sense.synonyms.filter { !fits.contains($0.lowercased()) }
+                    guard !synonyms.isEmpty else { return nil }
                     // Room for up to two labelled words (informal, archaic),
                     // which come last in the list and a plain cut would drop.
-                    let labelled = sense.synonyms.filter { sense.labels[$0.lowercased()] != nil }.prefix(2)
-                    let plain = sense.synonyms.filter { sense.labels[$0.lowercased()] == nil }.prefix(Self.pillsPerSense - labelled.count)
+                    let labelled = synonyms.filter { sense.labels[$0.lowercased()] != nil }.prefix(2)
+                    let plain = synonyms.filter { sense.labels[$0.lowercased()] == nil }.prefix(Self.pillsPerSense - labelled.count)
                     return row(sense.example, Array(plain + labelled), limit: Self.pillsPerSense)
                 }
                 if !synonymRows.isEmpty {
-                    sections.append(PillSection(id: "synonyms", title: "Synonyms", tint: .synonymTint, rows: synonymRows))
+                    sections.append(PillSection(id: "synonyms", title: fits.isEmpty ? "Synonyms" : "More synonyms", tint: .synonymTint, rows: synonymRows))
                 }
                 var antonyms: [String] = []
                 for sense in block.senses {
@@ -351,8 +356,9 @@ final class PopupViewModel: ObservableObject {
                     sections.append(PillSection(id: "antonyms", title: "Antonyms", tint: .antonymTint, rows: [row(nil, antonyms)]))
                 }
             } else {
-                if !block.synonyms.isEmpty {
-                    sections.append(PillSection(id: "synonyms", title: "Synonyms", tint: .synonymTint, rows: [row(nil, block.synonyms)]))
+                let synonyms = block.synonyms.filter { !fits.contains($0.lowercased()) }
+                if !synonyms.isEmpty {
+                    sections.append(PillSection(id: "synonyms", title: fits.isEmpty ? "Synonyms" : "More synonyms", tint: .synonymTint, rows: [row(nil, synonyms)]))
                 }
                 if !block.antonyms.isEmpty {
                     sections.append(PillSection(id: "antonyms", title: "Antonyms", tint: .antonymTint, rows: [row(nil, block.antonyms)]))

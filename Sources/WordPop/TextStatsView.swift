@@ -51,7 +51,7 @@ struct TextStatsView: View {
                     if !hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
                 }
             }
-            if !viewModel.style.isEmpty {
+            if !viewModel.style.words.isEmpty || !viewModel.style.longParagraphs.isEmpty || !viewModel.style.ingWords.isEmpty {
                 section("Style rules") {
                     styleControls
                     if hasStyleFixes, stats.wordy.isEmpty { applyFixesButton }
@@ -66,24 +66,14 @@ struct TextStatsView: View {
             if stats.sentences >= 3, Settings.shows(.rhythm) {
                 section("Sentence rhythm") { rhythm }
             }
-            if let target = Settings.targetGrade, !hardSentences.isEmpty {
-                section("Above grade \(target)") {
-                    ForEach(Array(hardSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
+            if !hardSentenceNotes.isEmpty {
+                section("Hard sentences") {
+                    ForEach(Array(hardSentenceNotes.prefix(4).enumerated()), id: \.offset) { _, sentence in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Grade \(String(format: "%.0f", sentence.grade)): \u{201C}\(sentence.text.prefix(90))\(sentence.text.count > 90 ? "\u{2026}" : "")\u{201D}")
-                                .font(.example)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            rewriteControls(for: sentence.text, rewrite: .split, label: "Split it")
-                        }
-                    }
-                }
-            }
-            if !stats.longSentences.isEmpty, Settings.shows(.longSentences) {
-                section("Long sentences (over \(TextStats.longSentenceWords) words)") {
-                    ForEach(Array(stats.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(sentence.words) words: \u{201C}\(sentence.text.prefix(90))\(sentence.text.count > 90 ? "\u{2026}" : "")\u{201D}")
+                            Text(sentence.reasons.joined(separator: " \u{B7} "))
+                                .font(.recentMeta.weight(.medium))
+                                .foregroundStyle(Color.reviewTint)
+                            Text("\u{201C}\(sentence.text.prefix(110))\(sentence.text.count > 110 ? "\u{2026}" : "")\u{201D}")
                                 .font(.example)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -116,13 +106,15 @@ struct TextStatsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            if !stats.adverbs.isEmpty, Settings.shows(.adverbs) {
-                section("Adverbs") { wordList(stats.adverbs) }
-            }
-            if !stats.hedges.isEmpty, Settings.shows(.hedges) {
-                section("Hedges and filler") {
-                    wordList(stats.hedges.map { $0.count > 1 ? "\($0.word) \u{D7}\($0.count)" : $0.word })
-                    Text("Words that soften a point or add nothing to it. Keep the ones you mean.")
+            if !weakWords.isEmpty {
+                section("Weak words") {
+                    weakWords.enumerated().reduce(Text("")) { text, element in
+                        let (index, item) = element
+                        return text + Text(index == 0 ? "" : "  \u{B7}  ").foregroundColor(.secondary)
+                            + Text(item.word).font(.pill) + Text(" " + item.tags.joined(separator: ", ")).font(.pillLabel).foregroundColor(.secondary)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    Text("Adverbs that prop up a weak verb, and hedges that soften a point or add nothing. Keep the ones you mean.")
                         .font(.recentMeta)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -133,7 +125,7 @@ struct TextStatsView: View {
                     wordList(stats.repeated.map { "\($0.word) \u{D7}\($0.count)" })
                 }
             }
-            if stats.longSentences.isEmpty, stats.passives.isEmpty, stats.adverbs.isEmpty, stats.repeated.isEmpty, stats.hedges.isEmpty, hardSentences.isEmpty, viewModel.style.isEmpty, viewModel.typos.isEmpty,
+            if hardSentenceNotes.isEmpty, stats.passives.isEmpty, weakWords.isEmpty, stats.repeated.isEmpty, viewModel.style.isEmpty, viewModel.typos.isEmpty,
                stats.wordy.isEmpty, viewModel.grammar.isEmpty, viewModel.consistency.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     Divider().padding(.horizontal, 22)
@@ -207,6 +199,39 @@ struct TextStatsView: View {
         let average = stats.sentences > 0 ? Double(stats.words) / Double(stats.sentences) : 0
         return "\(stats.words) words \u{B7} \(stats.sentences) sentence\(stats.sentences == 1 ? "" : "s") \u{B7} "
             + "\(String(format: "%.0f", average)) words per sentence \u{B7} \(minutes) to read \u{B7} \(gradeLabel)"
+    }
+
+    /// Each sentence that is hard to read, once, with every reason: over
+    /// 25 words, above the target grade, over the style rules' limit.
+    private var hardSentenceNotes: [(text: String, reasons: [String])] {
+        var order: [String] = []
+        var reasons: [String: [String]] = [:]
+        func add(_ text: String, _ reason: String) {
+            if reasons[text] == nil { order.append(text) }
+            reasons[text, default: []].append(reason)
+        }
+        if Settings.shows(.longSentences) { for sentence in stats.longSentences { add(sentence.text, "\(sentence.words) words") } }
+        for sentence in hardSentences { add(sentence.text, "grade \(Int(sentence.grade.rounded())), above your target") }
+        if let limit = viewModel.style.sentenceLimit {
+            for sentence in viewModel.style.longSentences { add(sentence, "over your \(limit)-word rule") }
+        }
+        return order.map { ($0, reasons[$0] ?? []) }
+    }
+
+    /// Adverbs and hedges together, each word once with what it is
+    /// ("really: adverb, hedge"), in order of first use.
+    private var weakWords: [(word: String, tags: [String])] {
+        var items: [(word: String, tags: [String])] = []
+        func add(_ word: String, _ tag: String) {
+            if let index = items.firstIndex(where: { $0.word.lowercased() == word.lowercased() }) {
+                items[index].tags.append(tag)
+            } else {
+                items.append((word, [tag]))
+            }
+        }
+        if Settings.shows(.adverbs) { for adverb in stats.adverbs { add(adverb, "adverb") } }
+        if Settings.shows(.hedges) { for hedge in stats.hedges { add(hedge.word, hedge.count > 1 ? "hedge \u{D7}\(hedge.count)" : "hedge") } }
+        return items
     }
 
     /// The sentences above the target grade, if one is set.
@@ -651,15 +676,6 @@ struct TextStatsView: View {
                     }
                     .buttonStyle(.plain)
                 }
-            }
-        }
-        if let limit = style.sentenceLimit, !style.longSentences.isEmpty {
-            Text("Over \(limit) words:").font(.definition).foregroundStyle(.secondary)
-            ForEach(Array(style.longSentences.prefix(3).enumerated()), id: \.offset) { _, sentence in
-                Text("\(sentence.split(whereSeparator: \.isWhitespace).count) words: \u{201C}\(sentence.prefix(80))\(sentence.count > 80 ? "\u{2026}" : "")\u{201D}")
-                    .font(.example)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         ForEach(style.longParagraphs, id: \.number) { paragraph in
