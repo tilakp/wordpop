@@ -7,7 +7,12 @@ import Carbon.HIToolbox
 final class KeyRecorderNSView: NSView {
     var shortcut: HotkeyShortcut = HotkeySettings.current { didSet { needsDisplay = true } }
     var onChange: ((HotkeyShortcut) -> Void)?
-    private var isRecording = false { didSet { needsDisplay = true } }
+    private var isRecording = false {
+        didSet {
+            needsDisplay = true
+            HotkeyManager.isSuspended = isRecording
+        }
+    }
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -34,6 +39,12 @@ final class KeyRecorderNSView: NSView {
     override func resignFirstResponder() -> Bool {
         isRecording = false
         return true
+    }
+
+    // Closing Settings while recording must turn the hotkeys back on.
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil { isRecording = false }
+        super.viewWillMove(toWindow: newWindow)
     }
 
     override func draw(_ dirtyRect: NSRect) {

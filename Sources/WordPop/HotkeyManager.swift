@@ -13,6 +13,25 @@ final class HotkeyManager {
     private static var nextID: UInt32 = 1
     private static var eventHandler: EventHandlerRef?
     private static let signature = OSType(0x5750_4F50) // 'WPOP'
+    private static let all = NSHashTable<HotkeyManager>.weakObjects()
+
+    /// True while a shortcut recorder in Settings records. A registered
+    /// hotkey takes its key press before any window sees it, so without
+    /// this, pressing the lookup shortcut in the Quick Search recorder ran
+    /// a lookup and the "already the Lookup shortcut" message never showed.
+    static var isSuspended = false {
+        didSet {
+            guard isSuspended != oldValue else { return }
+            for manager in all.allObjects {
+                if isSuspended {
+                    if let hotKey = manager.hotKey { UnregisterEventHotKey(hotKey) }
+                    manager.hotKey = nil
+                } else if let shortcut = manager.shortcut {
+                    _ = manager.install(shortcut)
+                }
+            }
+        }
+    }
 
     private let id: UInt32
     private let onPress: () -> Void
@@ -24,6 +43,7 @@ final class HotkeyManager {
         id = Self.nextID
         Self.nextID += 1
         Self.installEventHandlerIfNeeded()
+        Self.all.add(self)
     }
 
     /// Returns false when the shortcut could not be registered, most
