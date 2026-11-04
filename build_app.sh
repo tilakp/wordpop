@@ -7,9 +7,17 @@ cd "$(dirname "$0")"
 
 # Universal: Apple silicon and Intel. The Apple Intelligence features
 # need Apple silicon; everything else runs on Intel Macs too.
-swift build -c release --arch arm64 --arch x86_64
+# The compiler also writes the "const values" of the App Intents types,
+# which Xcode's metadata processor turns into Metadata.appintents below.
+# Without that file Shortcuts and Spotlight do not see WordPop's actions.
+INTENTS_DIR=.build/appintents
+mkdir -p "$INTENTS_DIR"
+echo '["AppIntent","EntityQuery","AppEntity","TransientEntity","AppEnum","AppShortcutProviding","AppShortcutsProvider","AnyResolverProviding","AppIntentsPackage","DynamicOptionsProvider"]' > "$INTENTS_DIR/protocols.json"
+CONST_FLAGS=(-Xswiftc -emit-const-values-path -Xswiftc "$PWD/$INTENTS_DIR/WordPop.swiftconstvalues"
+             -Xswiftc -const-gather-protocols-list -Xswiftc "$PWD/$INTENTS_DIR/protocols.json")
+swift build -c release --arch arm64 --arch x86_64 "${CONST_FLAGS[@]}"
 # A multi-architecture build has no .build/release link; ask for the path.
-BIN_DIR=$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)
+BIN_DIR=$(swift build -c release --arch arm64 --arch x86_64 "${CONST_FLAGS[@]}" --show-bin-path)
 
 APP="WordPop.app"
 rm -rf "$APP"
@@ -20,6 +28,20 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Sources/WordPop/Resources/wordpop.sqlite "$APP/Contents/Resources/wordpop.sqlite"
 cp Sources/WordPop/Resources/examples.sqlite "$APP/Contents/Resources/examples.sqlite"
+
+TOOLCHAIN="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
+if [ -x "$TOOLCHAIN/usr/bin/appintentsmetadataprocessor" ]; then
+    ls "$PWD"/Sources/WordPop/*.swift > "$INTENTS_DIR/sources.txt"
+    echo "$PWD/$INTENTS_DIR/WordPop.swiftconstvalues" > "$INTENTS_DIR/consts.txt"
+    "$TOOLCHAIN/usr/bin/appintentsmetadataprocessor" --quiet-warnings \
+        --output "$APP/Contents/Resources" --toolchain-dir "$TOOLCHAIN" --module-name WordPop \
+        --sdk-root "$(xcrun --show-sdk-path)" --xcode-version "$(xcodebuild -version | awk '/Build version/ {print $3}')" \
+        --platform-family macOS --deployment-target 14.0 --target-triple arm64-apple-macos14.0 \
+        --source-file-list "$INTENTS_DIR/sources.txt" --swift-const-vals-list "$INTENTS_DIR/consts.txt" \
+        --binary-file "$APP/Contents/MacOS/WordPop" 2>&1 | grep -v "^20[0-9-]* [0-9:.]* appintentsmetadataprocessor" || true
+else
+    echo "WARNING: Xcode's appintentsmetadataprocessor not found; the Shortcuts actions will not appear." >&2
+fi
 
 SIGN_IDENTITY="-"
 if security find-identity -v -p codesigning 2>/dev/null | grep -q "WordPop Local Signing"; then

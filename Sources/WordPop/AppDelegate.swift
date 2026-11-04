@@ -190,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showLookup(text)
     }
 
-    private func showLookup(_ text: String) {
+    func showLookup(_ text: String) {
         popupController.show(entry: DictionaryLookup.lookup(text), near: NSEvent.mouseLocation)
     }
 
