@@ -14,7 +14,7 @@ INTENTS_DIR=.build/appintents
 mkdir -p "$INTENTS_DIR"
 echo '["AppIntent","EntityQuery","AppEntity","TransientEntity","AppEnum","AppShortcutProviding","AppShortcutsProvider","AnyResolverProviding","AppIntentsPackage","DynamicOptionsProvider"]' > "$INTENTS_DIR/protocols.json"
 CONST_FLAGS=(-Xswiftc -emit-const-values-path -Xswiftc "$PWD/$INTENTS_DIR/WordPop.swiftconstvalues"
-             -Xswiftc -const-gather-protocols-list -Xswiftc "$PWD/$INTENTS_DIR/protocols.json")
+             -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$PWD/$INTENTS_DIR/protocols.json")
 swift build -c release --arch arm64 --arch x86_64 "${CONST_FLAGS[@]}"
 # A multi-architecture build has no .build/release link; ask for the path.
 BIN_DIR=$(swift build -c release --arch arm64 --arch x86_64 "${CONST_FLAGS[@]}" --show-bin-path)
