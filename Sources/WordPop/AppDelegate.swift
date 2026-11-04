@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         requestAccessibilityPermissionIfNeeded()
         warmDatasetCachesInBackground()
+        LiveCheck.shared.apply()
 
         hotkeyManager = HotkeyManager { [weak self] in
             self?.handleHotkey()

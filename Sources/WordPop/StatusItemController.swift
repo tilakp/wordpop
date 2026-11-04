@@ -6,6 +6,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private let lookUpHintItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let quickSearchItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let liveCheckItem = NSMenuItem(title: "Underline Wordy Phrases in TextEdit and Notes (Beta)", action: nil, keyEquivalent: "")
     private let onQuickSearch: () -> Void
     private let onWelcome: () -> Void
     private let onPreferences: () -> Void
@@ -34,6 +35,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         quickSearchItem.action = #selector(quickSearchClicked)
         quickSearchItem.target = self
         menu.addItem(quickSearchItem)
+        liveCheckItem.action = #selector(liveCheckClicked)
+        liveCheckItem.target = self
+        menu.addItem(liveCheckItem)
         menu.addItem(.separator())
         let preferencesItem = NSMenuItem(title: "Settings\u{2026}", action: #selector(preferencesClicked), keyEquivalent: ",")
         preferencesItem.target = self
@@ -70,10 +74,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         ReplacedWords.shared.clear()
     }
     @objc private func quitClicked() { onQuit() }
+    @objc private func liveCheckClicked() { LiveCheck.shared.isOn.toggle() }
 
     /// The two shortcuts, as they are set now.
     func menuWillOpen(_ menu: NSMenu) {
         lookUpHintItem.title = "Look up: select text and press \(HotkeySettings.current.displayString)"
         quickSearchItem.title = "Quick Search (\(HotkeySettings.quickSearch.displayString))"
+        liveCheckItem.state = LiveCheck.shared.isOn ? .on : .off
     }
 }
